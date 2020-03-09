@@ -1,10 +1,12 @@
 package transaction_manager;
 
+import java.util.List;
+
 public interface Transaction {
 
     void flush();
-    void write(key, value);
-    void delete(key);
-    Object read(key, Ts);
-    List<Object> read(List keys, Ts);
+    void write(byte[] key, byte[] value);
+    void delete(byte[] key);
+    byte[] read(byte[] key);
+    List<byte[]> scan(List<byte[]> keys);
 }
