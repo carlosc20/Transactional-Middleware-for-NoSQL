@@ -7,9 +7,9 @@ import io.atomix.core.Atomix;
 import io.atomix.core.AtomixBuilder;
 import io.atomix.utils.net.Address;
 
-public class NPVSimpl implements NPVS {
+public class NPVSImpl implements NPVS {
 
-    public NPVSimpl() {
+    public NPVSImpl() {
         AtomixBuilder builder = Atomix.builder();
         builder.withMemberId("member1")
                 .withAddress(Address.from(5000))
