@@ -16,6 +16,7 @@ public class TransactionImpl implements Transaction {
     private WriteSet ws;
 
     public TransactionImpl(NPVS npvs, KeyValueDriver driver, Timestamp ts) {
+        this.ws = new WriteSetImpl();
         this.npvs = npvs;
         this.driver = driver;
         this.ts = ts;
@@ -40,7 +41,7 @@ public class TransactionImpl implements Transaction {
     public void delete(byte[] key) {
         if(!ws.contains(key))
             ws.insert(key);
-        ws.addRemoveOp(key);
+        ws.addDeleteOp(key);
     }
 
     @Override

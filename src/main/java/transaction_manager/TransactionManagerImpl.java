@@ -1,8 +1,10 @@
 package transaction_manager;
 
 import certifier.Certifier;
+import certifier.CertifierStub;
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
+import nosql.MongoKV;
 import npvs.NPVS;
 import npvs.NPVSImpl;
 
@@ -17,8 +19,8 @@ public class TransactionManagerImpl implements TransactionManager {
 
     public TransactionManagerImpl() {
         npvs = new NPVSImpl();
-        driver = null;
-        certifier = null;
+        driver = new MongoKV("mongodb://hostOne:27017");
+        certifier = new CertifierStub("localhost:6000");
     }
 
     @Override

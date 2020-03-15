@@ -39,7 +39,7 @@ public class NPVSImpl implements NPVS {
     }
 
     @Override
-    public byte[] read(byte[] key) {
+    public byte[] read(byte[] key, Timestamp ts) {
         return new byte[0];
     }
 }
