@@ -5,20 +5,20 @@ import nosql.KeyValueDriver;
 import npvs.NPVS;
 
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class TransactionImpl implements Transaction {
 
-
     private NPVS npvs;
     private KeyValueDriver driver;
     private Timestamp ts;
 
-    private Map<byte[],byte[]> map;
+    private Map<byte[],byte[]> writeMap;
 
     public TransactionImpl(NPVS npvs, KeyValueDriver driver, Timestamp ts) {
+        this.writeMap = new HashMap<>();
         this.npvs = npvs;
         this.driver = driver;
         this.ts = ts;
@@ -26,34 +26,32 @@ public class TransactionImpl implements Transaction {
 
     @Override
     public void flush() {
-        //TODO atualizar NPVS com writeset, async???
-        //TODO depois atualizar BD com writeset
-
+        npvs.update(writeMap, ts); // async?
+        driver.update(writeMap);
     }
 
     @Override
     public void write(byte[] key, byte[] value) {
-         map.put(key,value);
+         writeMap.put(key,value);
     }
 
     @Override
     public void delete(byte[] key) {
-        map.put(key,null);
+        writeMap.put(key,null);
     }
 
     @Override
     public byte[] read(byte[] key) {
         // procura no WriteSet da transação, se já tiver alguma operação
-        if (map.containsKey(key))
-            return map.get(key);
+        if (writeMap.containsKey(key))
+            return writeMap.get(key);
 
-        // procura na BD se a transação mais recente que modificou o item deu commit antes do início desta transação
-        byte[] contentBD = driver.read(key);
-        if (contentBD != null && ts > contentBD.getCommitTs) // TODO ??
-            return contentBD;
+        // procura no npvs se existem concorrentes, se sim devolve a versao do ts
+        // TODO ver se ha commits posteriores ao ts
+        npvs.read(key, ts);
 
-        // existem concorrentes, se não existe a chave devolve null
-        return npvs.read(key, ts);
+        // não existem concorrentes logo vai buscar à BD, se a chave não existe devolve null
+        return driver.read(key);
     }
 
     @Override
@@ -67,7 +65,9 @@ public class TransactionImpl implements Transaction {
     @Override
     public BitWriteSet getWriteSet() {
         BitWriteSet ws = new BitWriteSet();
-
+        for (byte[] key : writeMap.keySet()) {
+            ws.add(key);
+        }
         return ws;
     }
 }

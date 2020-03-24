@@ -2,8 +2,10 @@ package npvs;
 
 import certifier.Timestamp;
 
+import java.util.Map;
+
 public interface NPVS {
 
-    void write(byte[] key, byte[] value, Timestamp ts);
+    void update(Map<byte[],byte[]> writeMap, Timestamp ts);
     byte[] read(byte[] key, Timestamp ts);
 }

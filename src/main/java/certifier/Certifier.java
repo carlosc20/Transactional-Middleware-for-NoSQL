@@ -1,7 +1,9 @@
 package certifier;
 
+import transaction_manager.BitWriteSet;
+
 public interface Certifier {
     Timestamp start();
-    Timestamp commit(WriteSet ws);
+    Timestamp commit(BitWriteSet ws);
     void update();
 }

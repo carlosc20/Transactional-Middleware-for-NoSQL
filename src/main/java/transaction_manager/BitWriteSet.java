@@ -20,7 +20,7 @@ public class BitWriteSet {
         set.set(index, true);
     }
 
-    public boolean checkConflict(BitWriteSet set) {
+    public boolean intersects(BitWriteSet set) {
         return this.set.intersects(set.getSet());
     }
 

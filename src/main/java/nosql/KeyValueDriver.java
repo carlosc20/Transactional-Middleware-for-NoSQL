@@ -1,9 +1,11 @@
 package nosql;
 
+import java.util.List;
+import java.util.Map;
+
 public interface KeyValueDriver {
 
     byte[] read(byte[] key);
-    void write(byte[] key, byte[] value);
-    void delete(byte[] key);
-    // scan?
+    void update(Map<byte[],byte[]> writeMap);
+
 }
