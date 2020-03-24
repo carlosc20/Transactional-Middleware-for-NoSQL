@@ -5,7 +5,9 @@ import nosql.KeyValueDriver;
 import npvs.NPVS;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
+import java.util.Map;
 
 public class TransactionImpl implements Transaction {
 
@@ -13,10 +15,10 @@ public class TransactionImpl implements Transaction {
     private NPVS npvs;
     private KeyValueDriver driver;
     private Timestamp ts;
-    private WriteSet ws;
+
+    private Map<byte[],byte[]> map;
 
     public TransactionImpl(NPVS npvs, KeyValueDriver driver, Timestamp ts) {
-        this.ws = new WriteSetImpl();
         this.npvs = npvs;
         this.driver = driver;
         this.ts = ts;
@@ -24,7 +26,6 @@ public class TransactionImpl implements Transaction {
 
     @Override
     public void flush() {
-        ws.optimize();
         //TODO atualizar NPVS com writeset, async???
         //TODO depois atualizar BD com writeset
 
@@ -32,27 +33,23 @@ public class TransactionImpl implements Transaction {
 
     @Override
     public void write(byte[] key, byte[] value) {
-        if(!ws.contains(key))
-            ws.insert(key);
-        ws.addWriteOp(key, value);
+         map.put(key,value);
     }
 
     @Override
     public void delete(byte[] key) {
-        if(!ws.contains(key))
-            ws.insert(key);
-        ws.addDeleteOp(key);
+        map.put(key,null);
     }
 
     @Override
     public byte[] read(byte[] key) {
         // procura no WriteSet da transação, se já tiver alguma operação
-        if (ws.contains(key))
-            return ws.read(key);
+        if (map.containsKey(key))
+            return map.get(key);
 
         // procura na BD se a transação mais recente que modificou o item deu commit antes do início desta transação
         byte[] contentBD = driver.read(key);
-        if (contentBD != null && ts > contentBD.getCommitTs) // TODO obter value e timestamp do read
+        if (contentBD != null && ts > contentBD.getCommitTs) // TODO ??
             return contentBD;
 
         // existem concorrentes, se não existe a chave devolve null
@@ -65,5 +62,12 @@ public class TransactionImpl implements Transaction {
         for(byte[] key : keys)
             list.add(read(key));
         return list;
+    }
+
+    @Override
+    public BitWriteSet getWriteSet() {
+        BitWriteSet ws = new BitWriteSet();
+
+        return ws;
     }
 }

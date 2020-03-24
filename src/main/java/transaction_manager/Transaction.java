@@ -9,4 +9,5 @@ public interface Transaction {
     void delete(byte[] key);
     byte[] read(byte[] key);
     List<byte[]> scan(List<byte[]> keys);
+    BitWriteSet getWriteSet();
 }

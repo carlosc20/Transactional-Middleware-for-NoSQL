@@ -6,7 +6,6 @@ import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
 import io.atomix.core.Atomix;
 import io.atomix.core.AtomixBuilder;
 import io.atomix.utils.net.Address;
-import transaction_manager.Transaction;
 
 
 public class CertifierStub implements Certifier {
@@ -48,7 +47,7 @@ public class CertifierStub implements Certifier {
     }
 
     @Override
-    public Timestamp commit(Transaction ws) {
+    public Timestamp commit(WriteSet ws) {
         try {
             return new Timestamp(atomix.getCommunicationService().send("commit", null, MemberId.from("certifier")).thenApply(response -> {
                 return (int) response;

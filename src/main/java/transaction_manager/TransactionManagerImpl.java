@@ -33,7 +33,7 @@ public class TransactionManagerImpl implements TransactionManager {
     @Override
     public void tryCommit(Transaction tx) {
 
-        Timestamp ts = certifier.commit(tx);
+        Timestamp ts = certifier.commit(tx.getWriteSet());
         if(ts == null)
             System.out.println("erro");
         tx.flush();
