@@ -17,7 +17,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 
     public TransactionManagerImpl() {
-        npvs = new NPVSStub();
+        npvs = new NPVSStub(0,0);
         driver = new MongoKV("mongodb://hostOne:27017");
         certifier = new CertifierStub("localhost:6000");
     }
