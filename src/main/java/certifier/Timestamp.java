@@ -12,4 +12,8 @@ public class Timestamp implements Comparable<Timestamp> {
     public int compareTo(Timestamp o) {
         return o.ts - ts;
     }
+
+    public void increment(){
+        ts++;
+    }
 }

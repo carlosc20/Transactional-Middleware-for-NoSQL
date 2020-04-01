@@ -3,7 +3,7 @@ package certifier;
 import transaction_manager.BitWriteSet;
 
 public interface Certifier {
-    Timestamp start();
-    Timestamp commit(BitWriteSet ws);
+    long start();
+    long commit(BitWriteSet ws, long ts);
     void update();
 }

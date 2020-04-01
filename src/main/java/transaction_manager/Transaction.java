@@ -1,5 +1,7 @@
 package transaction_manager;
 
+import certifier.Timestamp;
+
 import java.util.List;
 
 public interface Transaction {
@@ -10,6 +12,7 @@ public interface Transaction {
     List<byte[]> scan(List<byte[]> keys);
 
     // ?
-    void flush();
+    void flush(long tx);
+    long getStartTimestamp();
     BitWriteSet getWriteSet();
 }

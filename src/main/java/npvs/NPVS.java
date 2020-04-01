@@ -7,6 +7,6 @@ import java.util.concurrent.CompletableFuture;
 
 public interface NPVS {
 
-    void update(Map<byte[],byte[]> writeMap, Timestamp ts);
-    CompletableFuture<byte[]> read(byte[] key, Timestamp ts);
+    void update(Map<byte[],byte[]> writeMap, long ts);
+    CompletableFuture<byte[]> read(byte[] key, long ts);
 }

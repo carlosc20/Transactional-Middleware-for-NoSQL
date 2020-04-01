@@ -13,11 +13,11 @@ public class TransactionImpl implements Transaction {
 
     private NPVS npvs;
     private KeyValueDriver driver;
-    private Timestamp ts;
+    private long ts;
 
     private Map<byte[],byte[]> writeMap;
 
-    public TransactionImpl(NPVS npvs, KeyValueDriver driver, Timestamp ts) {
+    public TransactionImpl(NPVS npvs, KeyValueDriver driver, long ts) {
         this.writeMap = new HashMap<>();
         this.npvs = npvs;
         this.driver = driver;
@@ -25,9 +25,14 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    public void flush() {
-        npvs.update(writeMap, ts); // async?
+    public void flush(long tc) {
+        npvs.update(writeMap, tc); // async?
         driver.update(writeMap);
+    }
+
+    @Override
+    public long getStartTimestamp() {
+        return ts;
     }
 
     @Override

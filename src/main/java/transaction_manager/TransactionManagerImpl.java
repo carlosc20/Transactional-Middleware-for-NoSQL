@@ -25,16 +25,16 @@ public class TransactionManagerImpl implements TransactionManager {
     @Override
     public Transaction startTransaction() {
 
-        Timestamp ts = certifier.start();
+        long ts = certifier.start();
         return new TransactionImpl(npvs, driver, ts);
     }
 
     @Override
     public void tryCommit(Transaction tx) {
 
-        Timestamp ts = certifier.commit(tx.getWriteSet());
-        if(ts != null) {
-            tx.flush();
+        long tc = certifier.commit(tx.getWriteSet(), tx.getStartTimestamp());
+        if(tc > 0) {
+            tx.flush(tc);
             certifier.update();
         } else {
             System.out.println("abort");
