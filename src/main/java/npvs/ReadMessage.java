@@ -1,24 +1,27 @@
 package npvs;
 
-import certifier.Timestamp;
+import utils.ByteArrayWrapper;
 
 import java.util.Arrays;
 
 public class ReadMessage {
-    byte[] key;
-    Timestamp ts;
+    ByteArrayWrapper key;
+    long ts;
+    //temp
+    int id;
 
 
-    public ReadMessage(byte[] key, Timestamp ts){
+    public ReadMessage(ByteArrayWrapper key, long ts, int id){
         this.key = key;
         this.ts = ts;
+        this.id = id;
     }
 
     @Override
     public String toString() {
         return "ReadMessage{" +
-                "key=" + Arrays.toString(key) +
-                "timestamp= " + ts.toString() +
+                "key=" + key.toString() +
+                "timestamp= " + ts +
                 '}';
     }
 }

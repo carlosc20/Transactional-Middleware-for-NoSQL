@@ -1,12 +1,12 @@
 package npvs;
 
-import certifier.Timestamp;
+import utils.ByteArrayWrapper;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface NPVS {
 
-    void update(Map<byte[],byte[]> writeMap, long ts);
-    CompletableFuture<byte[]> read(byte[] key, long ts);
+    void update(Map<ByteArrayWrapper,byte[]> writeMap, long ts);
+    CompletableFuture<byte[]> read(ByteArrayWrapper key, long ts);
 }
