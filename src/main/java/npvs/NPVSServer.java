@@ -18,7 +18,7 @@ public class NPVSServer {
     private ManagedMessagingService mms;
     private ExecutorService e;
     private Serializer s;
-    private NPVSImplTM npvs;
+    private NPVSImplBS npvs;
 
     public NPVSServer(int port){
         e = Executors.newFixedThreadPool(1);
@@ -32,7 +32,7 @@ public class NPVSServer {
                 "server",
                 Address.from(port),
                 new MessagingConfig());
-        this.npvs = new NPVSImplTM();
+        this.npvs = new NPVSImplBS();
         start();
     }
 

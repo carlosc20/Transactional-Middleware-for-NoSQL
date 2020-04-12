@@ -7,18 +7,17 @@ import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
-import io.netty.channel.ConnectTimeoutException;
 import utils.ByteArrayWrapper;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+
 
 public class NPVSStub implements NPVS {
     private ManagedMessagingService mms;
@@ -81,7 +80,7 @@ public class NPVSStub implements NPVS {
         npvs.update(writeMap, 1);
         writeMap.put(baw1, "dantas2".getBytes());
         npvs.update(writeMap, 2);
-        writeMap.put(baw1, "dantas3".getBytes());
+        writeMap.put(baw1, "dantas4".getBytes());
         npvs.update(writeMap, 4);
         writeMap.put(baw1, "dantas10".getBytes());
         npvs.update(writeMap, 10);
