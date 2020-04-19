@@ -12,6 +12,10 @@ public final class ByteArrayWrapper {
         this.data = data;
     }
 
+    public byte[] getData() {
+        return data;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -27,8 +31,6 @@ public final class ByteArrayWrapper {
 
     @Override
     public String toString() {
-        return "ByteArrayWrapper{" +
-                "data=" + Arrays.toString(data) +
-                '}';
+        return new String(this.data);
     }
 }
