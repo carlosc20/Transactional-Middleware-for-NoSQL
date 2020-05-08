@@ -1,9 +1,10 @@
 package transaction_manager;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.BitSet;
 
-public class BitWriteSet {
+public class BitWriteSet implements Serializable {
 
     private BitSet set;
 

@@ -3,14 +3,12 @@ package certifier;
 import io.atomix.cluster.MemberId;
 import io.atomix.cluster.Node;
 import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
-import io.atomix.core.Atomix;
-import io.atomix.core.AtomixBuilder;
 import io.atomix.utils.net.Address;
 import transaction_manager.BitWriteSet;
 
 
-public class CertifierStub implements Certifier {
-
+public class CertifierStub {
+/*
     private Atomix atomix;
 
     public CertifierStub(String uri) {
@@ -63,4 +61,6 @@ public class CertifierStub implements Certifier {
     public void update() {
 
     }
+
+ */
 }

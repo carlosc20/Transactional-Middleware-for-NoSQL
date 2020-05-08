@@ -3,40 +3,50 @@ package certifier;
 import transaction_manager.BitWriteSet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class CertifierImpl implements Certifier {
 
     private long currentTs;
-    private List<List<BitWriteSet>> history;
+    //TODO cuidado com clientes que não tentaram dar commit -> forced garbage collection
+    //TODO garbage collection
+
+    private Map<Long, IsolatedWrites> history;
 
     public CertifierImpl() {
         currentTs = 0;
-        history = new ArrayList<>();
+        history = new HashMap<>();
     }
-
-    //TODO tudo
 
     @Override
     public long start() {
+        IsolatedWrites iw = history.get(currentTs);
+        if(iw == null){
+            iw = new IsolatedWrites();
+            history.put(currentTs, iw);
+        }
+        iw.started();
         return currentTs;
     }
 
     @Override
     public long commit(BitWriteSet ws, long ts) {
+        //TODO pq não i <= currentTs (currentTs até pode ser igual a ts) ?
         for (long i = ts; i < currentTs; i++) {
-            List<BitWriteSet> txs = history.get((int)i);
-            for (BitWriteSet set : txs) {
+            IsolatedWrites iw  = history.get(i);
+            for (BitWriteSet set : iw.getWriteSets()) {
                 if(set.intersects(ws)) return -1;
             }
         }
-        List<BitWriteSet> currentTxs = history.get((int)currentTs);
+        IsolatedWrites currentTxs = history.get(currentTs);
         if (currentTxs == null){
-            currentTxs = new ArrayList<>();
-            history.add((int)currentTs, currentTxs);
+            currentTxs =  new IsolatedWrites();
+            history.put(currentTs, currentTxs);
         }
-        currentTxs.add((int)ts,ws);
+        currentTxs.commit(ws);
         return currentTs;
     }
 
