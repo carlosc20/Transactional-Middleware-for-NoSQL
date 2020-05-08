@@ -1,10 +1,7 @@
 package certifier;
 
 import transaction_manager.BitWriteSet;
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -22,6 +19,7 @@ public class CertifierImpl implements Certifier {
     }
 
     @Override
+    //TODO separar a leitura do currentTs com a criação do isolatedWrites
     public long start() {
         IsolatedWrites iw = history.get(currentTs);
         if(iw == null){
@@ -38,13 +36,19 @@ public class CertifierImpl implements Certifier {
         for (long i = ts; i < currentTs; i++) {
             IsolatedWrites iw  = history.get(i);
             for (BitWriteSet set : iw.getWriteSets()) {
-                if(set.intersects(ws)) return -1;
+                if(set.intersects(ws)) {
+                    history.get(ts).terminated();
+                    return -1;
+                }
             }
         }
         IsolatedWrites currentTxs = history.get(currentTs);
         if (currentTxs == null){
             currentTxs =  new IsolatedWrites();
             history.put(currentTs, currentTxs);
+            //termina transação
+            //TODO e se o flush para a bd correu mal?
+            history.get(ts).terminated();
         }
         currentTxs.commit(ws);
         return currentTs;

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IsolatedWrites {
+    // quantidade de transações que começaram e ainda não acabar no Ts associado a esta classe
     private int numRunning;
     private List<BitWriteSet> writeSets;
 
@@ -15,7 +16,6 @@ public class IsolatedWrites {
     }
 
     public void commit(BitWriteSet bws){
-        this.numRunning--;
         this.writeSets.add(bws);
     }
 
@@ -23,7 +23,7 @@ public class IsolatedWrites {
         this.numRunning++;
     }
 
-    public void aborted(){
+    public void terminated(){
         this.numRunning--;
     }
 
