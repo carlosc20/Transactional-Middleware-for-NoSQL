@@ -7,13 +7,12 @@ import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.rpc.InvokeCallback;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import com.alipay.sofa.jraft.error.RemotingException;
-import jraft.rpc.PutRequest;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
 public class CertifierClient {
-
+/*
     public static void main(final String[] args) throws Exception {
         if (args.length != 2) {
             System.out.println("Useage : java com.alipay.sofa.jraft.example.counter.CounterClient {groupId} {conf}");
@@ -102,5 +101,5 @@ public class CertifierClient {
             }
         }, 5000);
     }
-
+*/
 }
