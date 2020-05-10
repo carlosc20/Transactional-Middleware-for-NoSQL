@@ -2,14 +2,12 @@ package certifier;
 
 import io.atomix.cluster.Node;
 import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
-import io.atomix.core.Atomix;
-import io.atomix.core.AtomixBuilder;
 import io.atomix.utils.net.Address;
 
 import java.util.concurrent.CompletableFuture;
 
 public class CertifierServer {
-
+/*
     private Atomix atomix;
 
     public CertifierServer() {
@@ -46,5 +44,5 @@ public class CertifierServer {
         });
     }
 
-
+*/
 }

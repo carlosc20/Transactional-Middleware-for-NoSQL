@@ -18,6 +18,11 @@ public class CertifierImpl implements Certifier {
         history = new HashMap<>();
     }
 
+    public CertifierImpl(CertifierImpl certifier){
+        this.currentTs = certifier.currentTs;
+        this.history = new HashMap<>(certifier.history);
+    }
+
     @Override
     //TODO separar a leitura do currentTs com a criação do isolatedWrites
     public long start() {
@@ -57,5 +62,21 @@ public class CertifierImpl implements Certifier {
     @Override
     public void update() {
         currentTs++;
+    }
+
+    public void setCurrentTs(long currentTs) {
+        this.currentTs = currentTs;
+    }
+
+    public void setHistory(Map<Long, IsolatedWrites> history) {
+        this.history = new HashMap<>(history);
+    }
+
+    public long getCurrentTs() {
+        return currentTs;
+    }
+
+    public Map<Long, IsolatedWrites> getHistory() {
+        return history;
     }
 }

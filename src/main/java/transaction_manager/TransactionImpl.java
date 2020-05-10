@@ -1,6 +1,5 @@
 package transaction_manager;
 
-import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
 
