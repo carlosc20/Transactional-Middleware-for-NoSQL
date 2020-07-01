@@ -35,9 +35,10 @@ public class MongoKV implements KeyValueDriver {
     @Override
     public byte[] read(byte[] key) {
         Document doc = collection.find(eq("_id", new String(key))).first();
-        if(doc != null)
-            return ((Binary) doc.get("value")).getData();
-        return null;
+        if(doc == null)
+            return null;
+
+        return ((Binary) doc.get("value")).getData();
     }
 
     public List<byte[]> scan(List<byte[]> keyList) {
@@ -45,7 +46,6 @@ public class MongoKV implements KeyValueDriver {
     }
 
     @Override
-    // todo haverá diferença entre inserir/apagar muitos de uma vez ou um de cada vez?
     public void update(Map<ByteArrayWrapper, byte[]> writeMap) {
         for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()){
             byte[] value = kv.getValue();
@@ -59,15 +59,5 @@ public class MongoKV implements KeyValueDriver {
         }
     }
 
-    public static void main(String[] args) {
-        MongoKV mkv = new MongoKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
-        HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();
-        ByteArrayWrapper baw2 = new ByteArrayWrapper("carlos".getBytes());
-        writeMap.put(baw2, "castro2".getBytes());
-        mkv.update(writeMap);
-        ArrayList<byte[]> query= new ArrayList<>();
-        query.add("carlos".getBytes());
-        query.add("marco".getBytes());
-        mkv.scan(query).forEach(v -> System.out.println(new String(v)));
-    }
+
 }

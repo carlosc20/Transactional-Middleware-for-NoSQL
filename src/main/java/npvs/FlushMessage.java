@@ -1,14 +1,15 @@
 package npvs;
 
+import certifier.Timestamp;
 import utils.ByteArrayWrapper;
 
 import java.util.Map;
 
 public class FlushMessage {
     Map<ByteArrayWrapper, byte[]> writeMap;
-    long timestamp;
+    Timestamp timestamp;
 
-    public FlushMessage(Map<ByteArrayWrapper, byte[]> ws, long ts){
+    public FlushMessage(Map<ByteArrayWrapper, byte[]> ws, Timestamp ts){
         this.writeMap = ws;
         this.timestamp = ts;
     }

@@ -1,8 +1,10 @@
 package jraft;
 
+import certifier.Timestamp;
 import transaction_manager.BitWriteSet;
 
 import java.io.Serializable;
+import java.sql.Time;
 
 public class CertifierOperation implements Serializable {
 
@@ -14,24 +16,24 @@ public class CertifierOperation implements Serializable {
     public static final byte  COMMIT = 0x02;
 
     private byte op;
-    private long timestamp;
+    private Timestamp timestamp;
     private BitWriteSet bws;
 
     public static CertifierOperation createGetTimestamp() {
         return new CertifierOperation(GET_TS);
     }
 
-    public static CertifierOperation createCommit(BitWriteSet bws, final long timestamp) {
+    public static CertifierOperation createCommit(BitWriteSet bws, final Timestamp timestamp) {
         return new CertifierOperation(COMMIT, timestamp, bws);
     }
 
     public CertifierOperation(byte op) {
         this.op = op;
-        this.timestamp = -1;
+        this.timestamp = new Timestamp(-1);
         this.bws = null;
     }
 
-    public CertifierOperation(byte op, long timestamp, BitWriteSet bws) {
+    public CertifierOperation(byte op, Timestamp timestamp, BitWriteSet bws) {
         this.op = op;
         this.timestamp = timestamp;
         this.bws = bws;
@@ -41,7 +43,7 @@ public class CertifierOperation implements Serializable {
         return op;
     }
 
-    public long getTimestamp() {
+    public Timestamp getTimestamp() {
         return timestamp;
     }
 

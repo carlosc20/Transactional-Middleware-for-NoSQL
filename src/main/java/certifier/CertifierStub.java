@@ -3,12 +3,14 @@ package certifier;
 import io.atomix.cluster.MemberId;
 import io.atomix.cluster.Node;
 import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
+import io.atomix.core.Atomix;
+import io.atomix.core.AtomixBuilder;
 import io.atomix.utils.net.Address;
 import transaction_manager.BitWriteSet;
 
 
-public class CertifierStub {
-/*
+public class CertifierStub implements Certifier {
+
     private Atomix atomix;
 
     public CertifierStub(String uri) {
@@ -46,7 +48,7 @@ public class CertifierStub {
     }
 
     @Override
-    public Timestamp commit(BitWriteSet ws) {
+    public Timestamp commit(BitWriteSet ws, Timestamp ts) {
         try {
             return new Timestamp(atomix.getCommunicationService().send("commit", null, MemberId.from("certifier")).thenApply(response -> {
                 return (int) response;
@@ -57,10 +59,11 @@ public class CertifierStub {
         }
     }
 
+
     @Override
     public void update() {
 
     }
 
- */
+
 }

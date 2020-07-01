@@ -7,14 +7,14 @@ import java.util.Map;
 
 public class CertifierImpl implements Certifier {
 
-    private long currentTs;
+    private Timestamp currentTs;
     //TODO cuidado com clientes que não tentaram dar commit -> forced garbage collection
     //TODO garbage collection
 
-    private Map<Long, IsolatedWrites> history;
+    private Map<Timestamp, IsolatedWrites> history;
 
     public CertifierImpl() {
-        currentTs = 0;
+        currentTs = new Timestamp(0);
         history = new HashMap<>();
     }
 
@@ -25,7 +25,7 @@ public class CertifierImpl implements Certifier {
 
     @Override
     //TODO separar a leitura do currentTs com a criação do isolatedWrites
-    public long start() {
+    public Timestamp start() {
         IsolatedWrites iw = history.get(currentTs);
         if(iw == null){
             iw = new IsolatedWrites();
@@ -36,14 +36,15 @@ public class CertifierImpl implements Certifier {
     }
 
     @Override
-    public long commit(BitWriteSet ws, long ts) {
+    // TODO converter para timestamp
+    public Timestamp commit(BitWriteSet ws, Timestamp ts) {
         //TODO pq não i <= currentTs (currentTs até pode ser igual a ts) ?
-        for (long i = ts; i < currentTs; i++) {
-            IsolatedWrites iw  = history.get(i);
+        for (long i = ts.toLong(); i < currentTs.toLong(); i++) {
+            IsolatedWrites iw  = history.get(new Timestamp(i));
             for (BitWriteSet set : iw.getWriteSets()) {
                 if(set.intersects(ws)) {
                     history.get(ts).terminated();
-                    return -1;
+                    return new Timestamp(-1);
                 }
             }
         }
@@ -61,22 +62,22 @@ public class CertifierImpl implements Certifier {
 
     @Override
     public void update() {
-        currentTs++;
+        currentTs.increment();
     }
 
-    public void setCurrentTs(long currentTs) {
+    public void setCurrentTs(Timestamp currentTs) {
         this.currentTs = currentTs;
     }
 
-    public void setHistory(Map<Long, IsolatedWrites> history) {
+    public void setHistory(Map<Timestamp, IsolatedWrites> history) {
         this.history = new HashMap<>(history);
     }
 
-    public long getCurrentTs() {
+    public Timestamp getCurrentTs() {
         return currentTs;
     }
 
-    public Map<Long, IsolatedWrites> getHistory() {
+    public Map<Timestamp, IsolatedWrites> getHistory() {
         return history;
     }
 }

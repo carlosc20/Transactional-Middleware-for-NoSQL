@@ -12,7 +12,7 @@ public interface Transaction {
     List<byte[]> scan(List<byte[]> keys);
 
     // ?
-    void flush(long tx);
-    long getStartTimestamp();
+    void flush(Timestamp tc);
+    Timestamp getStartTimestamp();
     BitWriteSet getWriteSet();
 }

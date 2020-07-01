@@ -3,6 +3,7 @@ package jraft;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Executor;
 
+import certifier.Timestamp;
 import com.alipay.sofa.jraft.rhea.StoreEngineHelper;
 import com.alipay.sofa.jraft.rhea.options.StoreEngineOptions;
 import org.apache.commons.lang.StringUtils;
@@ -39,7 +40,7 @@ public class CertifierServiceImpl implements CertifierService {
     }
 
     @Override
-    public void getTimestamp(final boolean readOnlySafe, final CertifierClosure<Long> closure) {
+    public void getTimestamp(final boolean readOnlySafe, final CertifierClosure<Timestamp> closure) {
         if(!readOnlySafe){
             closure.success(getTimestamp());
             closure.run(Status.OK());
@@ -70,7 +71,7 @@ public class CertifierServiceImpl implements CertifierService {
         return this.certifierServer.getFsm().isLeader();
     }
 
-    private long getTimestamp() {
+    private Timestamp getTimestamp() {
         return this.certifierServer.getFsm().getTimestamp();
     }
 
@@ -79,11 +80,11 @@ public class CertifierServiceImpl implements CertifierService {
     }
 
     @Override
-    public void commit(final BitWriteSet bws, final long timestamp, final CertifierClosure<Long> closure) {
+    public void commit(final BitWriteSet bws, final Timestamp timestamp, final CertifierClosure<Timestamp> closure) {
         applyOperation(CertifierOperation.createCommit(bws, timestamp), closure);
     }
 
-    private void applyOperation(final CertifierOperation op, final CertifierClosure<Long> closure) {
+    private void applyOperation(final CertifierOperation op, final CertifierClosure<Timestamp> closure) {
         if (!isLeader()) {
             handlerNotLeaderError(closure);
             return;

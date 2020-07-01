@@ -3,6 +3,7 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 
+import certifier.Timestamp;
 import jraft.rpc.*;
 import org.apache.commons.io.FileUtils;
 
@@ -29,10 +30,10 @@ public class CertifierServer {
         // Register the business processor.
 
         CertifierService certifierService = new CertifierServiceImpl(this);
-        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Long>(TransactionCommitRequest.class,
-                (req , closure) -> certifierService.commit(req.getBws(), req.getTimestamp(), closure)));
+        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Timestamp>(TransactionCommitRequest.class,
+                (req , closure) -> certifierService.commit(req.getBws(), new Timestamp(req.getTimestamp()), closure)));
 
-        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Long>(TransactionStartRequest.class,
+        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Timestamp>(TransactionStartRequest.class,
                 (req , closure) -> certifierService.getTimestamp(req.isReadOnlySafe(), closure)));
 
         // Initialize the state machine.

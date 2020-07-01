@@ -1,5 +1,6 @@
 package npvs.binarysearch;
 
+import certifier.Timestamp;
 import npvs.NPVS;
 import utils.ByteArrayWrapper;
 
@@ -26,7 +27,7 @@ public class NPVSImplBS implements NPVS {
     }
 
     @Override
-    public void update(Map<ByteArrayWrapper, byte[]> writeMap, long ts){
+    public void update(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp ts){
         writeMap.forEach((key,v) -> {
             Version newV = new Version(v, ts);
             if(versionsByKey.containsKey(key))
@@ -41,7 +42,7 @@ public class NPVSImplBS implements NPVS {
     }
 
     @Override
-    public CompletableFuture<byte[]> read(ByteArrayWrapper key, long ts) {
+    public CompletableFuture<byte[]> read(ByteArrayWrapper key, Timestamp ts) {
         if(!versionsByKey.containsKey(key)){
             System.out.println("no key");
             return CompletableFuture.completedFuture(null);
@@ -51,14 +52,15 @@ public class NPVSImplBS implements NPVS {
     }
 
     // TODO Ver caso sério de ao fazer garbage collection vir um pedir um antigo e só existem versões posteriores a esse
-    private byte[] getSICompliantVersion(ArrayList<Version> versions, long ts) {
+    private byte[] getSICompliantVersion(ArrayList<Version> versions, Timestamp ts) {
         // só existem versões antigas ou a minha na cabeça do array
         System.out.println(versions.toString());
         System.out.println("arrived ts: "+ ts);
         int size = versions.size();
-        if (ts >= versions.get(size - 1).ts)
+        long t = ts.toLong(); // TODO converter para comparadores do timestamp tipo isBefore ou usar comparator
+        if (t >= versions.get(size - 1).ts.toLong())
             return versions.get(size - 1).value;
-        if (ts < versions.get(0).ts)
+        if (t < versions.get(0).ts.toLong())
             return null;
         if (ts == versions.get(0).ts)
             return versions.get(0).value;
@@ -70,13 +72,13 @@ public class NPVSImplBS implements NPVS {
             if (versions.get(mid).ts == ts)
                 return versions.get(mid).value;
 
-            if (ts > versions.get(mid).ts) {
-                if (mid > 0 && ts < versions.get(mid + 1).ts)
+            if (t > versions.get(mid).ts.toLong()) {
+                if (mid > 0 && t < versions.get(mid + 1).ts.toLong())
                     return versions.get(mid).value;
                 j = mid;
             }
             else{
-                if (mid < size -1 && ts >= versions.get(mid - 1).ts)
+                if (mid < size -1 && t >= versions.get(mid - 1).ts.toLong())
                     return versions.get(mid - 1).value;
                 i = mid + 1;
             }

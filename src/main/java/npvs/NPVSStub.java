@@ -47,15 +47,15 @@ public class NPVSStub implements NPVS {
 
 
     @Override
-    public void update(Map<ByteArrayWrapper, byte[]> writeMap, long ts) {
+    public void update(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp ts) {
         FlushMessage fm = new FlushMessage(writeMap, ts);
         mms.sendAndReceive(npvs, "flush", s.encode(fm), e)
-        .thenAccept(x -> System.out.println(x));
+        .thenAccept(System.out::println);
         //.then qualquer coisa se necessário
     }
 
     @Override
-    public CompletableFuture<byte[]> read(ByteArrayWrapper key, long ts) {
+    public CompletableFuture<byte[]> read(ByteArrayWrapper key, Timestamp ts) {
         this.idCount++;
         ReadMessage rm = new ReadMessage(key, ts, idCount);
         return mms.sendAndReceive(npvs, "read", s.encode(rm), Duration.of(10, ChronoUnit.SECONDS), e)
@@ -68,6 +68,7 @@ public class NPVSStub implements NPVS {
                     }});
     }
 
+    /*
     public static void main(String[] args) throws InterruptedException {
         NPVSStub npvs = new NPVSStub(10000, 20000);
 
@@ -93,4 +94,5 @@ public class NPVSStub implements NPVS {
         npvs.read(baw1, 11);
         npvs.read(baw1, 10);
     }
+    */
 }

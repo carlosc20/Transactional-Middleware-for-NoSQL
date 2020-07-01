@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
 import certifier.CertifierImpl;
+import certifier.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.alipay.remoting.exception.CodecException;
@@ -52,13 +53,13 @@ public class StateMachine extends StateMachineAdapter {
     /**
      * Returns current timestamp.
      */
-    public long getTimestamp() {
+    public Timestamp getTimestamp() {
         return this.certifier.start();
     }
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
-            long current = 0L;
+            Timestamp current = new Timestamp(0);
             CertifierOperation certifierOperation = null;
 
             CertifierClosure closure = null;
@@ -84,7 +85,7 @@ public class StateMachine extends StateMachineAdapter {
                         break;
                     case COMMIT:
                         final BitWriteSet bws = certifierOperation.getBws();
-                        final long timestamp = certifierOperation.getTimestamp();
+                        final Timestamp timestamp = certifierOperation.getTimestamp();
                         current = this.certifier.commit(bws, timestamp);
                         LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
                         break;
