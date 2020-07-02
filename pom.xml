@@ -28,13 +28,13 @@
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
-            <version>RELEASE</version>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>4.0.4</version>
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-async</artifactId>
-            <version>3.0.4</version>
+            <artifactId>mongodb-driver-reactivestreams</artifactId>
+            <version>4.0.4</version>
         </dependency>
         <dependency>
             <groupId>com.alipay.sofa</groupId>
