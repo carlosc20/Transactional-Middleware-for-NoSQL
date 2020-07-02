@@ -14,6 +14,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import utils.ByteArrayWrapper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,8 +78,7 @@ public class MongoAsynchKV implements KeyValueDriver {
         return CompletableFuture.allOf(values.toArray(new CompletableFuture[0]))
                 .thenApply(future -> values.stream()
                         .map(CompletableFuture::join)
-                        .collect(Collectors.toList())
-                );
+                        .collect(Collectors.toList()));
     }
 
 
@@ -86,65 +86,66 @@ public class MongoAsynchKV implements KeyValueDriver {
     @Override
     //xxxResult para o caso de virmos a usar (erros na escrita)
     public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
-        CompletableFuture<Void> cf = new CompletableFuture<>();
+        CompletableFuture<?>[] futures = new CompletableFuture<?>[writeMap.size()];
+        for(int i = 0; i < writeMap.size(); i++)
+            futures[i] = new CompletableFuture<>();
 
+        int location = 0;
         for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()){
             byte[] value = kv.getValue();
             String key = kv.getKey().toString();
+            final int local_l = location;
             if(value != null){
                 Document doc = new Document("_id", key).append("value", value);
                 collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
-                        .subscribe(new Subscriber<UpdateResult>() {
-                            @Override
-                            public void onSubscribe(final Subscription s) {
-                                s.request(1);  // <--- Data requested and the insertion will now occur
-                            }
+                    .subscribe(new Subscriber<UpdateResult>() {
+                        @Override
+                        public void onSubscribe(final Subscription s) {
+                            s.request(1);  // <--- Data requested and the insertion will now occur
+                        }
 
-                            @Override
-                            public void onNext(final UpdateResult result) {
-                                cf.complete(null);
-                            }
+                        @Override
+                        public void onNext(final UpdateResult result) {
+                            futures[local_l].complete(null);
+                        }
 
-                            @Override
-                            public void onError(final Throwable t) {
-                                System.out.println("Failed");
-                            }
+                        @Override
+                        public void onError(final Throwable t) {
+                            System.out.println("Failed");
+                        }
 
-                            @Override
-                            public void onComplete() {
-                                System.out.println("Completed");
-                            }
-                        });
+                        @Override
+                        public void onComplete() {
+                            System.out.println("Completed");
+                        }
+                    });
             }
             else {
                 collection.deleteOne(eq("_id", kv.getKey().toString()))
-                        .subscribe(new Subscriber<DeleteResult>() {
-                            @Override
-                            public void onSubscribe(final Subscription s) {
-                                s.request(1);  // <--- Data requested and the insertion will now occur
-                            }
+                    .subscribe(new Subscriber<DeleteResult>() {
+                        @Override
+                        public void onSubscribe(final Subscription s) {
+                            s.request(1);  // <--- Data requested and the insertion will now occur
+                        }
 
-                            @Override
-                            public void onNext(final DeleteResult result) {
-                                cf.complete(null);
-                            }
+                        @Override
+                        public void onNext(final DeleteResult result) {
+                            futures[local_l].complete(null);
+                        }
 
-                            @Override
-                            public void onError(final Throwable t) {
-                                System.out.println("Failed");
-                            }
+                        @Override
+                        public void onError(final Throwable t) {
+                            System.out.println("Failed");
+                        }
 
-                            @Override
-                            public void onComplete() {
-                                System.out.println("Completed");
-                            }
-                        });
+                        @Override
+                        public void onComplete() {
+                            System.out.println("Completed");
+                        }
+                    });
             }
+            location++;
         }
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.allOf(futures);
     }
-
-
-
-
 }
