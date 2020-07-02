@@ -6,8 +6,8 @@ import utils.ByteArrayWrapper;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public interface NPVS {
+public interface NPVS<V> {
 
-    void update(Map<ByteArrayWrapper,byte[]> writeMap, Timestamp ts);
-    CompletableFuture<byte[]> read(ByteArrayWrapper key, Timestamp ts);
+    CompletableFuture<Boolean> put(Map<ByteArrayWrapper,byte[]> writeMap, Timestamp<V> ts);
+    CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<V> ts);
 }

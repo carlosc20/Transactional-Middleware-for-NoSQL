@@ -1,7 +1,11 @@
 package transaction_manager;
 
-public interface TransactionManager {
+import transaction_manager.messaging.TransactionContentMessage;
+
+import java.util.concurrent.CompletableFuture;
+
+public interface TransactionManager<V> {
 
     Transaction startTransaction();
-    void tryCommit(Transaction tx);
+    CompletableFuture<Boolean> tryCommit(TransactionContentMessage<V> tx);
 }

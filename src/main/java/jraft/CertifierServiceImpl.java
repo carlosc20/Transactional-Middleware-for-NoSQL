@@ -1,29 +1,11 @@
 package jraft;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.Executor;
-
-import certifier.Timestamp;
-import com.alipay.sofa.jraft.rhea.StoreEngineHelper;
-import com.alipay.sofa.jraft.rhea.options.StoreEngineOptions;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alipay.remoting.exception.CodecException;
-import com.alipay.remoting.serialization.SerializerManager;
-import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.closure.ReadIndexClosure;
-import com.alipay.sofa.jraft.entity.Task;
-import com.alipay.sofa.jraft.error.RaftError;
-
-import com.alipay.sofa.jraft.util.BytesUtil;
-import transaction_manager.BitWriteSet;
-
 /**
  * @author likun (saimu.msm@antfin.com)
  */
+
 public class CertifierServiceImpl implements CertifierService {
+    /*
     private static final Logger LOG = LoggerFactory.getLogger(CertifierServiceImpl.class);
 
     private final CertifierServer certifierServer;
@@ -40,7 +22,7 @@ public class CertifierServiceImpl implements CertifierService {
     }
 
     @Override
-    public void getTimestamp(final boolean readOnlySafe, final CertifierClosure<Timestamp> closure) {
+    public void getTimestamp(final boolean readOnlySafe, final CertifierClosure<Long> closure) {
         if(!readOnlySafe){
             closure.success(getTimestamp());
             closure.run(Status.OK());
@@ -71,7 +53,7 @@ public class CertifierServiceImpl implements CertifierService {
         return this.certifierServer.getFsm().isLeader();
     }
 
-    private Timestamp getTimestamp() {
+    private long getTimestamp() {
         return this.certifierServer.getFsm().getTimestamp();
     }
 
@@ -80,11 +62,12 @@ public class CertifierServiceImpl implements CertifierService {
     }
 
     @Override
-    public void commit(final BitWriteSet bws, final Timestamp timestamp, final CertifierClosure<Timestamp> closure) {
-        applyOperation(CertifierOperation.createCommit(bws, timestamp), closure);
+    public void commit(final BitWriteSet bws, final MonotonicTimestamp monotonicTimestamp, final CertifierClosure<Long> closure) {
+        applyOperation(CertifierOperation.createCommit(bws, monotonicTimestamp), closure);
     }
 
-    private void applyOperation(final CertifierOperation op, final CertifierClosure<Timestamp> closure) {
+
+    private void applyOperation(final CertifierOperation op, final CertifierClosure<Long> closure) {
         if (!isLeader()) {
             handlerNotLeaderError(closure);
             return;
@@ -107,4 +90,7 @@ public class CertifierServiceImpl implements CertifierService {
         closure.failure("Not leader.", getRedirect());
         closure.run(new Status(RaftError.EPERM, "Not leader"));
     }
+
+     */
 }
+

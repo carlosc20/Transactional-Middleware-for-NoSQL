@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class NPVSImplBS implements NPVS {
+public class NPVSImplBS implements NPVS<Long> {
     //TODO comparar o custo com várias versões desta estrutura
 
     //ArrayList + binarySearch:
@@ -19,7 +19,7 @@ public class NPVSImplBS implements NPVS {
 
     // Nota -> treeMap talvez tenha melhores resultados, por causa da inserção
     // Caso numero de procuras seja reduzido o melhor seria alguma espécie de lista ligada
-    private Map<ByteArrayWrapper, ArrayList<Version>> versionsByKey;
+    private final Map<ByteArrayWrapper, ArrayList<Version>> versionsByKey;
 
 
     public NPVSImplBS() {
@@ -27,22 +27,26 @@ public class NPVSImplBS implements NPVS {
     }
 
     @Override
-    public void update(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp ts){
-        writeMap.forEach((key,v) -> {
-            Version newV = new Version(v, ts);
-            if(versionsByKey.containsKey(key))
-                this.versionsByKey.get(key).add(newV);
-            else{
-                ArrayList<Version> versions = new ArrayList<>();
-                versions.add(newV);
-                this.versionsByKey.put(key, versions);
-            }
-        });
-        System.out.println(versionsByKey.toString());
+    public CompletableFuture<Boolean> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts){
+        try {
+            writeMap.forEach((key, v) -> {
+                Version newV = new Version(v, ts);
+                if (versionsByKey.containsKey(key))
+                    this.versionsByKey.get(key).add(newV);
+                else {
+                    ArrayList<Version> versions = new ArrayList<>();
+                    versions.add(newV);
+                    this.versionsByKey.put(key, versions);
+                }
+            });
+            return CompletableFuture.completedFuture(true);
+        }catch (Exception e){
+            return CompletableFuture.completedFuture(false);
+        }
     }
 
     @Override
-    public CompletableFuture<byte[]> read(ByteArrayWrapper key, Timestamp ts) {
+    public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
             System.out.println("no key");
             return CompletableFuture.completedFuture(null);
@@ -52,17 +56,16 @@ public class NPVSImplBS implements NPVS {
     }
 
     // TODO Ver caso sério de ao fazer garbage collection vir um pedir um antigo e só existem versões posteriores a esse
-    private byte[] getSICompliantVersion(ArrayList<Version> versions, Timestamp ts) {
+    private byte[] getSICompliantVersion(ArrayList<Version> versions, Timestamp<Long> ts) {
         // só existem versões antigas ou a minha na cabeça do array
         System.out.println(versions.toString());
         System.out.println("arrived ts: "+ ts);
         int size = versions.size();
-        long t = ts.toLong(); // TODO converter para comparadores do timestamp tipo isBefore ou usar comparator
-        if (t >= versions.get(size - 1).ts.toLong())
+        if (ts.isAfterOrEqual(versions.get(size - 1).ts))
             return versions.get(size - 1).value;
-        if (t < versions.get(0).ts.toLong())
+        if (ts.isBefore(versions.get(0).ts))
             return null;
-        if (ts == versions.get(0).ts)
+        if (ts.equals(versions.get(0).ts))
             return versions.get(0).value;
 
         int i = 0, j = size, mid=0;
@@ -72,13 +75,13 @@ public class NPVSImplBS implements NPVS {
             if (versions.get(mid).ts == ts)
                 return versions.get(mid).value;
 
-            if (t > versions.get(mid).ts.toLong()) {
-                if (mid > 0 && t < versions.get(mid + 1).ts.toLong())
+            if (ts.isAfter(versions.get(mid).ts)) {
+                if (mid > 0 && ts.isBefore(versions.get(mid + 1).ts))
                     return versions.get(mid).value;
                 j = mid;
             }
             else{
-                if (mid < size -1 && t >= versions.get(mid - 1).ts.toLong())
+                if (mid < size -1 && ts.isAfterOrEqual(versions.get(mid - 1).ts))
                     return versions.get(mid - 1).value;
                 i = mid + 1;
             }

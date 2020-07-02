@@ -4,11 +4,13 @@ import utils.ByteArrayWrapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public interface KeyValueDriver {
 
-    byte[] read(byte[] key); // get
-    List<byte[]> scan(List<byte[]> keyList);
-    void update(Map<ByteArrayWrapper,byte[]> writeMap); //put
+    CompletableFuture<byte[]> get(byte[] key);
+    CompletableFuture<List<byte[]>> scan(Set<ByteArrayWrapper> keyList);
+    CompletableFuture<Void> put(Map<ByteArrayWrapper,byte[]> writeMap);
 
 }

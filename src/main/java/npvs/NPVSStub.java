@@ -1,5 +1,6 @@
 package npvs;
 
+import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -7,23 +8,24 @@ import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
+import npvs.messaging.FlushMessage;
+import npvs.messaging.ReadMessage;
 import utils.ByteArrayWrapper;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class NPVSStub implements NPVS {
-    private ManagedMessagingService mms;
-    private ExecutorService e;
-    private Serializer s;
-    private Address npvs;
+public class NPVSStub implements NPVS<Long> {
+    private final ManagedMessagingService mms;
+    private final ExecutorService e;
+    private final Serializer s;
+    private final Address npvs;
 
     private int idCount;
 
@@ -32,7 +34,7 @@ public class NPVSStub implements NPVS {
         npvs = Address.from(npvsPort);
         s = new SerializerBuilder()
                 .addType(ReadMessage.class)
-                .addType(Timestamp.class)
+                .addType(MonotonicTimestamp.class)
                 .addType(FlushMessage.class)
                 .addType(ByteArrayWrapper.class)
                 .build();
@@ -47,18 +49,17 @@ public class NPVSStub implements NPVS {
 
 
     @Override
-    public void update(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp ts) {
+    public CompletableFuture<Boolean> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
         FlushMessage fm = new FlushMessage(writeMap, ts);
-        mms.sendAndReceive(npvs, "flush", s.encode(fm), e)
-        .thenAccept(System.out::println);
-        //.then qualquer coisa se necessário
+        return mms.sendAndReceive(npvs, "put", s.encode(fm), e)
+                .thenApply(s::decode);
     }
 
     @Override
-    public CompletableFuture<byte[]> read(ByteArrayWrapper key, Timestamp ts) {
+    public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         this.idCount++;
         ReadMessage rm = new ReadMessage(key, ts, idCount);
-        return mms.sendAndReceive(npvs, "read", s.encode(rm), Duration.of(10, ChronoUnit.SECONDS), e)
+        return mms.sendAndReceive(npvs, "get", s.encode(rm), Duration.of(10, ChronoUnit.SECONDS), e)
                 .whenComplete((m,t) -> {
                     if(t!=null){
                         t.printStackTrace();

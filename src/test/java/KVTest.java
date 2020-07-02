@@ -5,6 +5,9 @@ import utils.ByteArrayWrapper;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -14,7 +17,7 @@ public class KVTest {
 
 
     @Test
-    public void readwrite() {
+    public void readwrite() throws ExecutionException, InterruptedException {
         MongoKV mkv = new MongoKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
         // writing
@@ -24,19 +27,19 @@ public class KVTest {
         byte[] value = "value".getBytes();
         writeMap.put(keyWrapper, value);
 
-        mkv.update(writeMap);
+        mkv.put(writeMap);
 
 
         // reading
-        List<byte[]> query = writeMap.keySet().stream().map(ByteArrayWrapper::getData).collect(Collectors.toList());
-        query.add("empty".getBytes());
+        Set<ByteArrayWrapper> query = writeMap.keySet();
+        query.add(new ByteArrayWrapper("empty".getBytes()));
 
-        List<byte[]> result = mkv.scan(query);
+        CompletableFuture<List<byte[]>> result = mkv.scan(writeMap.keySet());
 
 
         // testing
         Iterator<byte[]> it1 = writeMap.values().iterator();
-        Iterator<byte[]> it2 = result.iterator();
+        Iterator<byte[]> it2 = result.get().iterator();
 
         while (it1.hasNext()) {
             assertEquals("Read doesn't match update", new String(it1.next()), new String(it2.next()));

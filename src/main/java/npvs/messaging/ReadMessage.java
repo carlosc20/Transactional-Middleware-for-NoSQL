@@ -1,18 +1,16 @@
-package npvs;
+package npvs.messaging;
 
 import certifier.Timestamp;
 import utils.ByteArrayWrapper;
 
-import java.util.Arrays;
-
 public class ReadMessage {
     ByteArrayWrapper key;
-    Timestamp ts;
+    Timestamp<Long> ts;
     //temp
     int id;
 
 
-    public ReadMessage(ByteArrayWrapper key, Timestamp ts, int id){
+    public ReadMessage(ByteArrayWrapper key, Timestamp<Long> ts, int id){
         this.key = key;
         this.ts = ts;
         this.id = id;
@@ -24,5 +22,17 @@ public class ReadMessage {
                 "key=" + key.toString() +
                 "timestamp= " + ts +
                 '}';
+    }
+
+    public ByteArrayWrapper getKey() {
+        return key;
+    }
+
+    public Timestamp<Long> getTs() {
+        return ts;
+    }
+
+    public int getId() {
+        return id;
     }
 }

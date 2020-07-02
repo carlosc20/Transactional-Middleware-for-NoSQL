@@ -1,6 +1,6 @@
 package npvs;
 
-import certifier.Timestamp;
+import certifier.MonotonicTimestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
@@ -8,23 +8,24 @@ import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import npvs.binarysearch.NPVSImplBS;
-import npvs.treemap.NPVSImplTM;
+import npvs.messaging.FlushMessage;
+import npvs.messaging.ReadMessage;
 import utils.ByteArrayWrapper;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class NPVSServer {
-    private ManagedMessagingService mms;
-    private ExecutorService e;
-    private Serializer s;
-    private NPVSImplBS npvs;
+    private final ManagedMessagingService mms;
+    private final ExecutorService e;
+    private final Serializer s;
+    private final NPVSImplBS npvs;
 
     public NPVSServer(int port){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
                 .addType(ReadMessage.class)
-                .addType(Timestamp.class)
+                .addType(MonotonicTimestamp.class)
                 .addType(FlushMessage.class)
                 .addType(ByteArrayWrapper.class)
                 .build();
@@ -39,19 +40,19 @@ public class NPVSServer {
     private void start(){
         mms.start();
 
-        mms.registerHandler("read", (a,b) -> {
+        mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
-            System.out.println("read request arrived with id: " + rm.id);
-            return npvs.read(rm.key, rm.ts).whenComplete((x,y) -> System.out.println(new String(x)))
-                                            .thenApply(x -> s.encode(x));
+            System.out.println("read request arrived with id: " + rm.getId());
+            return npvs.get(rm.getKey(), rm.getTs()).whenComplete((x, y) -> System.out.println(new String(x)))
+                                            .thenApply(s::encode);
         });
 
-        mms.registerHandler("flush", (a,b) -> {
+        mms.registerHandler("put", (a,b) -> {
             System.out.println("flush request arrived");
             FlushMessage fm = s.decode(b);
-            npvs.update(fm.writeMap, fm.timestamp);
-            //não gostei (0), mas não sei o que por
-            return s.encode(0);
+            npvs.put(fm.getWriteMap(), fm.getMonotonicTimestamp());
+            //TODO modificar
+            return s.encode(true);
         } ,e);
     }
 

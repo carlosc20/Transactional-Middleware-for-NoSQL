@@ -3,7 +3,6 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 
-import certifier.Timestamp;
 import jraft.rpc.*;
 import org.apache.commons.io.FileUtils;
 
@@ -28,14 +27,14 @@ public class CertifierServer {
         // Here Raft RPC and business RPC share the same RPC server. They can use different RPC servers, too.
         final RpcServer rpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint());
         // Register the business processor.
-
+/*
         CertifierService certifierService = new CertifierServiceImpl(this);
-        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Timestamp>(TransactionCommitRequest.class,
-                (req , closure) -> certifierService.commit(req.getBws(), new Timestamp(req.getTimestamp()), closure)));
+        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Long>(TransactionCommitRequest.class,
+                (req , closure) -> certifierService.commit(req.getBws(), req.getMonotonicTimestamp(), closure)));
 
-        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Timestamp>(TransactionStartRequest.class,
+        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Long>(TransactionStartRequest.class,
                 (req , closure) -> certifierService.getTimestamp(req.isReadOnlySafe(), closure)));
-
+*/
         // Initialize the state machine.
         this.fsm = new StateMachine();
         // Set the state machine to the startup parameters.

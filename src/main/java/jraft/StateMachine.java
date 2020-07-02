@@ -4,9 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
-
 import certifier.CertifierImpl;
-import certifier.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.alipay.remoting.exception.CodecException;
@@ -21,10 +19,6 @@ import jraft.snapshot.CounterSnapshotFile;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
-import transaction_manager.BitWriteSet;
-
-import static jraft.CertifierOperation.GET_TS;
-import static jraft.CertifierOperation.COMMIT;
 
 /**
  * Counter state machine.
@@ -40,7 +34,7 @@ public class StateMachine extends StateMachineAdapter {
     /**
      * Counter value
      */
-    private final CertifierImpl certifier = new CertifierImpl();
+    private final CertifierImpl certifier = new CertifierImpl(10000);
     /**
      * Leader term
      */
@@ -53,13 +47,15 @@ public class StateMachine extends StateMachineAdapter {
     /**
      * Returns current timestamp.
      */
-    public Timestamp getTimestamp() {
-        return this.certifier.start();
+
+    public long getTimestamp() {
+        //TODO arranjar
+        return this.certifier.start().toPrimitive();
     }
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
-            Timestamp current = new Timestamp(0);
+            long current = 0L;
             CertifierOperation certifierOperation = null;
 
             CertifierClosure closure = null;
@@ -77,6 +73,7 @@ public class StateMachine extends StateMachineAdapter {
                     LOG.error("Fail to decode IncrementAndGetRequest", e);
                 }
             }
+            /*
             if (certifierOperation != null) {
                 switch (certifierOperation.getOp()) {
                     case GET_TS:
@@ -85,17 +82,18 @@ public class StateMachine extends StateMachineAdapter {
                         break;
                     case COMMIT:
                         final BitWriteSet bws = certifierOperation.getBws();
-                        final Timestamp timestamp = certifierOperation.getTimestamp();
-                        current = this.certifier.commit(bws, timestamp);
+                        final MonotonicTimestamp monotonicTimestamp = certifierOperation.getMonotonicTimestamp();
+                        current = this.certifier.commit(bws, monotonicTimestamp);
                         LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
                         break;
                 }
-
                 if (closure != null) {
                     closure.success(current);
                     closure.run(Status.OK());
                 }
             }
+
+             */
             iter.next();
         }
     }
@@ -135,8 +133,11 @@ public class StateMachine extends StateMachineAdapter {
         final CounterSnapshotFile snapshot = new CounterSnapshotFile(reader.getPath() + File.separator + "data");
         try {
             CertifierImpl c = snapshot.load();
+            /*
             this.certifier.setCurrentTs(c.getCurrentTs());
             this.certifier.setHistory(c.getHistory());
+
+             */
             return true;
         } catch (final IOException e) {
             LOG.error("Fail to load snapshot from {}", snapshot.getPath());

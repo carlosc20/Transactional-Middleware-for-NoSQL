@@ -1,26 +1,19 @@
 package jraft.rpc;
 
-import transaction_manager.BitWriteSet;
+import transaction_manager.messaging.TransactionContentMessage;
 
 import java.io.Serializable;
 
 public class TransactionCommitRequest implements Serializable {
 
     private static final long serialVersionUID = -2527003154824547294L;
+    private final TransactionContentMessage transactionContentMessage;
 
-    private final BitWriteSet bws;
-    private final long timestamp;
-
-    public TransactionCommitRequest(BitWriteSet bws, long timestamp){
-        this.bws = bws;
-        this.timestamp = timestamp;
+    public TransactionCommitRequest(TransactionContentMessage transactionContentMessage){
+        this.transactionContentMessage = transactionContentMessage;
     }
 
-    public BitWriteSet getBws() {
-        return bws;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
+    public TransactionContentMessage getTransactionContentMessage() {
+        return transactionContentMessage;
     }
 }

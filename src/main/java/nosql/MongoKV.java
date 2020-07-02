@@ -7,14 +7,14 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.types.Binary;
 import utils.ByteArrayWrapper;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
@@ -22,7 +22,7 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class MongoKV implements KeyValueDriver {
 
-    private MongoCollection<Document> collection;
+    private final MongoCollection<Document> collection;
 
     public MongoKV(String uri, String databaseName, String collectionName) {
         MongoClient mongoClient = MongoClients.create(uri);
@@ -31,32 +31,42 @@ public class MongoKV implements KeyValueDriver {
         collection = database.getCollection(collectionName);
     }
 
+    //TODO colocar returns de acordo com a api async. estão assim apenas para não ter erros
 
     @Override
-    public byte[] read(byte[] key) {
+    public CompletableFuture<byte[]> get(byte[] key) {
         Document doc = collection.find(eq("_id", new String(key))).first();
         if(doc == null)
-            return null;
+            return CompletableFuture.completedFuture(null);
 
-        return ((Binary) doc.get("value")).getData();
+        return CompletableFuture.completedFuture(((Binary) doc.get("value")).getData());
     }
 
-    public List<byte[]> scan(List<byte[]> keyList) {
-        return keyList.stream().map(this::read).collect(Collectors.toList());
-    }
+    public CompletableFuture<List<byte[]>> scan(Set<ByteArrayWrapper> keyList) {
+        List<CompletableFuture<byte[]>> values =  keyList.stream()
+                .map(b -> get(b.getData()))
+                .collect(Collectors.toList());
 
+        return CompletableFuture.allOf(values.toArray(new CompletableFuture[0]))
+                .thenApply(future -> values.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList()));
+    }
     @Override
-    public void update(Map<ByteArrayWrapper, byte[]> writeMap) {
+    //xxxResult para o caso de virmos a usar (erros na escrita)
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
         for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()){
             byte[] value = kv.getValue();
             String key = kv.getKey().toString();
             if(value != null){
                 Document doc = new Document("_id", key).append("value", value);
-                collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true));
+                UpdateResult id = collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true));
             }
-            else
-                collection.deleteOne(eq("_id", kv.getKey().toString()));
+            else {
+                DeleteResult id = collection.deleteOne(eq("_id", kv.getKey().toString()));
+            }
         }
+        return CompletableFuture.completedFuture(null);
     }
 
 

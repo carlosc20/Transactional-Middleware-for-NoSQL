@@ -1,31 +1,15 @@
 package certifier;
 
-public class Timestamp implements Comparable<Timestamp> {
+public interface Timestamp<V> extends Comparable<Timestamp<V>> {
 
-    private long ts;
-
-    public Timestamp(long ts) {
-        this.ts = ts;
-    }
-
-    @Override
-    public int compareTo(Timestamp o) {
-        return (int) (o.ts - ts);
-    }
-
-    public boolean isBefore(Timestamp o) {
-        return o.toLong() > ts;
-    }
-
-    public boolean isAfter(Timestamp o) {
-        return o.toLong() < ts;
-    }
-
-    public void increment(){
-        ts++;
-    }
-
-    public long toLong() {
-        return ts;
-    }
+    boolean isBefore(Timestamp<V> o);
+    boolean isAfter(Timestamp<V> o);
+    boolean isBeforeOrEqual(Timestamp<V> o);
+    boolean isAfterOrEqual(Timestamp<V> o);
+    boolean equals(Timestamp<V> o);
+    void increment();
+    void add(V quantity);
+    V toPrimitive();
+    int hashCode();
+    void setPrimitive(V new_value);
 }

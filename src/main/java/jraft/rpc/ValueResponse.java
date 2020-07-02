@@ -6,7 +6,7 @@ public class ValueResponse<V> implements Serializable, Response<V> {
 
     private static final long serialVersionUID = -4220017686727146773L;
 
-    private V  value;
+    private V value;
     private boolean success;
 
     /**

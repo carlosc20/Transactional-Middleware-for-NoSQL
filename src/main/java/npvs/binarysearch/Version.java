@@ -6,9 +6,9 @@ import java.util.Arrays;
 
 public class Version {
     byte[] value;
-    Timestamp ts;
+    Timestamp<Long> ts;
 
-    public Version(byte[] value, Timestamp ts){
+    public Version(byte[] value, Timestamp<Long> ts){
         this.value = value;
         this.ts = ts;
     }

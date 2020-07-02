@@ -1,83 +1,114 @@
 package certifier;
 
-import transaction_manager.BitWriteSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import transaction_manager.BitWriteSet;
 
-public class CertifierImpl implements Certifier {
 
-    private Timestamp currentTs;
-    //TODO cuidado com clientes que não tentaram dar commit -> forced garbage collection
-    //TODO garbage collection
+public class CertifierImpl implements Certifier<Long> {
+    private static final Logger LOG = LoggerFactory.getLogger(CertifierImpl.class);
 
-    private Map<Timestamp, IsolatedWrites> history;
+    private final Long timestep;
 
-    public CertifierImpl() {
-        currentTs = new Timestamp(0);
+    private final Timestamp<Long> currentStartTs;
+    private final Timestamp<Long> provisionalCommitTs;
+    private final Timestamp<Long> currentCommitTs;
+    private final Timestamp<Long> lowWaterMark;
+
+    //não se vai esperar concorrência nestas estruturas -> Muitas escritas e poucas/raras leituras -> 1 thread
+    //outras opções N threads:
+    // ConcurrentSkipList -> matava a performance ao correr normalmente.
+    // ConcurrentHashMap -> procura por todas as chaves na fase de GC
+    private final LinkedHashMap<Long, Integer> runningTransactions;
+
+    private final HashMap<Long, BitWriteSet> history;
+
+    public CertifierImpl(long timestep) {
+        this.timestep = timestep;
+        currentStartTs = new MonotonicTimestamp(0);
+        provisionalCommitTs = new MonotonicTimestamp(timestep);
+        currentCommitTs = new MonotonicTimestamp(timestep);
+        lowWaterMark = new MonotonicTimestamp(-1);
+        runningTransactions = new LinkedHashMap<>();
         history = new HashMap<>();
     }
 
     public CertifierImpl(CertifierImpl certifier){
-        this.currentTs = certifier.currentTs;
-        this.history = new HashMap<>(certifier.history);
+        timestep = certifier.timestep;
+        currentStartTs = certifier.currentStartTs;
+        provisionalCommitTs = certifier.provisionalCommitTs;
+        currentCommitTs = certifier.currentCommitTs;
+        lowWaterMark = certifier.lowWaterMark;
+        runningTransactions = new LinkedHashMap<>(certifier.runningTransactions);
+        history = new HashMap<>(certifier.history);
     }
 
     @Override
-    //TODO separar a leitura do currentTs com a criação do isolatedWrites
-    public Timestamp start() {
-        IsolatedWrites iw = history.get(currentTs);
-        if(iw == null){
-            iw = new IsolatedWrites();
-            history.put(currentTs, iw);
+    public Timestamp<Long> start() {
+        //spin can be unsafe
+        while(currentCommitTs.toPrimitive() - currentStartTs.toPrimitive() == 1){
+            //spin
         }
-        iw.started();
-        return currentTs;
+        currentStartTs.increment();
+        return new MonotonicTimestamp(currentStartTs);
     }
 
     @Override
-    // TODO converter para timestamp
-    public Timestamp commit(BitWriteSet ws, Timestamp ts) {
-        //TODO pq não i <= currentTs (currentTs até pode ser igual a ts) ?
-        for (long i = ts.toLong(); i < currentTs.toLong(); i++) {
-            IsolatedWrites iw  = history.get(new Timestamp(i));
-            for (BitWriteSet set : iw.getWriteSets()) {
-                if(set.intersects(ws)) {
-                    history.get(ts).terminated();
-                    return new Timestamp(-1);
+    public Timestamp<Long> commit(BitWriteSet new_bws, Timestamp<Long> ts) {
+        if (ts.isBefore(lowWaterMark)) {
+            LOG.debug("Received transaction request with a timestamp ({}) already garbage collected", ts);
+            return new MonotonicTimestamp(-1L);
+        }
+        long pcts = provisionalCommitTs.toPrimitive();
+        for (long i = ts.toPrimitive(); i < pcts; i += timestep) {
+            BitWriteSet old_bws = history.get(i);
+                if(old_bws.intersects(new_bws)) {
+                    LOG.debug("Transaction conflicted on timestamp({})", i);
+                    return new MonotonicTimestamp(-1L);
                 }
-            }
         }
-        IsolatedWrites currentTxs = history.get(currentTs);
-        if (currentTxs == null){
-            currentTxs =  new IsolatedWrites();
-            history.put(currentTs, currentTxs);
-            //termina transação
-            //TODO e se o flush para a bd correu mal?
-            history.get(ts).terminated();
-        }
-        currentTxs.commit(ws);
-        return currentTs;
+        history.put(pcts, new_bws);
+        provisionalCommitTs.add(timestep);
+        return new MonotonicTimestamp(pcts);
     }
 
     @Override
+    //ASSUME causal order, implementar caso necessário
     public void update() {
-        currentTs.increment();
+        currentCommitTs.add(timestep);
+        currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
     }
 
-    public void setCurrentTs(Timestamp currentTs) {
-        this.currentTs = currentTs;
+    @Override
+    public Timestamp<Long> getSafeToDeleteTimestamp(){
+        long newLowWaterMark = lowWaterMark.toPrimitive();
+        for(Map.Entry<Long, Integer> entry : runningTransactions.entrySet()){
+            int numTransactionsRunning = entry.getValue();
+            if(numTransactionsRunning != 0)
+                return new MonotonicTimestamp(newLowWaterMark);
+            else
+                newLowWaterMark = entry.getKey();
+        }
+        return new MonotonicTimestamp(newLowWaterMark);
     }
 
-    public void setHistory(Map<Timestamp, IsolatedWrites> history) {
-        this.history = new HashMap<>(history);
+
+    @Override
+    public void evictStoredWriteSets(Long newLowWaterMark){
+        for(long i = lowWaterMark.toPrimitive(); i <= newLowWaterMark; i += timestep){
+            this.history.remove(i);
+            this.runningTransactions.remove(i);
+        }
+        this.lowWaterMark.setPrimitive(newLowWaterMark);
     }
 
-    public Timestamp getCurrentTs() {
-        return currentTs;
+    @Override
+    public Timestamp<Long> getCurrentCommitTs() {
+        return new MonotonicTimestamp(currentCommitTs);
     }
 
-    public Map<Timestamp, IsolatedWrites> getHistory() {
-        return history;
-    }
 }
