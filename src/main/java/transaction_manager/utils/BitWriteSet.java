@@ -1,4 +1,4 @@
-package transaction_manager;
+package transaction_manager.utils;
 
 import java.io.Serializable;
 import java.util.Arrays;

@@ -1,11 +1,14 @@
 package transaction_manager;
 
+import certifier.Timestamp;
+
 import transaction_manager.messaging.TransactionContentMessage;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface TransactionManager<V> {
+public interface TransactionManager{
 
-    Transaction startTransaction();
-    CompletableFuture<Boolean> tryCommit(TransactionContentMessage<V> tx);
+    Timestamp<Long> startTransaction();
+    CompletableFuture<Boolean> tryCommit(TransactionContentMessage tx);
+
 }

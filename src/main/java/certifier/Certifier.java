@@ -1,6 +1,6 @@
 package certifier;
 
-import transaction_manager.BitWriteSet;
+import transaction_manager.utils.BitWriteSet;
 
 public interface Certifier<V> {
     Timestamp<V> start();

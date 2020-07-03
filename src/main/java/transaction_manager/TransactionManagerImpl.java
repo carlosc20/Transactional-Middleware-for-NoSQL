@@ -12,17 +12,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import transaction_manager.messaging.TransactionContentMessage;
+import transaction_manager.utils.KeyValue;
 import utils.ByteArrayWrapper;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class TransactionManagerImpl implements TransactionManager<Long> {
+public class TransactionManagerImpl implements TransactionManager {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerImpl.class);
 
     private final ExecutorService taskExecutor;
@@ -37,13 +37,12 @@ public class TransactionManagerImpl implements TransactionManager<Long> {
         certifier = new CertifierImpl(10000);
     }
 
-    public Transaction startTransaction(){
-        Timestamp<Long> ts = certifier.start();
-        return new TransactionImpl(npvs, driver, ts);
+    public Timestamp<Long> startTransaction(){
+        return certifier.start();
     }
 
     @Override
-    public CompletableFuture<Boolean> tryCommit(TransactionContentMessage<Long> tc) {
+    public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tc) {
         Timestamp<Long> commitTimestamp = certifier.commit(tc.getWriteSet(), tc.getStartTimestamp());
         if(commitTimestamp.toPrimitive() > 0) {
             //TODO e se falha?
@@ -59,8 +58,10 @@ public class TransactionManagerImpl implements TransactionManager<Long> {
         }
     }
 
-    //De momento não considera qualquer tipo de erro nos pedidos. TODO arranjar
-    private CompletableFuture<Void> flush(TransactionContentMessage<Long> tc, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
+    //De momento não considera qualquer tipo de erro nos pedidos.
+    // versão em que tanto espera pelo flush da bd como NPVS
+    //TODO se não considerarmos erros podemos er uma versão que apenas espera pelo npvs e lemos sempre de lá, para comparar
+    private CompletableFuture<Void> flush(TransactionContentMessage tc, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
         Map<ByteArrayWrapper, byte[]> writeMap = tc.getWriteMap();
         List<CompletableFuture<KeyValue>> keyValues = writeMap.keySet()
             .stream()

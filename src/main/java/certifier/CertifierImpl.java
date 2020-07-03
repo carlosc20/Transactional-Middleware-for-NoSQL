@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction_manager.BitWriteSet;
+import transaction_manager.utils.BitWriteSet;
 
 
 public class CertifierImpl implements Certifier<Long> {

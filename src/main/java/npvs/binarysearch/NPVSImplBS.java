@@ -27,22 +27,18 @@ public class NPVSImplBS implements NPVS<Long> {
     }
 
     @Override
-    public CompletableFuture<Boolean> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts){
-        try {
-            writeMap.forEach((key, v) -> {
-                Version newV = new Version(v, ts);
-                if (versionsByKey.containsKey(key))
-                    this.versionsByKey.get(key).add(newV);
-                else {
-                    ArrayList<Version> versions = new ArrayList<>();
-                    versions.add(newV);
-                    this.versionsByKey.put(key, versions);
-                }
-            });
-            return CompletableFuture.completedFuture(true);
-        }catch (Exception e){
-            return CompletableFuture.completedFuture(false);
-        }
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts){
+        writeMap.forEach((key, v) -> {
+            Version newV = new Version(v, ts);
+            if (versionsByKey.containsKey(key))
+                this.versionsByKey.get(key).add(newV);
+            else {
+                ArrayList<Version> versions = new ArrayList<>();
+                versions.add(newV);
+                this.versionsByKey.put(key, versions);
+            }
+        });
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

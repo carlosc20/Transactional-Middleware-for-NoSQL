@@ -1,4 +1,4 @@
-package transaction_manager;
+package transaction_manager.utils;
 
 import utils.ByteArrayWrapper;
 

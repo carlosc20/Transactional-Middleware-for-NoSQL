@@ -16,22 +16,18 @@ public class NPVSImplLHM implements NPVS<Long> {
     public NPVSImplLHM() {this.versionsByKey = new LinkedHashMap<>();}
 
     @Override
-    public CompletableFuture<Boolean> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
-        try {
-            writeMap.forEach((key, v) -> {
-                if (versionsByKey.containsKey(key))
-                    this.versionsByKey.get(key).put(ts, v);
-                else {
-                    LinkedHashMap<Timestamp<Long>, byte[]> versions = new LinkedHashMap<>();
-                    versions.put(ts, v);
-                    this.versionsByKey.put(key, versions);
-                }
-            });
-            System.out.println(versionsByKey.toString());
-            return CompletableFuture.completedFuture(true);
-        }catch (Exception e){
-            return CompletableFuture.completedFuture(false);
-        }
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
+        writeMap.forEach((key, v) -> {
+            if (versionsByKey.containsKey(key))
+                this.versionsByKey.get(key).put(ts, v);
+            else {
+                LinkedHashMap<Timestamp<Long>, byte[]> versions = new LinkedHashMap<>();
+                versions.put(ts, v);
+                this.versionsByKey.put(key, versions);
+            }
+        });
+        System.out.println(versionsByKey.toString());
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

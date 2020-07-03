@@ -8,6 +8,7 @@ import io.atomix.utils.serializer.SerializerBuilder;
 import jraft.rpc.TransactionCommitRequest;
 import jraft.rpc.TransactionStartRequest;
 import jraft.rpc.UpdateTimestampRequest;
+import transaction_manager.utils.BitWriteSet;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

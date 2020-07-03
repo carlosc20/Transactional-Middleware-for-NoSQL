@@ -1,6 +1,8 @@
 package certifier;
 
-public interface Timestamp<V> extends Comparable<Timestamp<V>> {
+import java.io.Serializable;
+
+public interface Timestamp<V> extends Comparable<Timestamp<V>>, Serializable {
 
     boolean isBefore(Timestamp<V> o);
     boolean isAfter(Timestamp<V> o);
