@@ -11,6 +11,7 @@ import npvs.NPVSStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.KeyValue;
 import utils.ByteArrayWrapper;
@@ -29,12 +30,14 @@ public class TransactionManagerImpl implements TransactionManager {
     private final KeyValueDriver driver;
     private final Certifier<Long> certifier;
     private final NPVS<Long> npvs;
+    private final ServersContextMessage scm;
 
-    public TransactionManagerImpl(){
+    public TransactionManagerImpl(int myPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName){
         taskExecutor = Executors.newFixedThreadPool(8);
-        npvs = new NPVSStub(0,0);
-        driver = new MongoKV("mongodb://127.0.0.1:27017", "lei", "teste");
+        npvs = new NPVSStub(myPort, npvsPort);
+        driver = new MongoKV(databaseURI, databaseName, databaseCollectionName);
         certifier = new CertifierImpl(10000);
+        this.scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
     }
 
     public Timestamp<Long> startTransaction(){
@@ -58,14 +61,12 @@ public class TransactionManagerImpl implements TransactionManager {
         }
     }
 
-    //De momento não considera qualquer tipo de erro nos pedidos.
-    // versão em que tanto espera pelo flush da bd como NPVS
-    //TODO se não considerarmos erros podemos er uma versão que apenas espera pelo npvs e lemos sempre de lá, para comparar
+    //TODO fix
     private CompletableFuture<Void> flush(TransactionContentMessage tc, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
         Map<ByteArrayWrapper, byte[]> writeMap = tc.getWriteMap();
         List<CompletableFuture<KeyValue>> keyValues = writeMap.keySet()
             .stream()
-            .map(key -> driver.get(key.getData())
+            .map(key -> driver.getWithoutTS(key)
                 .thenApply(value -> new KeyValue(key, value)))
             .collect(Collectors.toList());
 
@@ -76,6 +77,10 @@ public class TransactionManagerImpl implements TransactionManager {
             .thenApply(future -> future.stream()
                 .collect(Collectors.toMap(KeyValue::getKey, KeyValue::getValue)))
             .thenComposeAsync(future -> npvs.put(future, currentCommitTimestamp), taskExecutor)
-            .thenComposeAsync(future -> CompletableFuture.allOf(driver.put(writeMap), npvs.put(writeMap, provisionalCommitTimestamp)), taskExecutor);
+            .thenComposeAsync(future -> driver.put(writeMap, provisionalCommitTimestamp), taskExecutor);
+    }
+
+    public ServersContextMessage getServersContext(){
+        return scm;
     }
 }

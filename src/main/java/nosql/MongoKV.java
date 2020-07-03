@@ -1,14 +1,15 @@
 package nosql;
 
 
+import certifier.Timestamp;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
+import nosql.messaging.GetMessage;
 import org.bson.Document;
 import org.bson.types.Binary;
 import utils.ByteArrayWrapper;
@@ -34,17 +35,22 @@ public class MongoKV implements KeyValueDriver {
     //TODO colocar returns de acordo com a api async. estão assim apenas para não ter erros
 
     @Override
-    public CompletableFuture<byte[]> get(byte[] key) {
-        Document doc = collection.find(eq("_id", new String(key))).first();
+    public CompletableFuture<byte[]> getWithoutTS(ByteArrayWrapper key) {
+        Document doc = collection.find(eq("_id", new String(key.getData()))).first();
         if(doc == null)
             return CompletableFuture.completedFuture(null);
 
         return CompletableFuture.completedFuture(((Binary) doc.get("value")).getData());
     }
 
+    @Override
+    public CompletableFuture<GetMessage> get(ByteArrayWrapper key) {
+        return null;
+    }
+
     public CompletableFuture<List<byte[]>> scan(Set<ByteArrayWrapper> keyList) {
         List<CompletableFuture<byte[]>> values =  keyList.stream()
-                .map(b -> get(b.getData()))
+                .map(this::getWithoutTS)
                 .collect(Collectors.toList());
 
         return CompletableFuture.allOf(values.toArray(new CompletableFuture[0]))
@@ -54,7 +60,7 @@ public class MongoKV implements KeyValueDriver {
     }
     @Override
     //xxxResult para o caso de virmos a usar (erros na escrita)
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> timestamp) {
         for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()){
             byte[] value = kv.getValue();
             String key = kv.getKey().toString();
@@ -68,6 +74,4 @@ public class MongoKV implements KeyValueDriver {
         }
         return CompletableFuture.completedFuture(null);
     }
-
-
 }

@@ -33,7 +33,7 @@ public class TransactionManagerServer {
             "transaction_manager",
             Address.from(port),
             new MessagingConfig());
-        this.transactionManager = new TransactionManagerImpl();
+        this.transactionManager = new TransactionManagerImpl(0, 0, "mongodb://127.0.0.1:27017", "lei", "teste");
     }
 
     void start() {
@@ -49,6 +49,11 @@ public class TransactionManagerServer {
             TransactionCommitRequest tcr = s.decode(b);
             transactionManager.tryCommit(tcr.getTransactionContentMessage());
             return s.encode(0);
+        } ,e);
+
+        mms.registerHandler("get_server_context", (a,b) -> {
+            System.out.println("context request arrived");
+            return s.encode(transactionManager.getServersContext());
         } ,e);
     }
 

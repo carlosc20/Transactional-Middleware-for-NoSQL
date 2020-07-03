@@ -1,6 +1,7 @@
 package transaction_manager;
 
 import certifier.Timestamp;
+import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.MessagingService;
 
@@ -21,6 +22,11 @@ public class TransactionManagerStub implements TransactionManager{
 
     @Override
     public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tx) {
+        return null;
+    }
+
+    @Override
+    public ServersContextMessage getServersContext() {
         return null;
     }
 }

@@ -1,22 +1,31 @@
 package transaction_manager.messaging;
 
-import nosql.KeyValueDriver;
-import npvs.NPVS;
-
 public class ServersContextMessage {
-    private final NPVS<Long> npvs;
-    private final KeyValueDriver driver;
+    private final String databaseURI;
+    private final String databaseName;
+    private final String databaseCollectionName;
+    private final int npvsPort;
 
-    public ServersContextMessage(NPVS<Long> npvs, KeyValueDriver driver){
-        this.npvs = npvs;
-        this.driver = driver;
+    public ServersContextMessage(String databaseURI, String databaseName, String databaseCollectionName, int npvsPort){
+        this.databaseURI = databaseURI;
+        this.databaseName = databaseName;
+        this.databaseCollectionName = databaseCollectionName;
+        this.npvsPort = npvsPort;
     }
 
-    public NPVS<Long> getNpvs() {
-        return npvs;
+    public String getDatabaseURI() {
+        return databaseURI;
     }
 
-    public KeyValueDriver getDriver() {
-        return driver;
+    public String getDatabaseName() {
+        return databaseName;
+    }
+
+    public String getDatabaseCollectionName() {
+        return databaseCollectionName;
+    }
+
+    public int getNpvsPort() {
+        return npvsPort;
     }
 }
