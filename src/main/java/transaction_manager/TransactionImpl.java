@@ -4,7 +4,8 @@ import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import nosql.messaging.GetMessage;
 import npvs.NPVS;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.BitWriteSet;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,5 +70,11 @@ public class TransactionImpl implements Transaction {
         for(byte[] key : keys)
             list.add(read(key));
         return list;
+    }
+
+    @Override
+    //TODO
+    public Boolean tryCommit(BitWriteSet bws) {
+        return null;
     }
 }

@@ -2,7 +2,7 @@ package transaction_manager.messaging;
 
 import certifier.Timestamp;
 import transaction_manager.utils.BitWriteSet;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.Map;
 

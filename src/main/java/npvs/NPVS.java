@@ -1,7 +1,7 @@
 package npvs;
 
 import certifier.Timestamp;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

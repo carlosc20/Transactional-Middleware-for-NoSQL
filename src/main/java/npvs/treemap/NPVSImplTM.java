@@ -3,7 +3,7 @@ package npvs.treemap;
 import certifier.Timestamp;
 import npvs.NPVS;
 
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

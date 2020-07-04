@@ -1,6 +1,7 @@
+import certifier.MonotonicTimestamp;
 import nosql.MongoKV;
 import org.junit.Test;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -8,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -27,7 +27,7 @@ public class KVTest {
         byte[] value = "value".getBytes();
         writeMap.put(keyWrapper, value);
 
-        mkv.put(writeMap);
+        mkv.put(writeMap, new MonotonicTimestamp(1));
 
 
         // reading

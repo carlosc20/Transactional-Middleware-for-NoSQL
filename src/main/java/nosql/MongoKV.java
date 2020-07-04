@@ -12,7 +12,7 @@ import com.mongodb.client.result.UpdateResult;
 import nosql.messaging.GetMessage;
 import org.bson.Document;
 import org.bson.types.Binary;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

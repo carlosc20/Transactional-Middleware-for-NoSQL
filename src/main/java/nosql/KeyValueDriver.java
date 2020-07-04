@@ -2,7 +2,7 @@ package nosql;
 
 import certifier.Timestamp;
 import nosql.messaging.GetMessage;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.List;
 import java.util.Map;

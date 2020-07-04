@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.KeyValue;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.List;
 import java.util.Map;

@@ -10,7 +10,7 @@ import io.atomix.utils.serializer.SerializerBuilder;
 import npvs.binarysearch.NPVSImplBS;
 import npvs.messaging.FlushMessage;
 import npvs.messaging.ReadMessage;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

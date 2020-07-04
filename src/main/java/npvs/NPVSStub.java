@@ -10,7 +10,7 @@ import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import npvs.messaging.FlushMessage;
 import npvs.messaging.ReadMessage;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

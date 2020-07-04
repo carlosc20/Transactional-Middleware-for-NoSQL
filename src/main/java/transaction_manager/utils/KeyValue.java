@@ -1,7 +1,5 @@
 package transaction_manager.utils;
 
-import utils.ByteArrayWrapper;
-
 public class KeyValue {
     private final ByteArrayWrapper key;
     private final byte[] value;

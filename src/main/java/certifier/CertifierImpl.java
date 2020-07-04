@@ -57,23 +57,31 @@ public class CertifierImpl implements Certifier<Long> {
         return new MonotonicTimestamp(currentStartTs);
     }
 
+    private boolean isWritable(BitWriteSet newBws, long startTimestamp, long provisionalCommitTs){
+        for (long i = startTimestamp; i < provisionalCommitTs; i += timestep) {
+            BitWriteSet oldBws = history.get(i);
+            if (newBws.intersects(oldBws)) {
+                LOG.debug("Transaction conflicted on timestamp({})", i);
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Override
-    public Timestamp<Long> commit(BitWriteSet new_bws, Timestamp<Long> ts) {
+    public Timestamp<Long> commit(BitWriteSet newBws, Timestamp<Long> ts) {
         if (ts.isBefore(lowWaterMark)) {
             LOG.debug("Received transaction request with a timestamp ({}) already garbage collected", ts);
             return new MonotonicTimestamp(-1L);
         }
         long pcts = provisionalCommitTs.toPrimitive();
-        for (long i = ts.toPrimitive(); i < pcts; i += timestep) {
-            BitWriteSet old_bws = history.get(i);
-                if(old_bws.intersects(new_bws)) {
-                    LOG.debug("Transaction conflicted on timestamp({})", i);
-                    return new MonotonicTimestamp(-1L);
-                }
+        if (isWritable(newBws, ts.toPrimitive(), pcts)) {
+            history.put(pcts, newBws);
+            provisionalCommitTs.add(timestep);
+            return new MonotonicTimestamp(pcts);
         }
-        history.put(pcts, new_bws);
-        provisionalCommitTs.add(timestep);
-        return new MonotonicTimestamp(pcts);
+        else
+            return new MonotonicTimestamp(-1);
     }
 
     @Override

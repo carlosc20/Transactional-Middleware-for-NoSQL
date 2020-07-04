@@ -2,7 +2,7 @@ package npvs.binarysearch;
 
 import certifier.Timestamp;
 import npvs.NPVS;
-import utils.ByteArrayWrapper;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
