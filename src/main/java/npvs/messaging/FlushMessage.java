@@ -7,23 +7,23 @@ import java.util.Map;
 
 public class FlushMessage {
     Map<ByteArrayWrapper, byte[]> writeMap;
-    Timestamp<Long> monotonicTimestamp;
+    Timestamp<Long> ts;
 
     public FlushMessage(Map<ByteArrayWrapper, byte[]> ws, Timestamp<Long> ts){
         this.writeMap = ws;
-        this.monotonicTimestamp = ts;
+        this.ts = ts;
     }
 
     @Override
     public String toString() {
         return "FlushMessage{" +
                 "ws=" + writeMap +
-                ", ts=" + monotonicTimestamp +
+                ", ts=" + ts +
                 '}';
     }
 
-    public Timestamp<Long> getMonotonicTimestamp() {
-        return monotonicTimestamp;
+    public Timestamp<Long> getTs() {
+        return ts;
     }
 
     public Map<ByteArrayWrapper, byte[]> getWriteMap() {

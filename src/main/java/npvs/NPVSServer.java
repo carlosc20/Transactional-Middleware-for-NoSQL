@@ -50,7 +50,7 @@ public class NPVSServer {
         mms.registerHandler("put", (a,b) -> {
             System.out.println("flush request arrived");
             FlushMessage fm = s.decode(b);
-            npvs.put(fm.getWriteMap(), fm.getMonotonicTimestamp());
+            npvs.put(fm.getWriteMap(), fm.getTs());
             //TODO modificar
             return s.encode(true);
         } ,e);
