@@ -4,6 +4,7 @@ import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import nosql.messaging.GetMessage;
 import npvs.NPVS;
+import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
@@ -17,15 +18,17 @@ public class TransactionImpl implements Transaction {
 
     private final NPVS<Long> npvs;
     private final KeyValueDriver driver;
+    private final TransactionManager serverStub;
     private final Timestamp<Long> ts;
     private boolean latestTimestamp;
 
     private final Map<ByteArrayWrapper,byte[]> writeMap;
 
-    public TransactionImpl(NPVS<Long> npvs, KeyValueDriver driver, Timestamp<Long> ts) {
+    public TransactionImpl(NPVS<Long> npvs, KeyValueDriver driver, TransactionManager serverStub, Timestamp<Long> ts) {
         this.writeMap = new HashMap<>();
         this.npvs = npvs;
         this.driver = driver;
+        this.serverStub = serverStub;
         this.ts = ts;
         this.latestTimestamp = true;
     }
@@ -73,8 +76,12 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    //TODO
     public Boolean tryCommit(BitWriteSet bws) {
+        try {
+            return serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 }

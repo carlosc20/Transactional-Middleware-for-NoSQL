@@ -1,12 +1,11 @@
 package jraft.rpc;
 
+import transaction_manager.messaging.Message;
 import transaction_manager.messaging.TransactionContentMessage;
 
 import java.io.Serializable;
 
-public class TransactionCommitRequest implements Serializable {
-
-    private static final long serialVersionUID = -2527003154824547294L;
+public class TransactionCommitRequest extends Message implements Serializable{
     private final TransactionContentMessage transactionContentMessage;
 
     public TransactionCommitRequest(TransactionContentMessage transactionContentMessage){

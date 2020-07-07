@@ -5,11 +5,14 @@ import org.reactivestreams.Subscription;
 
 import java.util.function.Consumer;
 
-public class GenericSubscriber<T> implements Subscriber<T>{
+public class GenericSubscriberForFind<T> implements Subscriber<T> {
     private final Consumer<T> onNextCallback;
+    private final Consumer<Void> onCompleteCallback;
+    private boolean foundDoc = false;
 
-    public GenericSubscriber(Consumer<T> onNextCallback){
+    public GenericSubscriberForFind(Consumer<T> onNextCallback, Consumer<Void> onCompleteCallback){
         this.onNextCallback = onNextCallback;
+        this.onCompleteCallback = onCompleteCallback;
     }
 
     @Override
@@ -19,6 +22,7 @@ public class GenericSubscriber<T> implements Subscriber<T>{
 
     @Override
     public void onNext(T t) {
+        this.foundDoc = true;
         this.onNextCallback.accept(t);
     }
 
@@ -29,6 +33,8 @@ public class GenericSubscriber<T> implements Subscriber<T>{
 
     @Override
     public void onComplete() {
+        if (!foundDoc)
+            onCompleteCallback.accept(null);
         System.out.println("Completed");
     }
 }

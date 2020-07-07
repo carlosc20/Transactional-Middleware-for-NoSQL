@@ -63,7 +63,7 @@ public class CertifierImpl implements Certifier<Long> {
             System.out.println(i);
             BitWriteSet oldBws = history.get(i);
             if (newBws.intersects(oldBws)) {
-                LOG.debug("Transaction conflicted on timestamp({})", i);
+                LOG.debug("Transaction with TS: {} conflicted on TC: {}", startTimestamp, i);
                 return false;
             }
         }
@@ -73,13 +73,14 @@ public class CertifierImpl implements Certifier<Long> {
     @Override
     public Timestamp<Long> commit(BitWriteSet newBws, Timestamp<Long> ts) {
         if (ts.isBefore(lowWaterMark)) {
-            LOG.debug("Received transaction request with a timestamp ({}) already garbage collected", ts);
+            LOG.debug("Received transaction request with a TS: {} already garbage collected", ts);
             return new MonotonicTimestamp(-1);
         }
         long pcts = provisionalCommitTs.toPrimitive();
         if (isWritable(newBws, ts.toPrimitive(), pcts)) {
             history.put(pcts, newBws);
             provisionalCommitTs.add(timestep);
+            LOG.debug("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts, pcts);
             return new MonotonicTimestamp(pcts);
         }
         else
@@ -90,6 +91,7 @@ public class CertifierImpl implements Certifier<Long> {
     public void update() {
         currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
         currentCommitTs.add(timestep);
+        LOG.debug("Updating certifier Timestamps.....currentStartTs: {}, currentCommitTs: {}", currentStartTs, currentCommitTs);
     }
 
     @Override

@@ -26,6 +26,6 @@ public class TransactionController {
 
     public Transaction startTransaction(){
         Timestamp<Long> ts = serverStub.startTransaction();
-        return new TransactionImpl(npvs, driver, ts);
+        return new TransactionImpl(npvs, driver, serverStub, ts);
     }
 }

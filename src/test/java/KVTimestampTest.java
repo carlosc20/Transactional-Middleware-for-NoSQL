@@ -41,6 +41,13 @@ public class KVTimestampTest {
         GetMessage gm2 = mkv.get(new ByteArrayWrapper("key2".getBytes())).get();
         assertEquals("Should be equal", 0, gm2.getTs().compareTo(mt2));
         assertEquals("Should be equal", 0, new String(gm2.getValue()).compareTo("value2"));
+
+        mkv.getWithoutTS(new ByteArrayWrapper("arroz".getBytes())).thenAccept(x ->{
+            if (x == null)
+                System.out.println("is null");
+            else
+                System.out.println("not null");
+        }).get();
     }
 
 }

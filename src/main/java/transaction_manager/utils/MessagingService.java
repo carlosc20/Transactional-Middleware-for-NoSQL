@@ -54,6 +54,7 @@ public class MessagingService {
         }, 1, 4, TimeUnit.SECONDS);
     }
 
+    //TODO retornar CompletableFuture<R>
     public<R extends Message> R sendAndReceive(Message request) throws ExecutionException, InterruptedException {
         return new Request<R>().sendAndReceive(request);
     }

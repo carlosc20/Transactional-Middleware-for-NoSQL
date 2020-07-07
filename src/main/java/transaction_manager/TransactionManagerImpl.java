@@ -36,7 +36,7 @@ public class TransactionManagerImpl implements TransactionManager {
         taskExecutor = Executors.newFixedThreadPool(8);
         npvs = new NPVSStub(myPort, npvsPort);
         driver = new MongoKV(databaseURI, databaseName, databaseCollectionName);
-        certifier = new CertifierImpl(10000);
+        certifier = new CertifierImpl(1000);
         this.scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
     }
 
@@ -50,20 +50,21 @@ public class TransactionManagerImpl implements TransactionManager {
         if(commitTimestamp.toPrimitive() > 0) {
             //TODO e se falha?
             //TODO return correto
+            LOG.debug("Making transaction with TC: {} changes persist", commitTimestamp.toPrimitive());
             return flush(tc, commitTimestamp, certifier.getCurrentCommitTs())
                 .thenApply(x -> {
                     certifier.update();
                     return true;
                 });
         } else {
-            LOG.debug("aborted a tx with startTimestamp {}", tc.getStartTimestamp());
+            LOG.debug("aborted a transaction with TS {}", tc.getStartTimestamp());
             return CompletableFuture.completedFuture(false);
         }
     }
 
-    //TODO fix
     private CompletableFuture<Void> flush(TransactionContentMessage tc, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
         Map<ByteArrayWrapper, byte[]> writeMap = tc.getWriteMap();
+        LOG.debug("Fetching consistent key/values that belong to the commiting transaction from the DB");
         List<CompletableFuture<KeyValue>> keyValues = writeMap.keySet()
             .stream()
             .map(key -> driver.getWithoutTS(key)
@@ -76,8 +77,14 @@ public class TransactionManagerImpl implements TransactionManager {
                 .collect(Collectors.toList()))
             .thenApply(future -> future.stream()
                 .collect(Collectors.toMap(KeyValue::getKey, KeyValue::getValue)))
-            .thenComposeAsync(future -> npvs.put(future, currentCommitTimestamp), taskExecutor)
-            .thenComposeAsync(future -> driver.put(writeMap, provisionalCommitTimestamp), taskExecutor);
+            .thenComposeAsync(future -> {
+                LOG.debug("Putting consistent key/values in NPVS with TC: {}", currentCommitTimestamp.toPrimitive());
+                return npvs.put(future, currentCommitTimestamp);
+            }, taskExecutor)
+            .thenComposeAsync(future -> {
+                LOG.debug("Putting new key/values in NPVS with TC: {}", provisionalCommitTimestamp.toPrimitive());
+                return driver.put(writeMap, provisionalCommitTimestamp);
+            }, taskExecutor);
     }
 
     public ServersContextMessage getServersContext(){
