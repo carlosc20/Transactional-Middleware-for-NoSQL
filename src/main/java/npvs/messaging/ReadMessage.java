@@ -6,14 +6,11 @@ import transaction_manager.utils.ByteArrayWrapper;
 public class ReadMessage {
     ByteArrayWrapper key;
     Timestamp<Long> ts;
-    //temp
-    int id;
 
 
-    public ReadMessage(ByteArrayWrapper key, Timestamp<Long> ts, int id){
+    public ReadMessage(ByteArrayWrapper key, Timestamp<Long> ts){
         this.key = key;
         this.ts = ts;
-        this.id = id;
     }
 
     @Override
@@ -32,7 +29,4 @@ public class ReadMessage {
         return ts;
     }
 
-    public int getId() {
-        return id;
-    }
 }

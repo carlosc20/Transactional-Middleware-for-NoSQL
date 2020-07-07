@@ -27,23 +27,21 @@ public class NPVSStub implements NPVS<Long> {
     private final Serializer s;
     private final Address npvs;
 
-    private int idCount;
-
     public NPVSStub(int port, int npvsPort){
         e = Executors.newFixedThreadPool(1);
         npvs = Address.from(npvsPort);
         s = new SerializerBuilder()
-                .withRegistrationRequired(false)
+                .addType(FlushMessage.class)
+                .addType(ReadMessage.class)
+                .addType(ByteArrayWrapper.class)
+                .addType(MonotonicTimestamp.class)
                 .build();
         mms = new NettyMessagingService(
                 "server",
                 Address.from(port),
                 new MessagingConfig());
         mms.start();
-
-        idCount = 0;
     }
-
 
     @Override
     //TODO cuidado com o return
@@ -55,8 +53,7 @@ public class NPVSStub implements NPVS<Long> {
 
     @Override
     public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
-        this.idCount++;
-        ReadMessage rm = new ReadMessage(key, ts, idCount);
+        ReadMessage rm = new ReadMessage(key, ts);
         return mms.sendAndReceive(npvs, "get", s.encode(rm), Duration.of(10, ChronoUnit.SECONDS), e)
                 .thenApply(s::decode);
     }

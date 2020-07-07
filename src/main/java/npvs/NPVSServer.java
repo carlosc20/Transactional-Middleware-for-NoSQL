@@ -1,5 +1,7 @@
 package npvs;
 
+import certifier.MonotonicTimestamp;
+import certifier.Timestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
@@ -11,6 +13,7 @@ import npvs.messaging.FlushMessage;
 import npvs.messaging.ReadMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,7 +28,10 @@ public class NPVSServer {
     public NPVSServer(int port){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
-                .withRegistrationRequired(false)
+                .addType(FlushMessage.class)
+                .addType(ReadMessage.class)
+                .addType(ByteArrayWrapper.class)
+                .addType(MonotonicTimestamp.class)
                 .build();
         mms = new NettyMessagingService(
                 "server",
