@@ -26,4 +26,16 @@ public class WriteMapsBuilder {
     public BitWriteSet getBitWriteSet(int id){
         return new BitWriteSet(writeMaps.get(id).keySet());
     }
+
+    public boolean transfer(int id1, int id2){
+        if(writeMaps.containsKey(id1)) {
+            HashMap<ByteArrayWrapper, byte[]> map1 = writeMaps.get(id1);
+            if(writeMaps.containsKey(id2))
+                writeMaps.get(id2).putAll(map1);
+            else
+                writeMaps.computeIfAbsent(id2, x -> new HashMap<>()).putAll(map1);
+            return true;
+        }
+        return false;
+    }
 }

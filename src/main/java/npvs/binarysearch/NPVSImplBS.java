@@ -2,6 +2,9 @@ package npvs.binarysearch;
 
 import certifier.Timestamp;
 import npvs.NPVS;
+import npvs.NPVSServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.ArrayList;
@@ -11,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class NPVSImplBS implements NPVS<Long> {
     //TODO comparar o custo com várias versões desta estrutura
-
+    private static final Logger LOG = LoggerFactory.getLogger(NPVSImplBS.class);
     //ArrayList + binarySearch:
     // O(1) para adicionar
     // O(x) para remover -> vai depender do que for utilizado
@@ -44,18 +47,15 @@ public class NPVSImplBS implements NPVS<Long> {
     @Override
     public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
-            System.out.println("no key");
+            LOG.debug("No such key has been found: {}", key.toString());
             return CompletableFuture.completedFuture(null);
         }
         ArrayList<Version> versions = versionsByKey.get(key);
         return CompletableFuture.completedFuture(getSICompliantVersion(versions, ts));
     }
 
-    // TODO Ver caso sério de ao fazer garbage collection vir um pedir um antigo e só existem versões posteriores a esse
     private byte[] getSICompliantVersion(ArrayList<Version> versions, Timestamp<Long> ts) {
         // só existem versões antigas ou a minha na cabeça do array
-        System.out.println(versions.toString());
-        System.out.println("arrived ts: "+ ts);
         int size = versions.size();
         if (ts.isAfterOrEqual(versions.get(size - 1).ts))
             return versions.get(size - 1).value;
@@ -67,7 +67,6 @@ public class NPVSImplBS implements NPVS<Long> {
         int i = 0, j = size, mid=0;
         while (i < j) {
             mid = (i + j) / 2;
-            System.out.println("mid:" + mid);
             if (versions.get(mid).ts == ts)
                 return versions.get(mid).value;
 
@@ -84,13 +83,4 @@ public class NPVSImplBS implements NPVS<Long> {
         }
         return versions.get(mid).value;
     }
-/*
-    private Version getClosest(Version v1, Version v2, long ts){
-        if(ts - v1.ts >= v2.ts - ts)
-            return v2;
-        else
-            return v1;
-    }
-
- */
 }

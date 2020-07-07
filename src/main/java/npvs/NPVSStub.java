@@ -33,10 +33,7 @@ public class NPVSStub implements NPVS<Long> {
         e = Executors.newFixedThreadPool(1);
         npvs = Address.from(npvsPort);
         s = new SerializerBuilder()
-                .addType(ReadMessage.class)
-                .addType(MonotonicTimestamp.class)
-                .addType(FlushMessage.class)
-                .addType(ByteArrayWrapper.class)
+                .withRegistrationRequired(false)
                 .build();
         mms = new NettyMessagingService(
                 "server",
@@ -61,40 +58,6 @@ public class NPVSStub implements NPVS<Long> {
         this.idCount++;
         ReadMessage rm = new ReadMessage(key, ts, idCount);
         return mms.sendAndReceive(npvs, "get", s.encode(rm), Duration.of(10, ChronoUnit.SECONDS), e)
-                .whenComplete((m,t) -> {
-                    if(t!=null){
-                        t.printStackTrace();
-                    }
-                    else{
-                        System.out.println("completing future message " + new String((byte[])s.decode(m)));
-                    }});
+                .thenApply(s::decode);
     }
-
-    /*
-    public static void main(String[] args) throws InterruptedException {
-        NPVSStub npvs = new NPVSStub(10000, 20000);
-
-        HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();
-        ByteArrayWrapper baw1 = new ByteArrayWrapper("marco".getBytes());
-        ByteArrayWrapper baw2 = new ByteArrayWrapper("carlos".getBytes());
-
-        writeMap.put(baw1, "dantas".getBytes());
-        writeMap.put(baw2, "castro".getBytes());
-        npvs.update(writeMap, 1);
-        writeMap.put(baw1, "dantas2".getBytes());
-        npvs.update(writeMap, 2);
-        writeMap.put(baw1, "dantas4".getBytes());
-        npvs.update(writeMap, 4);
-        writeMap.put(baw1, "dantas10".getBytes());
-        npvs.update(writeMap, 10);
-        Thread.sleep(1000);
-        npvs.read(baw1, 3);
-        Thread.sleep(1000);
-        npvs.read(baw1, 5);
-        npvs.read(baw1, 1);
-        npvs.read(baw1, 9);
-        npvs.read(baw1, 11);
-        npvs.read(baw1, 10);
-    }
-    */
 }

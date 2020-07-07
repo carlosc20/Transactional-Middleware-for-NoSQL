@@ -1,6 +1,5 @@
 package npvs;
 
-import certifier.MonotonicTimestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
@@ -10,12 +9,14 @@ import io.atomix.utils.serializer.SerializerBuilder;
 import npvs.binarysearch.NPVSImplBS;
 import npvs.messaging.FlushMessage;
 import npvs.messaging.ReadMessage;
-import transaction_manager.utils.ByteArrayWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class NPVSServer {
+    private static final Logger LOG = LoggerFactory.getLogger(NPVSServer.class);
     private final ManagedMessagingService mms;
     private final ExecutorService e;
     private final Serializer s;
@@ -24,10 +25,7 @@ public class NPVSServer {
     public NPVSServer(int port){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
-                .addType(ReadMessage.class)
-                .addType(MonotonicTimestamp.class)
-                .addType(FlushMessage.class)
-                .addType(ByteArrayWrapper.class)
+                .withRegistrationRequired(false)
                 .build();
         mms = new NettyMessagingService(
                 "server",
@@ -42,14 +40,14 @@ public class NPVSServer {
 
         mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
-            System.out.println("read request arrived with id: " + rm.getId());
-            return npvs.get(rm.getKey(), rm.getTs()).whenComplete((x, y) -> System.out.println(new String(x)))
-                                            .thenApply(s::encode);
+            LOG.debug("get request arrived with ts: {}",  rm.getTs().toPrimitive());
+            return npvs.get(rm.getKey(), rm.getTs())
+                        .thenApply(s::encode);
         });
 
         mms.registerHandler("put", (a,b) -> {
-            System.out.println("flush request arrived");
             FlushMessage fm = s.decode(b);
+            LOG.debug("put request arrived with ts: {}",  fm.getTs().toPrimitive());
             npvs.put(fm.getWriteMap(), fm.getTs());
             //TODO modificar
             return s.encode(true);
