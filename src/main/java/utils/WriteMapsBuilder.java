@@ -24,6 +24,6 @@ public class WriteMapsBuilder {
     }
 
     public BitWriteSet getBitWriteSet(int id){
-        return new BitWriteSet(writeMaps.get(1).keySet());
+        return new BitWriteSet(writeMaps.get(id).keySet());
     }
 }

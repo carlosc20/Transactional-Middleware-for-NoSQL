@@ -58,7 +58,9 @@ public class CertifierImpl implements Certifier<Long> {
     }
 
     private boolean isWritable(BitWriteSet newBws, long startTimestamp, long provisionalCommitTs){
-        for (long i = startTimestamp; i < provisionalCommitTs; i += timestep) {
+        // ts / timestamp -> divisão com long é truncada com as casas décimais do timestamp.
+        for (long i = startTimestamp / timestep * timestep + timestep; i < provisionalCommitTs; i += timestep) {
+            System.out.println(i);
             BitWriteSet oldBws = history.get(i);
             if (newBws.intersects(oldBws)) {
                 LOG.debug("Transaction conflicted on timestamp({})", i);
@@ -72,7 +74,7 @@ public class CertifierImpl implements Certifier<Long> {
     public Timestamp<Long> commit(BitWriteSet newBws, Timestamp<Long> ts) {
         if (ts.isBefore(lowWaterMark)) {
             LOG.debug("Received transaction request with a timestamp ({}) already garbage collected", ts);
-            return new MonotonicTimestamp(-1L);
+            return new MonotonicTimestamp(-1);
         }
         long pcts = provisionalCommitTs.toPrimitive();
         if (isWritable(newBws, ts.toPrimitive(), pcts)) {
@@ -85,10 +87,9 @@ public class CertifierImpl implements Certifier<Long> {
     }
 
     @Override
-    //ASSUME causal order, implementar caso necessário
     public void update() {
-        currentCommitTs.add(timestep);
         currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
+        currentCommitTs.add(timestep);
     }
 
     @Override

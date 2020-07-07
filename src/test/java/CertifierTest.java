@@ -7,10 +7,26 @@ import utils.WriteMapsBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class CertifierTest {
+
+    private CertifierImpl certifier;
+
+    public CertifierTest()
+    {
+        this.certifier = new CertifierImpl(100);
+    }
+
+    private boolean certifierCommit(BitWriteSet bws, Timestamp<Long> ts){
+        Timestamp<Long> tc = this.certifier.commit(bws, ts);
+        if (tc.toPrimitive() > -1) {
+            System.out.println("Transaction with ts: " + ts.toPrimitive() + " has tc: " + tc.toPrimitive());
+            this.certifier.update();
+            return true;
+        }
+        return false;
+    }
 
     private List<BitWriteSet> buildBitWriteSets(){
         WriteMapsBuilder wmb = new WriteMapsBuilder();
@@ -35,46 +51,30 @@ public class CertifierTest {
 
     @Test
     public void certifyWithNoConflicts(){
-        CertifierImpl certifier = new CertifierImpl(100);
-
         List<BitWriteSet> bwss = buildBitWriteSets();
 
         Timestamp<Long> ts1 = certifier.start();
+        assertTrue("Shouldn't conflict 1", certifierCommit(bwss.get(0), ts1));
         Timestamp<Long> ts2 = certifier.start();
+        assertTrue("Shouldn't conflict 2", certifierCommit(bwss.get(1), ts2));
         Timestamp<Long> ts3 = certifier.start();
-
-        Timestamp<Long> tc1 = certifier.commit(bwss.get(0), ts1);
-        Timestamp<Long> tc2 = certifier.commit(bwss.get(1), ts2);
-        Timestamp<Long> tc3 = certifier.commit(bwss.get(2), ts3);
-
-        System.out.println(tc1.toPrimitive());
-        System.out.println(tc2.toPrimitive());
-        System.out.println(tc3.toPrimitive());
-
-        assertTrue("Shouldn't conflict 1", tc1.toPrimitive() > -1);
-        assertTrue("Shouldn't conflict 2", tc2.toPrimitive() > -1);
-        assertTrue("Shouldn't conflict 3", tc3.toPrimitive() > -1);
+        assertTrue("Shouldn't conflict 3", certifierCommit(bwss.get(2), ts3));
     }
 
     @Test
     public void certifyWithConflictsV1(){
-        CertifierImpl certifier = new CertifierImpl(100);
-
         List<BitWriteSet> bwss = buildBitWriteSets();
 
         Timestamp<Long> ts1 = certifier.start();
         Timestamp<Long> ts2 = certifier.start();
 
-        Timestamp<Long> tc1 = certifier.commit(bwss.get(0), ts1);
-        Timestamp<Long> tc2 = certifier.commit(bwss.get(1), ts2);
-        Timestamp<Long> tc3 = certifier.commit(bwss.get(2), ts1);
-
-        System.out.println(tc1.toPrimitive());
-        System.out.println(tc2.toPrimitive());
-        System.out.println(tc3.toPrimitive());
-
-        assertTrue("Shouldn't conflict 1", tc1.toPrimitive() > -1);
-        assertTrue("Shouldn't conflict 2", tc2.toPrimitive() > -1);
-        assertEquals("Should conflict 3", -1, (long) tc3.toPrimitive());
+        System.out.println("Commit 1");
+        assertTrue("Shouldn't conflict 1", certifierCommit(bwss.get(0), ts1));
+        System.out.println("Commit 2");
+        assertTrue("Shouldn't conflict 2", certifierCommit(bwss.get(1), ts2));
+        System.out.println("Commit 3");
+        assertFalse("Should conflict 3", certifierCommit(bwss.get(2), ts1));
+        Timestamp<Long> ts3 = certifier.start();
+        assertTrue("Shouldn't conflict 4", certifierCommit(bwss.get(2), ts3));
     }
 }
