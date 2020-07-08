@@ -47,14 +47,14 @@ public class NPVSStub implements NPVS<Long> {
     //TODO cuidado com o return
     public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
         FlushMessage fm = new FlushMessage(writeMap, ts);
-        return mms.sendAndReceive(npvs, "put", s.encode(fm), e)
+        return mms.sendAndReceive(npvs, "put", s.encode(fm), Duration.ofSeconds(10), e)
                 .thenApply(s::decode);
     }
 
     @Override
     public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         ReadMessage rm = new ReadMessage(key, ts);
-        return mms.sendAndReceive(npvs, "get", s.encode(rm), Duration.of(10, ChronoUnit.SECONDS), e)
+        return mms.sendAndReceive(npvs, "get", s.encode(rm), Duration.ofSeconds(10), e)
                 .thenApply(s::decode);
     }
 }

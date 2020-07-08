@@ -5,27 +5,34 @@ import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
 import npvs.NPVS;
 import npvs.NPVSStub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 
 public class TransactionController {
+    private static final Logger LOG = LoggerFactory.getLogger(TransactionController.class);
     private NPVS<Long> npvs;
     private KeyValueDriver driver;
     private final TransactionManager serverStub;
-    private final int myPort;
+    private final int npvsStubPort;
 
-    public TransactionController(int myPort, int serverPort){
-        this.serverStub = new TransactionManagerStub(myPort, serverPort);
-        this.myPort = myPort;
+    public TransactionController(int serverStubPort, int npvsStubPort, int serverPort){
+        this.serverStub = new TransactionManagerStub(serverStubPort, serverPort);
+        this.npvsStubPort = npvsStubPort;
     }
 
     public void buildContext(){
+        LOG.info("Sending request to build controller");
         ServersContextMessage scm = serverStub.getServersContext();
-        this.npvs = new NPVSStub(myPort, scm.getNpvsPort());
+        this.npvs = new NPVSStub(npvsStubPort, scm.getNpvsPort());
         this.driver = new MongoAsynchKV(scm.getDatabaseURI(), scm.getDatabaseName(), scm.getDatabaseCollectionName());
+        LOG.info("Controller built");
     }
 
-    public Transaction startTransaction(){
+    public TransactionImpl startTransaction(){
+        LOG.info("Asking server for a new start timestamp");
         Timestamp<Long> ts = serverStub.startTransaction();
+        LOG.info("Received TS: {}", ts.toPrimitive());
         return new TransactionImpl(npvs, driver, serverStub, ts);
     }
 }

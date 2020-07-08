@@ -17,6 +17,10 @@ public class Timer {
         this.timeUnit = timeUnit;
     }
 
+    public void start(){
+	addCheckpoint("Start");
+    }
+
     public void addCheckpoint(){
         checkpoints.add(new Checkpoint(System.nanoTime()));
     }
@@ -36,7 +40,7 @@ public class Timer {
         long total = timeUnit.convert(l1, TimeUnit.NANOSECONDS);
         long last = timeUnit.convert(l2, TimeUnit.NANOSECONDS);
         System.out.println("\nEvent: " + i + " -----------------------------------------------------------------------------");
-        System.out.println("Total time elapsed: " + total + " ,time elapsed since last checkpoint: " + last);
+        System.out.println("Total time elapsed: " + total + ", time elapsed since last checkpoint: " + last);
         print(info);
     }
 
@@ -56,19 +60,6 @@ public class Timer {
                 print(i, c.time - begining.time, c.time - checkpoints.get(i-1).time, c.info);
             }
         }
+        this.checkpoints.clear();
     }
-
-    public static void main(String[] args) {
-        Timer t = new Timer(TimeUnit.NANOSECONDS);
-        t.addCheckpoint();
-        int k = 0;
-        for(int i = 0; i<100000000; i++)
-            k+=i+k;
-        t.addCheckpoint();
-        for(int i = 0; i<100000000; i++)
-            k+=i+k;
-        t.addCheckpoint("ultimo check");
-        t.print();
-    }
-
 }

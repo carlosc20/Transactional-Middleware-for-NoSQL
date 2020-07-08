@@ -4,8 +4,10 @@ import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import nosql.messaging.GetMessage;
 import npvs.NPVS;
+import npvs.NPVSServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.TransactionContentMessage;
-import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 
 public class TransactionImpl implements Transaction {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TransactionImpl.class);
     private final NPVS<Long> npvs;
     private final KeyValueDriver driver;
     private final TransactionManager serverStub;
@@ -47,18 +50,26 @@ public class TransactionImpl implements Transaction {
     public byte[] read(byte[] key) {
         // procura no WriteSet da transação, se já tiver alguma operação
         ByteArrayWrapper k = new ByteArrayWrapper(key);
-        if (writeMap.containsKey(k))
+        if (writeMap.containsKey(k)) {
+            LOG.info("Transaction: {} -> Value of key: {} was found locally",ts.toPrimitive(), k.toString());
             return writeMap.get(k);
+        }
         try {
-            if (!latestTimestamp)
+            if (!latestTimestamp){
+                LOG.info("Transaction: {} -> Value of key: {} was fetched from NPVS", ts.toPrimitive(), k.toString());
                 return npvs.get(k, ts).get();
+            }
             else{
                 GetMessage gm = driver.get(k).get();
                 if (gm.getTs().isAfter(ts)) {
+                    LOG.info("Transaction: {} no longer on latest snapshot view, latest version: {}", ts.toPrimitive(), gm.getTs().toPrimitive());
                     this.latestTimestamp = false;
                     return npvs.get(k, ts).get();
                 }
-                else return gm.getValue();
+                else {
+                    LOG.info("Transaction: {} -> Value of key: {} was fetched from the DB", ts.toPrimitive(), k.toString());
+                    return gm.getValue();
+                }
             }
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
@@ -76,12 +87,17 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    public Boolean tryCommit(BitWriteSet bws) {
+    public Boolean commit() {
         try {
+            LOG.info("Transaction: {} committing", ts.toPrimitive());
             return serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Timestamp<Long> getTs() {
+        return ts;
     }
 }

@@ -25,7 +25,7 @@ public class NPVSServer {
     private final Serializer s;
     private final NPVSImplBS npvs;
 
-    public NPVSServer(int port){
+    public NPVSServer(int myPort){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
                 .addType(FlushMessage.class)
@@ -35,32 +35,29 @@ public class NPVSServer {
                 .build();
         mms = new NettyMessagingService(
                 "server",
-                Address.from(port),
+                Address.from(myPort),
                 new MessagingConfig());
         this.npvs = new NPVSImplBS();
-        start();
     }
 
     private void start(){
         mms.start();
-
         mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
-            LOG.debug("get request arrived with ts: {}",  rm.getTs().toPrimitive());
+            LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
             return npvs.get(rm.getKey(), rm.getTs())
                         .thenApply(s::encode);
         });
 
         mms.registerHandler("put", (a,b) -> {
             FlushMessage fm = s.decode(b);
-            LOG.debug("put request arrived with ts: {}",  fm.getTs().toPrimitive());
-            npvs.put(fm.getWriteMap(), fm.getTs());
-            //TODO modificar
-            return s.encode(true);
-        } ,e);
+            LOG.info("put request arrived with TC: {}",  fm.getTs().toPrimitive());
+            return npvs.put(fm.getWriteMap(), fm.getTs())
+                    .thenApply(s::encode);
+        });
     }
 
     public static void main(String[] args) {
-        new NPVSServer(20000);
+        new NPVSServer(20000).start();
     }
 }

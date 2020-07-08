@@ -47,7 +47,7 @@ public class NPVSImplBS implements NPVS<Long> {
     @Override
     public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
-            LOG.debug("No such key has been found: {}", key.toString());
+            LOG.info("No such key has been found: {}", key.toString());
             return CompletableFuture.completedFuture(null);
         }
         ArrayList<Version> versions = versionsByKey.get(key);

@@ -31,7 +31,7 @@ public class CertifierImpl implements Certifier<Long> {
         this.timestep = timestep;
         currentStartTs = new MonotonicTimestamp(0);
         provisionalCommitTs = new MonotonicTimestamp(timestep);
-        currentCommitTs = new MonotonicTimestamp(timestep);
+        currentCommitTs = new MonotonicTimestamp(0);
         lowWaterMark = new MonotonicTimestamp(-1);
         runningTransactions = new LinkedHashMap<>();
         history = new HashMap<>();
@@ -60,10 +60,9 @@ public class CertifierImpl implements Certifier<Long> {
     private boolean isWritable(BitWriteSet newBws, long startTimestamp, long provisionalCommitTs){
         // ts / timestamp -> divisão com long é truncada com as casas décimais do timestamp.
         for (long i = startTimestamp / timestep * timestep + timestep; i < provisionalCommitTs; i += timestep) {
-            System.out.println(i);
             BitWriteSet oldBws = history.get(i);
             if (newBws.intersects(oldBws)) {
-                LOG.debug("Transaction with TS: {} conflicted on TC: {}", startTimestamp, i);
+                LOG.info("Transaction with TS: {} conflicted on TC: {}", startTimestamp, i);
                 return false;
             }
         }
@@ -73,14 +72,14 @@ public class CertifierImpl implements Certifier<Long> {
     @Override
     public Timestamp<Long> commit(BitWriteSet newBws, Timestamp<Long> ts) {
         if (ts.isBefore(lowWaterMark)) {
-            LOG.debug("Received transaction request with a TS: {} already garbage collected", ts);
+            LOG.info("Received transaction request with a TS: {} already garbage collected", ts);
             return new MonotonicTimestamp(-1);
         }
         long pcts = provisionalCommitTs.toPrimitive();
         if (isWritable(newBws, ts.toPrimitive(), pcts)) {
             history.put(pcts, newBws);
             provisionalCommitTs.add(timestep);
-            LOG.debug("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts, pcts);
+            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts, pcts);
             return new MonotonicTimestamp(pcts);
         }
         else
@@ -89,9 +88,9 @@ public class CertifierImpl implements Certifier<Long> {
 
     @Override
     public void update() {
-        currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
         currentCommitTs.add(timestep);
-        LOG.debug("Updating certifier Timestamps.....currentStartTs: {}, currentCommitTs: {}", currentStartTs, currentCommitTs);
+        currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
+        LOG.info("Updating certifier Timestamps -> currentStartTs: {}, currentCommitTs: {}", currentStartTs.toPrimitive(), currentCommitTs.toPrimitive());
     }
 
     @Override

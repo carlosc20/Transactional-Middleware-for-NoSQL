@@ -10,27 +10,22 @@ import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import jraft.rpc.TransactionCommitRequest;
 import jraft.rpc.TransactionStartRequest;
-import npvs.messaging.FlushMessage;
-import npvs.messaging.ReadMessage;
 import transaction_manager.messaging.ServerContextRequestMessage;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
-import transaction_manager.utils.ByteArrayWrapper;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.time.Duration;
+import java.util.concurrent.*;
 
 public class TransactionManagerStub implements TransactionManager{
     private final ManagedMessagingService mms;
     private final ExecutorService e;
     private final Serializer s;
-    private final Address npvs;
+    private final Address manager;
 
     public TransactionManagerStub(int myPort, int serverPort){
         e = Executors.newFixedThreadPool(1);
-        npvs = Address.from(serverPort);
+        manager = Address.from(serverPort);
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
                 .build();
@@ -45,7 +40,7 @@ public class TransactionManagerStub implements TransactionManager{
     public Timestamp<Long> startTransaction() {
         TransactionStartRequest tsr = new TransactionStartRequest();
         try {
-            return (MonotonicTimestamp) mms.sendAndReceive(npvs, "start", s.encode(tsr), e)
+            return (MonotonicTimestamp) mms.sendAndReceive(manager, "start", s.encode(tsr), Duration.ofSeconds(20), e)
                     .thenApply(s::decode).get();
         } catch (InterruptedException | ExecutionException interruptedException) {
             interruptedException.printStackTrace();
@@ -56,14 +51,14 @@ public class TransactionManagerStub implements TransactionManager{
     @Override
     public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tx) {
         TransactionCommitRequest tcr = new TransactionCommitRequest(tx);
-        return mms.sendAndReceive(npvs, "commit", s.encode(tcr), e)
+        return mms.sendAndReceive(manager, "commit", s.encode(tcr), Duration.ofSeconds(20), e)
                 .thenApply(s::decode);
     }
 
     @Override
     public ServersContextMessage getServersContext() {
         try {
-            return (ServersContextMessage) mms.sendAndReceive(npvs, "get_server_context", s.encode(new ServerContextRequestMessage()), e)
+            return (ServersContextMessage) mms.sendAndReceive(manager, "get_server_context", s.encode(new ServerContextRequestMessage()), Duration.ofSeconds(20), e)
                     .thenApply(s::decode).get();
         } catch (InterruptedException | ExecutionException interruptedException) {
             interruptedException.printStackTrace();

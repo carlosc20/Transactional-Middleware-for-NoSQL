@@ -42,8 +42,8 @@ public class MongoAsynchKV implements KeyValueDriver {
 
         collection.find(eq("_id", key.toString())).first()
             .subscribe(new GenericSubscriberForFind<>(
-                    result -> cf.complete(((Binary) result.get("value")).getData()),
-                    x -> cf.complete(null)));
+                result -> cf.complete(((Binary) result.get("value")).getData()),
+                x -> cf.complete(null)));
         return cf;
     }
 
@@ -51,13 +51,10 @@ public class MongoAsynchKV implements KeyValueDriver {
     public CompletableFuture<GetMessage> get(ByteArrayWrapper key) {
         return getWithoutTS(key).thenCompose(value -> {
             CompletableFuture<Long> cf = new CompletableFuture<>();
-            collection.find(eq("key", "timestamp")).first()
-                .subscribe(new GenericSubscriber<>(result -> {
-                    if(result == null)
-                        cf.complete(null);
-                    else
-                        cf.complete((Long) result.get("value"));
-                }));
+            collection.find(eq("_id", "timestamp")).first()
+                .subscribe(new GenericSubscriberForFind<>(
+                    result -> cf.complete((Long) result.get("value")),
+                    x -> cf.complete(-1L)));
             return cf.thenApply(ts -> new GetMessage(value, new MonotonicTimestamp(ts)));
         });
     }
@@ -90,13 +87,13 @@ public class MongoAsynchKV implements KeyValueDriver {
             final int local_l = location;
 
             if(value != null){
-                Document doc = new Document("key", key)
+                Document doc = new Document("_id", key)
                     .append("value", value);
-                collection.replaceOne(eq("key", key), doc, new ReplaceOptions().upsert(true))
+                collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
                     .subscribe(new GenericSubscriber<>(result -> futures[local_l].complete(null)));
             }
             else
-                collection.deleteOne(eq("key", kv.getKey().toString()))
+                collection.deleteOne(eq("_id", kv.getKey().toString()))
                     .subscribe(new GenericSubscriber<>(result -> futures[local_l].complete(null)));
             location++;
         }
@@ -105,7 +102,7 @@ public class MongoAsynchKV implements KeyValueDriver {
 
     private CompletableFuture<Void> putTimestamp(Timestamp<Long> timestamp){
         CompletableFuture<Void> cf = new CompletableFuture<>();
-        Document doc = new Document("key", "timestamp").append("value", timestamp.toPrimitive());
+        Document doc = new Document("_id", "timestamp").append("value", timestamp.toPrimitive());
         collection.replaceOne(eq("_id", "timestamp"), doc, new ReplaceOptions().upsert(true))
                 .subscribe(new GenericSubscriber<>(result -> cf.complete(null)));
         return cf;

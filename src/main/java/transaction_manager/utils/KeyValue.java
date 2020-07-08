@@ -16,4 +16,8 @@ public class KeyValue {
     public byte[] getValue() {
         return value;
     }
+
+    public boolean valueNotNull(){
+        return this.value != null;
+    }
 }

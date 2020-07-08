@@ -17,6 +17,10 @@ public class BitWriteSet implements Serializable {
         this.set = new BitSet(nbits);
     }
 
+    public BitWriteSet(byte[] b) {
+        this.set = BitSet.valueOf(b);
+    }
+
     public BitWriteSet(Set<ByteArrayWrapper> keySet){
         this.set = new BitSet(1024);
         keySet.forEach(k -> add(k.getData()));
@@ -33,7 +37,15 @@ public class BitWriteSet implements Serializable {
         return this.set.intersects(set.getSet());
     }
 
+    public BitWriteSet valueOf(byte[] b){
+        return new BitWriteSet().valueOf(b);
+    }
+
     public BitSet getSet() {
         return set;
+    }
+
+    public byte[] toByteArray(){
+        return set.toByteArray();
     }
 }

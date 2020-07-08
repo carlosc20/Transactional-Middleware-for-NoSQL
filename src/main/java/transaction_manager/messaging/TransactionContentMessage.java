@@ -4,6 +4,7 @@ import certifier.Timestamp;
 import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
+import java.util.BitSet;
 import java.util.Map;
 
 public class TransactionContentMessage {
@@ -11,17 +12,18 @@ public class TransactionContentMessage {
     //TODO na verdade pode apenas enviar o writeMap, mas a computação passa para o servidor
     private final Map<ByteArrayWrapper, byte[]> writeMap;
     private final Timestamp<Long> startTimestamp;
-    private final BitWriteSet bws;
+    private final byte[] bws;
 
     public TransactionContentMessage(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> startTimestamp){
         this.writeMap = writeMap;
         this.startTimestamp = startTimestamp;
-        this.bws = new BitWriteSet();
+        BitWriteSet bws = new BitWriteSet();
         writeMap.keySet().forEach(k -> bws.add(k.getData()));
+        this.bws = bws.toByteArray();
     }
 
     public BitWriteSet getWriteSet() {
-        return bws;
+        return new BitWriteSet(bws);
     }
 
     public Map<ByteArrayWrapper, byte[]> getWriteMap() {
