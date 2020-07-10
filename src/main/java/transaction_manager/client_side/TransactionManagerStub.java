@@ -1,4 +1,4 @@
-package transaction_manager;
+package transaction_manager.client_side;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
@@ -10,6 +10,7 @@ import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import jraft.rpc.TransactionCommitRequest;
 import jraft.rpc.TransactionStartRequest;
+import transaction_manager.TransactionManager;
 import transaction_manager.messaging.ServerContextRequestMessage;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
@@ -17,7 +18,7 @@ import transaction_manager.messaging.TransactionContentMessage;
 import java.time.Duration;
 import java.util.concurrent.*;
 
-public class TransactionManagerStub implements TransactionManager{
+public class TransactionManagerStub implements TransactionManager {
     private final ManagedMessagingService mms;
     private final ExecutorService e;
     private final Serializer s;

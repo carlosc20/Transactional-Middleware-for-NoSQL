@@ -1,6 +1,6 @@
 import org.junit.Test;
-import transaction_manager.TransactionController;
-import transaction_manager.TransactionImpl;
+import transaction_manager.client_side.TransactionController;
+import transaction_manager.client_side.TransactionImpl;
 
 import static org.junit.Assert.*;
 

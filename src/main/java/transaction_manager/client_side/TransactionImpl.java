@@ -1,12 +1,12 @@
-package transaction_manager;
+package transaction_manager.client_side;
 
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import nosql.messaging.GetMessage;
 import npvs.NPVS;
-import npvs.NPVSServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.TransactionManager;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 

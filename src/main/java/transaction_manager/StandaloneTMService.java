@@ -11,28 +11,29 @@ import java.util.concurrent.CompletableFuture;
 
 public class StandaloneTMService extends TransactionManagerService{
     private static final Logger LOG = LoggerFactory.getLogger(StandaloneTMService.class);
-    private final Certifier<Long> certifier;
+    private final State state;
 
     public StandaloneTMService(int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName, long timestep){
         super(npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
-        certifier = new CertifierImpl(timestep);
+        state = new State(timestep);
     }
 
     @Override
     public Timestamp<Long> startTransaction(){
-        return certifier.start();
+        return state.getCertifier().start();
     }
 
     @Override
     public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tc) {
-        Timestamp<Long> commitTimestamp = certifier.commit(tc.getWriteSet(), tc.getStartTimestamp());
+        Timestamp<Long> commitTimestamp = state.getCertifier().commit(tc.getWriteSet(), tc.getStartTimestamp());
         if(commitTimestamp.toPrimitive() > 0) {
             //TODO muito importante e se falha?
+            //TODO resposta do flush vir desordenada
             //TODO return correto
             LOG.info("Making transaction with TC: {} changes persist", commitTimestamp.toPrimitive());
-            return flush(tc, commitTimestamp, certifier.getCurrentCommitTs())
+            return flush(tc, commitTimestamp, state.getCertifier().getCurrentCommitTs())
                     .thenApply(x -> {
-                        certifier.update();
+                        state.getCertifier().update();
                         return true;
                     });
         } else {
