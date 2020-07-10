@@ -100,6 +100,7 @@ public class MongoAsynchKV implements KeyValueDriver {
         return CompletableFuture.allOf(futures).thenCompose(x -> putTimestamp(timestamp));
     }
 
+    //TODO garantir que fica sempre o max timestamp
     private CompletableFuture<Void> putTimestamp(Timestamp<Long> timestamp){
         CompletableFuture<Void> cf = new CompletableFuture<>();
         Document doc = new Document("_id", "timestamp").append("value", timestamp.toPrimitive());

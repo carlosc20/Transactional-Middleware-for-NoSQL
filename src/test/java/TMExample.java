@@ -1,7 +1,3 @@
-import transaction_manager.Transaction;
-import transaction_manager.TransactionManager;
-import transaction_manager.TransactionManagerImpl;
-
 public class TMExample {
 
     public static void main(String[] args) {
