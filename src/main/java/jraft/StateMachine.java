@@ -3,8 +3,12 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import certifier.CertifierImpl;
+import certifier.MonotonicTimestamp;
+import certifier.Timestamp;
+import jraft.callbacks.CompletableClosure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.alipay.remoting.exception.CodecException;
@@ -15,10 +19,13 @@ import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
-import jraft.snapshot.CounterSnapshotFile;
+import jraft.snapshot.StateSnapshot;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
+import transaction_manager.utils.BitWriteSet;
+
+import static jraft.TransactionManagerOperation.*;
 
 /**
  * Counter state machine.
@@ -31,10 +38,7 @@ public class StateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = LoggerFactory.getLogger(StateMachine.class);
 
-    /**
-     * Counter value
-     */
-    private final CertifierImpl certifier = new CertifierImpl(10000);
+    private final ExtendedState state = new ExtendedState(1000);
     /**
      * Leader term
      */
@@ -50,51 +54,62 @@ public class StateMachine extends StateMachineAdapter {
 
     public long getTimestamp() {
         //TODO arranjar
-        return this.certifier.start().toPrimitive();
+        return this.state.getCertifier().start().toPrimitive();
     }
+
+    //TODO
+    public Timestamp<Long> getCurrentTs(){
+        return this.state.getCertifier().getCurrentCommitTs();
+    }
+
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
-            long current = 0L;
-            CertifierOperation certifierOperation = null;
+            TransactionManagerOperation transactionManagerOperation = null;
 
-            CertifierClosure closure = null;
+            CompletableClosure<?> closure = null;
             if (iter.done() != null) {
                 // This task is applied by this node, get value from closure to avoid additional parsing.
-                closure = (CertifierClosure) iter.done();
-                certifierOperation = closure.getCertifierOperation();
+                closure = (CompletableClosure<?>) iter.done();
+                transactionManagerOperation = closure.getTransactionManagerOperation();
             } else {
                 // Have to parse FetchAddRequest from this user log.
                 final ByteBuffer data = iter.getData();
                 try {
-                    certifierOperation = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(
-                            data.array(), CertifierOperation.class.getName());
+                    transactionManagerOperation = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(
+                            data.array(), TransactionManagerOperation.class.getName());
                 } catch (final CodecException e) {
-                    LOG.error("Fail to decode IncrementAndGetRequest", e);
+                    LOG.error("Fail to decode TransactionManagerOperation", e);
                 }
             }
-            /*
-            if (certifierOperation != null) {
-                switch (certifierOperation.getOp()) {
-                    case GET_TS:
-                        current = getTimestamp();
-                        LOG.info("Get value={} at logIndex={}", current, iter.getIndex());
+            if (transactionManagerOperation != null) {
+                switch (transactionManagerOperation.getOp()) {
+                    case START_TXN:
+                        Timestamp<Long> ts = state.getCertifier().start();
+                        resolveClosure(ts, closure);
+                        //LOG.info("Get value={} at logIndex={}", current, iter.getIndex());
                         break;
                     case COMMIT:
-                        final BitWriteSet bws = certifierOperation.getBws();
-                        final MonotonicTimestamp monotonicTimestamp = certifierOperation.getMonotonicTimestamp();
-                        current = this.certifier.commit(bws, monotonicTimestamp);
-                        LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
+                        final BitWriteSet bws = transactionManagerOperation.getBws();
+                        final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
+                        Timestamp<Long> tc = state.getCertifier().commit(bws, startTimestamp);
+                        resolveClosure(tc, closure);
+                        //LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
                         break;
+                    case DEL_NON_ACK_FLUSH:
+                        final Timestamp<Long> txnId = transactionManagerOperation.getStartTimestamp();
+                        state.removeFlush(txnId);
+                        resolveClosure(null, closure);
                 }
-                if (closure != null) {
-                    closure.success(current);
-                    closure.run(Status.OK());
-                }
-            }
 
-             */
+            }
             iter.next();
+        }
+    }
+
+    private void resolveClosure(Timestamp<Long> result, CompletableClosure<?> closure){
+        if (closure != null) {
+             closure.getCompletableFuture().complete(result);
         }
     }
 
@@ -102,8 +117,8 @@ public class StateMachine extends StateMachineAdapter {
     public void onSnapshotSave(final SnapshotWriter writer, final Closure done) {
         //TODO colocar locks?
         Utils.runInThread(() -> {
-            final CounterSnapshotFile snapshot = new CounterSnapshotFile(writer.getPath() + File.separator + "data");
-            if (snapshot.save(this.certifier)) {
+            final StateSnapshot snapshot = new StateSnapshot(writer.getPath() + File.separator + "data");
+            if (snapshot.save(this.state)) {
                 if (writer.addFile("data")) {
                     done.run(Status.OK());
                 } else {
@@ -130,14 +145,12 @@ public class StateMachine extends StateMachineAdapter {
             LOG.error("Fail to find data file in {}", reader.getPath());
             return false;
         }
-        final CounterSnapshotFile snapshot = new CounterSnapshotFile(reader.getPath() + File.separator + "data");
+        final StateSnapshot snapshot = new StateSnapshot(reader.getPath() + File.separator + "data");
         try {
-            CertifierImpl c = snapshot.load();
-            /*
-            this.certifier.setCurrentTs(c.getCurrentTs());
-            this.certifier.setHistory(c.getHistory());
-
-             */
+            ExtendedState es = snapshot.load();
+            this.state.setNonAckedFlushs(es.getNonAckedFlushs());
+            this.state.setCertifier(es.getCertifier());
+            this.state.setLastNPVSCrash(es.getLastNPVSCrash());
             return true;
         } catch (final IOException e) {
             LOG.error("Fail to load snapshot from {}", snapshot.getPath());
@@ -148,9 +161,9 @@ public class StateMachine extends StateMachineAdapter {
 
     @Override
     public void onLeaderStart(final long term) {
+        //TODO flush all requests
         this.leaderTerm.set(term);
         super.onLeaderStart(term);
-
     }
 
     @Override

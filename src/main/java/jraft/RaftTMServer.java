@@ -3,6 +3,7 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 
+import com.alipay.sofa.jraft.Status;
 import jraft.rpc.*;
 import org.apache.commons.io.FileUtils;
 
@@ -13,28 +14,42 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import transaction_manager.messaging.ServerContextRequestMessage;
+import transaction_manager.messaging.ServersContextMessage;
 
-public class CertifierServer {
+public class RaftTMServer {
     private RaftGroupService raftGroupService;
     private Node node;
     private StateMachine fsm;
 
-    public CertifierServer(final String dataPath, final String groupId, final PeerId serverId,
-                           final NodeOptions nodeOptions) throws IOException {
+    public RaftTMServer(final String dataPath, final String groupId, final PeerId serverId,
+                        final NodeOptions nodeOptions) throws IOException {
+
         // Initialize the path.
         FileUtils.forceMkdir(new File(dataPath));
 
         // Here Raft RPC and business RPC share the same RPC server. They can use different RPC servers, too.
         final RpcServer rpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint());
         // Register the business processor.
-/*
-        CertifierService certifierService = new CertifierServiceImpl(this);
-        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Long>(TransactionCommitRequest.class,
-                (req , closure) -> certifierService.commit(req.getBws(), req.getMonotonicTimestamp(), closure)));
 
-        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Long>(TransactionStartRequest.class,
-                (req , closure) -> certifierService.getTimestamp(req.isReadOnlySafe(), closure)));
-*/
+        RaftTMService transactionManagerService = new RaftTMService(this, 30001,20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1");
+
+
+        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Boolean>(
+                TransactionCommitRequest.class,
+                (req , closure) -> transactionManagerService.tryCommit(req.getTransactionContentMessage(), closure)));
+
+
+        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Long>(
+                TransactionStartRequest.class,
+                (req , closure) -> transactionManagerService.startTransaction(closure)));
+
+
+        rpcServer.registerProcessor(new RequestProcessor<ServerContextRequestMessage, ServersContextMessage>(
+                ServerContextRequestMessage.class,
+                (req , closure) -> transactionManagerService.getServersContext(closure)));
+
+
         // Initialize the state machine.
         this.fsm = new StateMachine();
         // Set the state machine to the startup parameters.
@@ -82,7 +97,7 @@ public class CertifierServer {
     public static void main(final String[] args) throws IOException {
         if (args.length != 4) {
             System.out
-                    .println("Useage : java com.alipay.sofa.jraft.example.counter.CounterServer {dataPath} {groupId} {serverId} {initConf}");
+                    .println("Usage : java com.alipay.sofa.jraft.example.counter.CounterServer {dataPath} {groupId} {serverId} {initConf}");
             System.out
                     .println("Example: java com.alipay.sofa.jraft.example.counter.CounterServer /tmp/server1 counter 127.0.0.1:8081 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083");
             System.exit(1);
@@ -113,8 +128,8 @@ public class CertifierServer {
         nodeOptions.setInitialConf(initConf);
 
         // start up
-        final CertifierServer certifierServer = new CertifierServer(dataPath, groupId, serverId, nodeOptions);
+        final RaftTMServer raftTMServer = new RaftTMServer(dataPath, groupId, serverId, nodeOptions);
         System.out.println("Started counter server at port:"
-                + certifierServer.getNode().getNodeId().getPeerId().getPort());
+                + raftTMServer.getNode().getNodeId().getPeerId().getPort());
     }
 }

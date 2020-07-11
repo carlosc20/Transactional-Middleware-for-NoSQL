@@ -1,7 +1,5 @@
 package transaction_manager;
 
-import certifier.Certifier;
-import certifier.CertifierImpl;
 import certifier.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +7,7 @@ import transaction_manager.messaging.TransactionContentMessage;
 
 import java.util.concurrent.CompletableFuture;
 
-public class StandaloneTMService extends TransactionManagerService{
+public class StandaloneTMService extends TransactionManagerService implements TransactionManager{
     private static final Logger LOG = LoggerFactory.getLogger(StandaloneTMService.class);
     private final State state;
 

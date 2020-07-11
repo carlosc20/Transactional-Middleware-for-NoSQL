@@ -1,4 +1,4 @@
-package jraft;
+package jraft.client_side;
 
 import com.alipay.sofa.jraft.RouteTable;
 import com.alipay.sofa.jraft.conf.Configuration;
@@ -11,7 +11,7 @@ import com.alipay.sofa.jraft.error.RemotingException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
-public class CertifierClient {
+public class RaftClient {
 /*
     public static void main(final String[] args) throws Exception {
         if (args.length != 2) {
@@ -85,7 +85,6 @@ public class CertifierClient {
         request.setKey(key);
         request.setValue(value);
         cliClientService.getRpcClient().invokeAsync(leader.getEndpoint(), request, new InvokeCallback() {
-
             @Override
             public void complete(Object result, Throwable err) {
                 if (err == null) {
@@ -101,5 +100,6 @@ public class CertifierClient {
             }
         }, 5000);
     }
-*/
+
+ */
 }

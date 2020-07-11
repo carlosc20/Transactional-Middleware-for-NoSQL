@@ -6,7 +6,7 @@ import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 
 public class State {
-    private final Certifier<Long> certifier;
+    private Certifier<Long> certifier;
     private Timestamp<Long> lastNPVSCrash;
 
     public State(long timestep){
@@ -20,5 +20,13 @@ public class State {
 
     public Timestamp<Long> getLastNPVSCrash() {
         return lastNPVSCrash;
+    }
+
+    public void setLastNPVSCrash(Timestamp<Long> lastNPVSCrash) {
+        this.lastNPVSCrash = lastNPVSCrash;
+    }
+
+    public void setCertifier(Certifier<Long> certifier) {
+        this.certifier = certifier;
     }
 }

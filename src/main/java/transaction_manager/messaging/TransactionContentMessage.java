@@ -4,10 +4,10 @@ import certifier.Timestamp;
 import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
-import java.util.BitSet;
+import java.io.Serializable;
 import java.util.Map;
 
-public class TransactionContentMessage {
+public class TransactionContentMessage implements Serializable {
 
     //TODO na verdade pode apenas enviar o writeMap, mas a computação passa para o servidor
     private final Map<ByteArrayWrapper, byte[]> writeMap;

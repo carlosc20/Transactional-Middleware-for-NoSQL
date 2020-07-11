@@ -2,12 +2,12 @@ package jraft.snapshot;
 
 import java.io.*;
 
-import certifier.CertifierImpl;
+import jraft.ExtendedState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CounterSnapshotFile {
-    private static final Logger LOG = LoggerFactory.getLogger(CounterSnapshotFile.class);
+public class StateSnapshot {
+    private static final Logger LOG = LoggerFactory.getLogger(StateSnapshot.class);
 
     private String              path;
 
@@ -20,7 +20,7 @@ public class CounterSnapshotFile {
         return t;
     }
 
-    public CounterSnapshotFile(String path) {
+    public StateSnapshot(String path) {
         super();
         this.path = path;
     }
@@ -33,9 +33,9 @@ public class CounterSnapshotFile {
      *
      * Save value to snapshot file.
      */
-    public boolean save(CertifierImpl s) {
+    public boolean save(ExtendedState s) {
         try(ObjectOutputStream out = new ObjectOutputStream(
-                new BufferedOutputStream(new FileOutputStream(new File(path))))) {
+            new BufferedOutputStream(new FileOutputStream(new File(path))))) {
             out.writeObject(s);
             return true;
         } catch(IOException ioe) {
@@ -44,7 +44,7 @@ public class CounterSnapshotFile {
         }
     }
 
-    public CertifierImpl load() throws IOException {
+    public ExtendedState load() throws IOException {
         File f = new File(path);
         try(ObjectInputStream in = new ObjectInputStream(
                 new BufferedInputStream(new FileInputStream(f)))) {

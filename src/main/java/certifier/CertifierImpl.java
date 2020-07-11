@@ -88,6 +88,7 @@ public class CertifierImpl implements Certifier<Long> {
 
     @Override
     public void update() {
+        //TODO caso em que chega um commit mais adiantado (com gap)
         currentCommitTs.add(timestep);
         currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
         LOG.info("Updating certifier Timestamps -> currentStartTs: {}, currentCommitTs: {}", currentStartTs.toPrimitive(), currentCommitTs.toPrimitive());

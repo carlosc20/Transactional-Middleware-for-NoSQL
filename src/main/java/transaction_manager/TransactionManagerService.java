@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public abstract class TransactionManagerService implements TransactionManager {
+public abstract class TransactionManagerService {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerService.class);
     private final KeyValueDriver driver;
     private final NPVS<Long> npvs;
@@ -66,7 +66,6 @@ public abstract class TransactionManagerService implements TransactionManager {
         return driver.put(writeMap, provisionalCommitTimestamp);
     }
 
-    @Override
     public ServersContextMessage getServersContext() {
         return scm;
     }
