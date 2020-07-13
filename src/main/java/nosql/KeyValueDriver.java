@@ -2,6 +2,7 @@ package nosql;
 
 import certifier.Timestamp;
 import nosql.messaging.GetMessage;
+import nosql.messaging.ScanMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.List;
@@ -13,7 +14,7 @@ public interface KeyValueDriver {
 
     CompletableFuture<byte[]> getWithoutTS(ByteArrayWrapper key);
     CompletableFuture<GetMessage> get(ByteArrayWrapper key);
-    CompletableFuture<List<byte[]>> scan(Set<ByteArrayWrapper> keyList);
+    CompletableFuture<ScanMessage> scan(Set<ByteArrayWrapper> keyList);
     CompletableFuture<Void> put(Map<ByteArrayWrapper,byte[]> writeMap, Timestamp<Long> timestamp);
 
 }

@@ -8,6 +8,7 @@ import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import nosql.messaging.GetMessage;
+import nosql.messaging.ScanMessage;
 import org.bson.Document;
 import org.bson.types.Binary;
 import org.bson.types.ObjectId;
@@ -60,7 +61,8 @@ public class MongoAsynchKV implements KeyValueDriver {
     }
 
     @Override
-    public CompletableFuture<List<byte[]>> scan(Set<ByteArrayWrapper> keyList) {
+    public CompletableFuture<ScanMessage> scan(Set<ByteArrayWrapper> keyList) {
+
         List<CompletableFuture<byte[]>> values =  keyList.stream()
             .map(this::getWithoutTS)
             .collect(Collectors.toList());
@@ -68,7 +70,15 @@ public class MongoAsynchKV implements KeyValueDriver {
         return CompletableFuture.allOf(values.toArray(new CompletableFuture[0]))
                 .thenApply(future -> values.stream()
                     .map(CompletableFuture::join)
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList()))
+                .thenCompose(vs -> {
+                    CompletableFuture<Long> cf = new CompletableFuture<>();
+                    collection.find(eq("_id", "timestamp")).first()
+                        .subscribe(new GenericSubscriberForFind<>(
+                                result -> cf.complete((Long) result.get("value")),
+                                x -> cf.complete(-1L)));
+                    return cf.thenApply(ts -> new ScanMessage(vs, new MonotonicTimestamp(ts)));
+                });
     }
 
 

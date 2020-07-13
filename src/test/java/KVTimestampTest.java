@@ -1,16 +1,11 @@
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import nosql.MongoAsynchKV;
-import nosql.MongoKV;
 import nosql.messaging.GetMessage;
 import org.junit.Test;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.WriteMapsBuilder;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.*;
