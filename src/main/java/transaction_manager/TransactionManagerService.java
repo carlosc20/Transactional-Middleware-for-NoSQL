@@ -32,7 +32,7 @@ public abstract class TransactionManagerService {
         codh = new CommitOrderDeliveryHandler(timestep);
     }
 
-    public abstract void updateState();
+    public abstract void updateState(Timestamp<Long> commitTimestamp);
 
     public CompletableFuture<Void> flush(TransactionContentMessage tc, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
         Map<ByteArrayWrapper, byte[]> writeMap = tc.getWriteMap();
@@ -40,7 +40,7 @@ public abstract class TransactionManagerService {
         return consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
                 .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp))
                 .thenCompose(future -> codh.deliverInOrder(provisionalCommitTimestamp))
-                .thenAccept(x -> updateState())
+                .thenAccept(x -> updateState(provisionalCommitTimestamp))
                 .thenAccept(x -> codh.deliverNewInOrder());
     }
 

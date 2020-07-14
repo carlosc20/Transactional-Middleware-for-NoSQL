@@ -1,10 +1,10 @@
-package jraft.callbacks;
+package transaction_manager.raft.callbacks;
 
 import certifier.Timestamp;
 import com.alipay.sofa.jraft.Closure;
-import jraft.TransactionManagerOperation;
-import jraft.rpc.Response;
-import jraft.rpc.ValueResponse;
+import transaction_manager.raft.TransactionManagerOperation;
+import transaction_manager.raft.rpc.Response;
+import transaction_manager.raft.rpc.ValueResponse;
 
 import java.util.concurrent.CompletableFuture;
 

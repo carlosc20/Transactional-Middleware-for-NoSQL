@@ -1,10 +1,10 @@
-package jraft.snapshot;
+package transaction_manager.raft.snapshot;
 
-import java.io.*;
-
-import jraft.ExtendedState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.raft.ExtendedState;
+
+import java.io.*;
 
 public class StateSnapshot {
     private static final Logger LOG = LoggerFactory.getLogger(StateSnapshot.class);

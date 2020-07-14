@@ -1,10 +1,4 @@
-package jraft;
-
-import java.io.File;
-import java.io.IOException;
-
-import jraft.rpc.*;
-import org.apache.commons.io.FileUtils;
+package transaction_manager.raft;
 
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
@@ -13,8 +7,16 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import org.apache.commons.io.FileUtils;
+import transaction_manager.raft.rpc.RequestProcessor;
+import transaction_manager.raft.rpc.ValueResponse;
 import transaction_manager.messaging.ServerContextRequestMessage;
 import transaction_manager.messaging.ServersContextMessage;
+import transaction_manager.messaging.TransactionCommitRequest;
+import transaction_manager.messaging.TransactionStartRequest;
+
+import java.io.File;
+import java.io.IOException;
 
 public class RaftTMServer {
     private RaftGroupService raftGroupService;
@@ -31,7 +33,9 @@ public class RaftTMServer {
         final RpcServer rpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint());
         // Register the business processor.
 
-        RaftTMService transactionManagerService = new RaftTMService(this, 30001,20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1");
+        long timestep = 1000;
+
+        RaftTMService transactionManagerService = new RaftTMService(timestep,this, 30001,20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Boolean>(
@@ -50,7 +54,7 @@ public class RaftTMServer {
 
 
         // Initialize the state machine.
-        this.fsm = new StateMachine();
+        this.fsm = new StateMachine(timestep);
         // Set the state machine to the startup parameters.
         nodeOptions.setFsm(this.fsm);
         // Set the storage path.

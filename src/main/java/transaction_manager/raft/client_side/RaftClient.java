@@ -1,15 +1,4 @@
-package jraft.client_side;
-
-import com.alipay.sofa.jraft.RouteTable;
-import com.alipay.sofa.jraft.conf.Configuration;
-import com.alipay.sofa.jraft.entity.PeerId;
-import com.alipay.sofa.jraft.option.CliOptions;
-import com.alipay.sofa.jraft.rpc.InvokeCallback;
-import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
-import com.alipay.sofa.jraft.error.RemotingException;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
+package transaction_manager.raft.client_side;
 
 public class RaftClient {
     /*

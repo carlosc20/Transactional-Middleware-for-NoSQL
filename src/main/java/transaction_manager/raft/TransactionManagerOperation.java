@@ -1,7 +1,6 @@
-package jraft;
+package transaction_manager.raft;
 
 import certifier.Timestamp;
-import transaction_manager.TransactionManagerService;
 import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
@@ -13,10 +12,10 @@ public class TransactionManagerOperation implements Serializable {
     public static final byte  START_TXN = 0x01;
     /** Commits a transaction if no conflict and updates timestamp */
     public static final byte  COMMIT = 0x02;
-    public static final byte  DEL_NON_ACK_FLUSH = 0x03;
+    public static final byte  UPDATE_STATE = 0x03;
 
     private final byte op;
-    private final Timestamp<Long> startTimestamp;
+    private final Timestamp<Long> timestamp;
     private final Map<ByteArrayWrapper, byte[]> writeMap;
     private final BitWriteSet bws;
 
@@ -28,27 +27,27 @@ public class TransactionManagerOperation implements Serializable {
         return new TransactionManagerOperation(COMMIT, startTimestamp, writeMap, bws);
     }
 
-    public static TransactionManagerOperation createDeleteNonAckFlush(Timestamp<Long> startTimestamp){
-        return new TransactionManagerOperation(DEL_NON_ACK_FLUSH, startTimestamp);
+    public static TransactionManagerOperation createUpdateState(Timestamp<Long> startTimestamp){
+        return new TransactionManagerOperation(UPDATE_STATE, startTimestamp);
     }
 
     public TransactionManagerOperation(byte op) {
         this.op = op;
-        this.startTimestamp = null;
+        this.timestamp = null;
         this.writeMap = null;
         this.bws = null;
     }
 
     public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp, Map<ByteArrayWrapper, byte[]> writeMap, BitWriteSet bws) {
         this.op = op;
-        this.startTimestamp = startTimestamp;
+        this.timestamp = startTimestamp;
         this.writeMap = writeMap;
         this.bws = bws;
     }
 
-    public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp){
+    public TransactionManagerOperation(byte op, Timestamp<Long> commitTimestamp){
         this.op = op;
-        this.startTimestamp = startTimestamp;
+        this.timestamp = commitTimestamp;
         this.writeMap = null;
         this.bws = null;
     }
@@ -57,8 +56,8 @@ public class TransactionManagerOperation implements Serializable {
         return op;
     }
 
-    public Timestamp<Long> getStartTimestamp() {
-        return startTimestamp;
+    public Timestamp<Long> getTimestamp() {
+        return timestamp;
     }
 
     public BitWriteSet getBws(){return bws;}

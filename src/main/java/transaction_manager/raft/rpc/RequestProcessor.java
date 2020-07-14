@@ -1,11 +1,12 @@
-package jraft.rpc;
+package transaction_manager.raft.rpc;
 
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.rpc.RpcContext;
 import com.alipay.sofa.jraft.rpc.RpcProcessor;
-import jraft.callbacks.CompletableClosure;
+import transaction_manager.raft.callbacks.CompletableClosure;
 
 import java.util.function.BiConsumer;
+
 
 public class RequestProcessor<T1, T2> implements RpcProcessor<T1> {
     private final Class<T1> requestClass;

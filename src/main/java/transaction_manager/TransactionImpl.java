@@ -1,4 +1,4 @@
-package transaction_manager.client_side;
+package transaction_manager;
 
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
@@ -6,7 +6,6 @@ import nosql.messaging.GetMessage;
 import npvs.NPVS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction_manager.TransactionManager;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 

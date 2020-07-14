@@ -1,4 +1,4 @@
-package jraft;
+package transaction_manager.raft;
 
 import certifier.Timestamp;
 import com.alipay.remoting.exception.CodecException;
@@ -9,11 +9,11 @@ import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.rhea.StoreEngineHelper;
 import com.alipay.sofa.jraft.rhea.options.StoreEngineOptions;
-import jraft.callbacks.CompletableClosure;
-import jraft.callbacks.ServerRestrictClosure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.TransactionManagerService;
+import transaction_manager.raft.callbacks.CompletableClosure;
+import transaction_manager.raft.callbacks.ServerRestrictClosure;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.ByteArrayWrapper;
@@ -29,9 +29,8 @@ public class RaftTMService extends TransactionManagerService {
     private final RaftTMServer raftTMServer;
     private final Executor readIndexExecutor;
 
-    public RaftTMService(RaftTMServer raftTMServer, int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName) {
-        //TODO timetep
-        super(1, npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
+    public RaftTMService(long timestep, RaftTMServer raftTMServer, int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName) {
+        super(timestep, npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
         this.raftTMServer = raftTMServer;
         this.readIndexExecutor = createReadIndexExecutor();
     }
@@ -42,36 +41,34 @@ public class RaftTMService extends TransactionManagerService {
     }
 
     public void tryCommit(TransactionContentMessage tx, final CompletableClosure<Boolean> closure) {
-        final Map<ByteArrayWrapper, byte[]> writeMap = tx.getWriteMap();
-        final Timestamp<Long> startTimestamp = tx.getStartTimestamp();
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
-        cf.thenAccept(tc -> {
-            if (tc.toPrimitive() > 0){
-                CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
-                //TODO verificar o getCurrentTimestamp()
-                consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, getCurrentTimestamp()))
-                    .thenCompose(future -> saveToDB(writeMap, tc))
-                    .thenAccept(x -> {
-                        closure.success(true);
-                        closure.run(Status.OK());
-                    })
-                    .thenComposeAsync(x -> deleteNonAckedFlush(startTimestamp));
-            }
-            else{
-                closure.success(false);
-                closure.run(Status.OK());
-            }
-        });
+        cf.thenAccept(commitTimestamp -> commitConsumer(commitTimestamp, closure, tx.getWriteMap()));
         closure.setCompletableFuture(cf);
-        applyOperation(TransactionManagerOperation.createCommit(startTimestamp, writeMap, tx.getWriteSet()), closure);
+        applyOperation(TransactionManagerOperation.createCommit(tx.getStartTimestamp(), tx.getWriteMap(), tx.getWriteSet()), closure);
     }
 
-    //TODO ver o return Timestamp<Long> em vez de Void fica estranho
-    public CompletableFuture<Timestamp<Long>> deleteNonAckedFlush(Timestamp<Long> startTimestamp){
+    private void commitConsumer(Timestamp<Long> commitTimestamp, CompletableClosure<Boolean> closure, Map<ByteArrayWrapper, byte[]> writeMap){
+        if (commitTimestamp.toPrimitive() > 0){
+            CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
+            //TODO verificar o getCurrentTimestamp()
+            consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, getCurrentTimestamp()))
+                .thenCompose(future -> saveToDB(writeMap, commitTimestamp))
+                .thenAccept(x -> {
+                    closure.success(true);
+                    closure.run(Status.OK());})
+                .thenAccept(x -> updateState(commitTimestamp));
+        }
+        else{
+            closure.success(false);
+            closure.run(Status.OK());
+        }
+    }
+
+    @Override
+    public void updateState(Timestamp<Long> commitTimestamp) {
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
         CompletableClosure<Void> cc = new ServerRestrictClosure<>(cf);
-        applyOperation(TransactionManagerOperation.createDeleteNonAckFlush(startTimestamp), cc);
-        return cf;
+        applyOperation(TransactionManagerOperation.createUpdateState(commitTimestamp), cc);
     }
 
 
@@ -127,12 +124,6 @@ public class RaftTMService extends TransactionManagerService {
     private void handlerNotLeaderError(final CompletableClosure closure) {
         closure.failure("Not leader.", getRedirect());
         closure.run(new Status(RaftError.EPERM, "Not leader"));
-    }
-
-    //TODO
-    @Override
-    public void updateState() {
-
     }
 /*
 @Override

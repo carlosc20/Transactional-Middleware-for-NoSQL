@@ -1,4 +1,4 @@
-package transaction_manager.client_side;
+package transaction_manager;
 import java.util.List;
 
 public interface Transaction {

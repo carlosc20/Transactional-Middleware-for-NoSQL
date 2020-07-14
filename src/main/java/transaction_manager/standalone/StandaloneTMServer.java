@@ -1,4 +1,4 @@
-package transaction_manager;
+package transaction_manager.standalone;
 
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -6,10 +6,11 @@ import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
-import jraft.rpc.TransactionCommitRequest;
-import jraft.rpc.TransactionStartRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.messaging.TransactionCommitRequest;
+import transaction_manager.messaging.TransactionStartRequest;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

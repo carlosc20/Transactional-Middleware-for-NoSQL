@@ -1,15 +1,6 @@
-package jraft;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
+package transaction_manager.raft;
 
 import certifier.Timestamp;
-import jraft.callbacks.CompletableClosure;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.alipay.remoting.exception.CodecException;
 import com.alipay.remoting.serialization.SerializerManager;
 import com.alipay.sofa.jraft.Closure;
@@ -18,13 +9,23 @@ import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
-import jraft.snapshot.StateSnapshot;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import transaction_manager.raft.callbacks.CompletableClosure;
+import transaction_manager.raft.snapshot.StateSnapshot;
 import transaction_manager.utils.BitWriteSet;
 
-import static jraft.TransactionManagerOperation.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static transaction_manager.raft.TransactionManagerOperation.*;
+
 
 /**
  * Counter state machine.
@@ -38,10 +39,17 @@ public class StateMachine extends StateMachineAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(StateMachine.class);
 
     private final ExtendedState state = new ExtendedState(1000);
+    private final long timestep;
     /**
      * Leader term
      */
     private final AtomicLong leaderTerm = new AtomicLong(-1);
+
+
+    public StateMachine(long timestep){
+        super();
+        this.timestep = timestep;
+    }
 
     public boolean isLeader() {
         return this.leaderTerm.get() > 0;
@@ -94,23 +102,26 @@ public class StateMachine extends StateMachineAdapter {
             switch (transactionManagerOperation.getOp()) {
                 case START_TXN:
                     state.getCertifier().start().thenAccept(ts -> resolveClosure(ts, closure));
-                    //LOG.info("Get value={} at logIndex={}", current, iter.getIndex());
                     break;
                 case COMMIT:
                     final BitWriteSet bws = transactionManagerOperation.getBws();
-                    final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
+                    final Timestamp<Long> startTimestamp = transactionManagerOperation.getTimestamp();
                     Timestamp<Long> tc = state.getCertifier().commit(bws, startTimestamp);
+                    if(tc.toPrimitive() > -1){
+                        state.putFlush(tc, transactionManagerOperation.getWriteMap());
+                        LOG.info("isnerting TC={} from nonAckedFlushes", tc);
+                    }
                     resolveClosure(tc, closure);
-                    //LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
                     break;
-                case DEL_NON_ACK_FLUSH:
-                    final Timestamp<Long> txnId = transactionManagerOperation.getStartTimestamp();
-                    state.removeFlush(txnId);
+                case UPDATE_STATE:
+                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getTimestamp();
+                    state.getCertifier().update(commitTimestamp);
+                    state.removeFlush(commitTimestamp);
+                    LOG.info("removing TC={} from nonAckedFlushes", commitTimestamp);
                     resolveClosure(null, closure);
             }
         }
     }
-
 
     private void resolveClosure(Timestamp<Long> result, CompletableClosure<?> closure){
         if (closure != null) {

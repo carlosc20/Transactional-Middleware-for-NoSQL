@@ -1,13 +1,16 @@
-package transaction_manager;
+package transaction_manager.standalone;
 
 import certifier.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.State;
+import transaction_manager.TransactionManager;
+import transaction_manager.TransactionManagerService;
 import transaction_manager.messaging.TransactionContentMessage;
 
 import java.util.concurrent.CompletableFuture;
 
-public class StandaloneTMService extends TransactionManagerService implements TransactionManager{
+public class StandaloneTMService extends TransactionManagerService implements TransactionManager {
     private static final Logger LOG = LoggerFactory.getLogger(StandaloneTMService.class);
     private final State state;
 
@@ -38,7 +41,7 @@ public class StandaloneTMService extends TransactionManagerService implements Tr
     }
 
     @Override
-    public void updateState() {
-        state.getCertifier().update();
+    public void updateState(Timestamp<Long> commitTimestamp) {
+        state.getCertifier().update(commitTimestamp);
     }
 }

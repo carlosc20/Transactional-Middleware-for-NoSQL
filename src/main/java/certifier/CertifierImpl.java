@@ -43,9 +43,8 @@ public class CertifierImpl extends AbstractCertifier{
     }
 
     @Override
-    public void update() {
-        //TODO caso em que chega um commit mais adiantado (com gap)
-        currentCommitTs.add(timestep);
+    public void update(Timestamp<Long> commitTimestamp) {
+        currentCommitTs.set(commitTimestamp);
         LOG.info("Updating certifier Timestamps -> currentStartTs: {}, currentCommitTs: {}", currentStartTs.toPrimitive(), currentCommitTs.toPrimitive());
     }
 }

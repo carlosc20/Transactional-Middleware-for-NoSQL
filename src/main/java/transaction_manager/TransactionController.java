@@ -1,4 +1,4 @@
-package transaction_manager.client_side;
+package transaction_manager;
 
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
@@ -7,7 +7,6 @@ import npvs.NPVS;
 import npvs.NPVSStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction_manager.TransactionManager;
 import transaction_manager.messaging.ServersContextMessage;
 
 import java.util.concurrent.ExecutionException;
@@ -19,8 +18,8 @@ public class TransactionController {
     private final TransactionManager serverStub;
     private final int npvsStubPort;
 
-    public TransactionController(int serverStubPort, int npvsStubPort, int serverPort){
-        this.serverStub = new TransactionManagerStub(serverStubPort, serverPort);
+    public TransactionController(int npvsStubPort, TransactionManager serverStub){
+        this.serverStub = serverStub;
         this.npvsStubPort = npvsStubPort;
     }
 

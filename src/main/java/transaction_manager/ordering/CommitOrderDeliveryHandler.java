@@ -4,7 +4,6 @@ import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction_manager.client_side.TransactionController;
 
 import java.util.ArrayList;
 import java.util.Comparator;
