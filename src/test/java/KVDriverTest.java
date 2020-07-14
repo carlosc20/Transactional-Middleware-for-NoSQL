@@ -2,18 +2,24 @@ import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import nosql.MongoAsynchKV;
 import nosql.messaging.GetMessage;
+import nosql.messaging.ScanMessage;
 import org.junit.Test;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.WriteMapsBuilder;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.*;
 
-public class KVTimestampTest {
+public class KVDriverTest {
 
     @Test
-    public void readwrite() throws ExecutionException, InterruptedException {
+    public void rwTs() throws ExecutionException, InterruptedException {
         MongoAsynchKV mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
         WriteMapsBuilder wmb = new WriteMapsBuilder();
@@ -43,6 +49,41 @@ public class KVTimestampTest {
             else
                 System.out.println("not null");
         }).get();
+    }
+
+
+    @Test
+    public void rwKV() throws ExecutionException, InterruptedException {
+        MongoAsynchKV mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
+
+        // writing
+        HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();
+        byte[] key = "key".getBytes();
+        ByteArrayWrapper keyWrapper = new ByteArrayWrapper(key);
+        byte[] value = "value".getBytes();
+        writeMap.put(keyWrapper, value);
+
+        mkv.put(writeMap, new MonotonicTimestamp(1));
+
+
+        // reading
+        Set<ByteArrayWrapper> query = writeMap.keySet();
+        query.add(new ByteArrayWrapper("empty".getBytes()));
+
+        CompletableFuture<ScanMessage> result = mkv.scan(writeMap.keySet());
+
+
+        // testing
+        Iterator<byte[]> it1 = writeMap.values().iterator();
+        Iterator<byte[]> it2 = result.get().getValues().iterator();
+
+        while (it1.hasNext()) {
+            assertEquals("Read doesn't match update", new String(it1.next()), new String(it2.next()));
+        }
+        if(it2.hasNext()) {
+            assertNull("Key wasn't written to, should be null", it2.next());
+        }
+
     }
 
 }
