@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
+import transaction_manager.ordering.CommitOrderDeliveryHandler;
 import transaction_manager.utils.ByteArrayWrapper;
 import transaction_manager.utils.KeyValue;
 
@@ -22,18 +23,25 @@ public abstract class TransactionManagerService {
     private final KeyValueDriver driver;
     private final NPVS<Long> npvs;
     private final ServersContextMessage scm;
+    private final CommitOrderDeliveryHandler codh;
 
-    public TransactionManagerService(int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName) {
+    public TransactionManagerService(long timestep, int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName) {
         npvs = new NPVSStub(npvsStubPort, npvsPort);
         driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
-        this.scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
+        scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
+        codh = new CommitOrderDeliveryHandler(timestep);
     }
+
+    public abstract void updateState();
 
     public CompletableFuture<Void> flush(TransactionContentMessage tc, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
         Map<ByteArrayWrapper, byte[]> writeMap = tc.getWriteMap();
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
         return consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
-                .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp));
+                .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp))
+                .thenCompose(future -> codh.returnInOrder(provisionalCommitTimestamp))
+                .thenAccept(x -> updateState())
+                .thenAccept(x -> codh.completeNewInOrder());
     }
 
     public CompletableFuture<Map<ByteArrayWrapper, byte[]>> getPreviousConsistentValues(Map<ByteArrayWrapper, byte[]> writeMap){

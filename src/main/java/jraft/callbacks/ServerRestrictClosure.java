@@ -1,12 +1,13 @@
 package jraft.callbacks;
 
+import certifier.Timestamp;
 import com.alipay.sofa.jraft.Status;
 
 import java.util.concurrent.CompletableFuture;
 
-public class ServerRestrictClosure<V,T> extends CompletableClosure<V,T> {
+public class ServerRestrictClosure<T> extends CompletableClosure<T> {
 
-    public ServerRestrictClosure(CompletableFuture<T> completableFuture){
+    public ServerRestrictClosure(CompletableFuture<Timestamp<Long>> completableFuture){
         setCompletableFuture(completableFuture);
     }
 

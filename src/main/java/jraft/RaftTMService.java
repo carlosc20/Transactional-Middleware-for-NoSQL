@@ -29,9 +29,9 @@ public class RaftTMService extends TransactionManagerService {
     private final RaftTMServer raftTMServer;
     private final Executor readIndexExecutor;
 
-
     public RaftTMService(RaftTMServer raftTMServer, int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName) {
-        super(npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
+        //TODO timetep
+        super(1, npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
         this.raftTMServer = raftTMServer;
         this.readIndexExecutor = createReadIndexExecutor();
     }
@@ -66,8 +66,9 @@ public class RaftTMService extends TransactionManagerService {
         applyOperation(TransactionManagerOperation.createCommit(startTimestamp, writeMap, tx.getWriteSet()), closure);
     }
 
-    public CompletableFuture<Void> deleteNonAckedFlush(Timestamp<Long> startTimestamp){
-        CompletableFuture<Void> cf = new CompletableFuture<>();
+    //TODO ver o return Timestamp<Long> em vez de Void fica estranho
+    public CompletableFuture<Timestamp<Long>> deleteNonAckedFlush(Timestamp<Long> startTimestamp){
+        CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
         CompletableClosure<Void> cc = new ServerRestrictClosure<>(cf);
         applyOperation(TransactionManagerOperation.createDeleteNonAckFlush(startTimestamp), cc);
         return cf;
@@ -126,6 +127,12 @@ public class RaftTMService extends TransactionManagerService {
     private void handlerNotLeaderError(final CompletableClosure closure) {
         closure.failure("Not leader.", getRedirect());
         closure.run(new Status(RaftError.EPERM, "Not leader"));
+    }
+
+    //TODO
+    @Override
+    public void updateState() {
+
     }
 /*
 @Override

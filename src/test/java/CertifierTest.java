@@ -1,4 +1,4 @@
-import certifier.CertifierImpl;
+import certifier.IntervalCertifierImpl;
 import certifier.Timestamp;
 import org.junit.Test;
 import transaction_manager.utils.BitWriteSet;
@@ -6,16 +6,17 @@ import utils.WriteMapsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.*;
 
 public class CertifierTest {
 
-    private CertifierImpl certifier;
+    private IntervalCertifierImpl certifier;
 
     public CertifierTest()
     {
-        this.certifier = new CertifierImpl(100);
+        this.certifier = new IntervalCertifierImpl(100);
     }
 
     private boolean certifierCommit(BitWriteSet bws, Timestamp<Long> ts){
@@ -50,23 +51,23 @@ public class CertifierTest {
     }
 
     @Test
-    public void certifyWithNoConflicts(){
+    public void certifyWithNoConflicts() throws ExecutionException, InterruptedException {
         List<BitWriteSet> bwss = buildBitWriteSets();
 
-        Timestamp<Long> ts1 = certifier.start();
+        Timestamp<Long> ts1 = certifier.start().get();
         assertTrue("Shouldn't conflict 1", certifierCommit(bwss.get(0), ts1));
-        Timestamp<Long> ts2 = certifier.start();
+        Timestamp<Long> ts2 = certifier.start().get();
         assertTrue("Shouldn't conflict 2", certifierCommit(bwss.get(1), ts2));
-        Timestamp<Long> ts3 = certifier.start();
+        Timestamp<Long> ts3 = certifier.start().get();
         assertTrue("Shouldn't conflict 3", certifierCommit(bwss.get(2), ts3));
     }
 
     @Test
-    public void certifyWithConflictsV1(){
+    public void certifyWithConflictsV1() throws ExecutionException, InterruptedException {
         List<BitWriteSet> bwss = buildBitWriteSets();
 
-        Timestamp<Long> ts1 = certifier.start();
-        Timestamp<Long> ts2 = certifier.start();
+        Timestamp<Long> ts1 = certifier.start().get();
+        Timestamp<Long> ts2 = certifier.start().get();
 
         System.out.println("Commit 1");
         assertTrue("Shouldn't conflict 1", certifierCommit(bwss.get(0), ts1));
@@ -74,7 +75,7 @@ public class CertifierTest {
         assertTrue("Shouldn't conflict 2", certifierCommit(bwss.get(1), ts2));
         System.out.println("Commit 3");
         assertFalse("Should conflict 3", certifierCommit(bwss.get(2), ts1));
-        Timestamp<Long> ts3 = certifier.start();
+        Timestamp<Long> ts3 = certifier.start().get();
         assertTrue("Shouldn't conflict 4", certifierCommit(bwss.get(2), ts3));
     }
 }

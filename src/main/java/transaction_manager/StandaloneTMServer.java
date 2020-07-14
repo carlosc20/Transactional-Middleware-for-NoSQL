@@ -40,8 +40,8 @@ public class StandaloneTMServer {
         mms.registerHandler("start", (a,b) -> {
             TransactionStartRequest tsr = s.decode(b);
             LOG.info("New start transaction request message with id: {}", tsr.getId());
-            return s.encode(transactionManagerService.startTransaction());
-        }, e);
+            return transactionManagerService.startTransaction().thenApply(s::encode);
+        });
 
         mms.registerHandler("commit", (a,b) -> {
             TransactionCommitRequest tcr = s.decode(b);

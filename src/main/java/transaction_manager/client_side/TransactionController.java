@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.TransactionManager;
 import transaction_manager.messaging.ServersContextMessage;
 
+import java.util.concurrent.ExecutionException;
+
 public class TransactionController {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionController.class);
     private NPVS<Long> npvs;
@@ -30,9 +32,9 @@ public class TransactionController {
         LOG.info("Controller built");
     }
 
-    public TransactionImpl startTransaction(){
+    public TransactionImpl startTransaction() throws ExecutionException, InterruptedException {
         LOG.info("Asking server for a new start timestamp");
-        Timestamp<Long> ts = serverStub.startTransaction();
+        Timestamp<Long> ts = serverStub.startTransaction().get();
         LOG.info("Received TS: {}", ts.toPrimitive());
         return new TransactionImpl(npvs, driver, serverStub, ts);
     }

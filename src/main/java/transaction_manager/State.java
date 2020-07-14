@@ -1,7 +1,7 @@
 package transaction_manager;
 
 import certifier.Certifier;
-import certifier.CertifierImpl;
+import certifier.IntervalCertifierImpl;
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 
@@ -10,7 +10,7 @@ public class State {
     private Timestamp<Long> lastNPVSCrash;
 
     public State(long timestep){
-        certifier = new CertifierImpl(timestep);
+        certifier = new IntervalCertifierImpl(timestep);
         lastNPVSCrash = new MonotonicTimestamp(-1);
     }
 

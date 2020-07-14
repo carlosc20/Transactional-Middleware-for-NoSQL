@@ -3,10 +3,9 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
-import certifier.CertifierImpl;
-import certifier.MonotonicTimestamp;
+
 import certifier.Timestamp;
 import jraft.callbacks.CompletableClosure;
 import org.slf4j.Logger;
@@ -51,17 +50,20 @@ public class StateMachine extends StateMachineAdapter {
     /**
      * Returns current timestamp.
      */
-
+    //TODO arranjar
     public long getTimestamp() {
-        //TODO arranjar
-        return this.state.getCertifier().start().toPrimitive();
+        try {
+            return this.state.getCertifier().start().get().toPrimitive();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     //TODO
     public Timestamp<Long> getCurrentTs(){
         return this.state.getCertifier().getCurrentCommitTs();
     }
-
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
@@ -82,30 +84,33 @@ public class StateMachine extends StateMachineAdapter {
                     LOG.error("Fail to decode TransactionManagerOperation", e);
                 }
             }
-            if (transactionManagerOperation != null) {
-                switch (transactionManagerOperation.getOp()) {
-                    case START_TXN:
-                        Timestamp<Long> ts = state.getCertifier().start();
-                        resolveClosure(ts, closure);
-                        //LOG.info("Get value={} at logIndex={}", current, iter.getIndex());
-                        break;
-                    case COMMIT:
-                        final BitWriteSet bws = transactionManagerOperation.getBws();
-                        final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
-                        Timestamp<Long> tc = state.getCertifier().commit(bws, startTimestamp);
-                        resolveClosure(tc, closure);
-                        //LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
-                        break;
-                    case DEL_NON_ACK_FLUSH:
-                        final Timestamp<Long> txnId = transactionManagerOperation.getStartTimestamp();
-                        state.removeFlush(txnId);
-                        resolveClosure(null, closure);
-                }
-
-            }
+            applyOperation(transactionManagerOperation, closure);
             iter.next();
         }
     }
+
+    private void applyOperation(TransactionManagerOperation transactionManagerOperation, CompletableClosure<?> closure){
+        if (transactionManagerOperation != null) {
+            switch (transactionManagerOperation.getOp()) {
+                case START_TXN:
+                    state.getCertifier().start().thenAccept(ts -> resolveClosure(ts, closure));
+                    //LOG.info("Get value={} at logIndex={}", current, iter.getIndex());
+                    break;
+                case COMMIT:
+                    final BitWriteSet bws = transactionManagerOperation.getBws();
+                    final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
+                    Timestamp<Long> tc = state.getCertifier().commit(bws, startTimestamp);
+                    resolveClosure(tc, closure);
+                    //LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
+                    break;
+                case DEL_NON_ACK_FLUSH:
+                    final Timestamp<Long> txnId = transactionManagerOperation.getStartTimestamp();
+                    state.removeFlush(txnId);
+                    resolveClosure(null, closure);
+            }
+        }
+    }
+
 
     private void resolveClosure(Timestamp<Long> result, CompletableClosure<?> closure){
         if (closure != null) {

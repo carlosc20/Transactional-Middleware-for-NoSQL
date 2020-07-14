@@ -2,6 +2,8 @@ import org.junit.Test;
 import transaction_manager.client_side.TransactionController;
 import transaction_manager.client_side.TransactionImpl;
 
+import java.util.concurrent.ExecutionException;
+
 import static org.junit.Assert.*;
 
 public class FullTransactionTest {
@@ -14,7 +16,7 @@ public class FullTransactionTest {
 
     @Test
     //BD must be empty
-    public void writeThenRead() throws InterruptedException {
+    public void writeThenRead() throws InterruptedException, ExecutionException {
         //new NPVSServer(20000).start();
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
 

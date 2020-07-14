@@ -11,10 +11,8 @@ import nosql.messaging.GetMessage;
 import nosql.messaging.ScanMessage;
 import org.bson.Document;
 import org.bson.types.Binary;
-import org.bson.types.ObjectId;
 import transaction_manager.utils.ByteArrayWrapper;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +33,6 @@ public class MongoAsynchKV implements KeyValueDriver {
         MongoDatabase database = mongoClient.getDatabase(databaseName);
         collection = database.getCollection(collectionName);
     }
-
 
     @Override
     public CompletableFuture<byte[]> getWithoutTS(ByteArrayWrapper key) {
@@ -75,8 +72,8 @@ public class MongoAsynchKV implements KeyValueDriver {
                     CompletableFuture<Long> cf = new CompletableFuture<>();
                     collection.find(eq("_id", "timestamp")).first()
                         .subscribe(new GenericSubscriberForFind<>(
-                                result -> cf.complete((Long) result.get("value")),
-                                x -> cf.complete(-1L)));
+                            result -> cf.complete((Long) result.get("value")),
+                            x -> cf.complete(-1L)));
                     return cf.thenApply(ts -> new ScanMessage(vs, new MonotonicTimestamp(ts)));
                 });
     }

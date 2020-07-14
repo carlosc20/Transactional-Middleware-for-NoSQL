@@ -12,10 +12,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
 public class RaftClient {
-/*
+    /*
     public static void main(final String[] args) throws Exception {
         if (args.length != 2) {
-            System.out.println("Useage : java com.alipay.sofa.jraft.example.counter.CounterClient {groupId} {conf}");
+            System.out.println("Usage : java com.alipay.sofa.jraft.example.counter.CounterClient {groupId} {conf}");
             System.out
                     .println("Example: java com.alipay.sofa.jraft.example.counter.CounterClient counter 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083");
             System.exit(1);
@@ -100,6 +100,5 @@ public class RaftClient {
             }
         }, 5000);
     }
-
- */
+     */
 }
