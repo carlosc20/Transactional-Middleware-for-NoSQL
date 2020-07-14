@@ -3,7 +3,6 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 
-import com.alipay.sofa.jraft.Status;
 import jraft.rpc.*;
 import org.apache.commons.io.FileUtils;
 

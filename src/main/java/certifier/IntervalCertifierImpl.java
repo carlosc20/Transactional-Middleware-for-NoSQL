@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.utils.BitWriteSet;
 
 
-public class CertifierImpl implements Certifier<Long> {
-    private static final Logger LOG = LoggerFactory.getLogger(CertifierImpl.class);
+public class IntervalCertifierImpl implements Certifier<Long> {
+    private static final Logger LOG = LoggerFactory.getLogger(IntervalCertifierImpl.class);
 
     private final Long timestep;
 
@@ -27,7 +27,7 @@ public class CertifierImpl implements Certifier<Long> {
 
     private final HashMap<Long, BitWriteSet> history;
 
-    public CertifierImpl(long timestep) {
+    public IntervalCertifierImpl(long timestep) {
         this.timestep = timestep;
         currentStartTs = new MonotonicTimestamp(0);
         provisionalCommitTs = new MonotonicTimestamp(timestep);
@@ -37,7 +37,7 @@ public class CertifierImpl implements Certifier<Long> {
         history = new HashMap<>();
     }
 
-    public CertifierImpl(CertifierImpl certifier){
+    public IntervalCertifierImpl(IntervalCertifierImpl certifier){
         timestep = certifier.timestep;
         currentStartTs = certifier.currentStartTs;
         provisionalCommitTs = certifier.provisionalCommitTs;

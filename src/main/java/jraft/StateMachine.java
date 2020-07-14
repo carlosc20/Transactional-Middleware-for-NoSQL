@@ -3,10 +3,8 @@ package jraft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
-import certifier.CertifierImpl;
-import certifier.MonotonicTimestamp;
+
 import certifier.Timestamp;
 import jraft.callbacks.CompletableClosure;
 import org.slf4j.Logger;

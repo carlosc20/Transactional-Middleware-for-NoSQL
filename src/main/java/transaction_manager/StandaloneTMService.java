@@ -12,7 +12,7 @@ public class StandaloneTMService extends TransactionManagerService implements Tr
     private final State state;
 
     public StandaloneTMService(int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName, long timestep){
-        super(npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
+        super(timestep, npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName);
         state = new State(timestep);
     }
 
@@ -30,13 +30,15 @@ public class StandaloneTMService extends TransactionManagerService implements Tr
             //TODO return correto
             LOG.info("Making transaction with TC: {} changes persist", commitTimestamp.toPrimitive());
             return flush(tc, commitTimestamp, state.getCertifier().getCurrentCommitTs())
-                    .thenApply(x -> {
-                        state.getCertifier().update();
-                        return true;
-                    });
+                    .thenApply(x -> true);
         } else {
             LOG.info("aborted a transaction with TS {}", tc.getStartTimestamp());
             return CompletableFuture.completedFuture(false);
         }
+    }
+
+    @Override
+    public void updateState() {
+        state.getCertifier().update();
     }
 }

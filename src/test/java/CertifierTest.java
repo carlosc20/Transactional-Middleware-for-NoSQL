@@ -1,4 +1,4 @@
-import certifier.CertifierImpl;
+import certifier.IntervalCertifierImpl;
 import certifier.Timestamp;
 import org.junit.Test;
 import transaction_manager.utils.BitWriteSet;
@@ -11,11 +11,11 @@ import static org.junit.Assert.*;
 
 public class CertifierTest {
 
-    private CertifierImpl certifier;
+    private IntervalCertifierImpl certifier;
 
     public CertifierTest()
     {
-        this.certifier = new CertifierImpl(100);
+        this.certifier = new IntervalCertifierImpl(100);
     }
 
     private boolean certifierCommit(BitWriteSet bws, Timestamp<Long> ts){

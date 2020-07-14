@@ -30,6 +30,11 @@ public class MonotonicTimestamp implements Timestamp<Long>{
     }
 
     @Override
+    public boolean isRightAfter(Timestamp<Long> o, Long interval) {
+        return ts - interval == o.toPrimitive();
+    }
+
+    @Override
     public boolean isBeforeOrEqual(Timestamp<Long> o) {
         return o.toPrimitive() >= ts;
     }
