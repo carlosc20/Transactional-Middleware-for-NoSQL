@@ -37,6 +37,8 @@ public class TransactionManagerStub implements TransactionManager {
         mms.start();
     }
 
+    //TODO throw decent exceptions
+
     @Override
     public CompletableFuture<Timestamp<Long>> startTransaction() {
         TransactionStartRequest tsr = new TransactionStartRequest();

@@ -39,9 +39,9 @@ public abstract class TransactionManagerService {
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
         return consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
                 .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp))
-                .thenCompose(future -> codh.returnInOrder(provisionalCommitTimestamp))
+                .thenCompose(future -> codh.deliverInOrder(provisionalCommitTimestamp))
                 .thenAccept(x -> updateState())
-                .thenAccept(x -> codh.completeNewInOrder());
+                .thenAccept(x -> codh.deliverNewInOrder());
     }
 
     public CompletableFuture<Map<ByteArrayWrapper, byte[]>> getPreviousConsistentValues(Map<ByteArrayWrapper, byte[]> writeMap){
