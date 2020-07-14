@@ -17,7 +17,7 @@ public class StandaloneTMService extends TransactionManagerService implements Tr
     }
 
     @Override
-    public Timestamp<Long> startTransaction(){
+    public CompletableFuture<Timestamp<Long>> startTransaction(){
         return state.getCertifier().start();
     }
 

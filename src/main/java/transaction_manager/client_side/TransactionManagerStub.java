@@ -38,15 +38,10 @@ public class TransactionManagerStub implements TransactionManager {
     }
 
     @Override
-    public Timestamp<Long> startTransaction() {
+    public CompletableFuture<Timestamp<Long>> startTransaction() {
         TransactionStartRequest tsr = new TransactionStartRequest();
-        try {
-            return (MonotonicTimestamp) mms.sendAndReceive(manager, "start", s.encode(tsr), Duration.ofSeconds(20), e)
-                    .thenApply(s::decode).get();
-        } catch (InterruptedException | ExecutionException interruptedException) {
-            interruptedException.printStackTrace();
-        }
-        return null;
+        return mms.sendAndReceive(manager, "start", s.encode(tsr), Duration.ofSeconds(20), e)
+                .thenApply(s::decode);
     }
 
     @Override
