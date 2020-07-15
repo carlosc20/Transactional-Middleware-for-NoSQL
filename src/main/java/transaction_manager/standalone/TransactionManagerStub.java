@@ -1,6 +1,5 @@
-package transaction_manager.client_side;
+package transaction_manager.standalone;
 
-import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -8,15 +7,14 @@ import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
-import jraft.rpc.TransactionCommitRequest;
-import jraft.rpc.TransactionStartRequest;
 import transaction_manager.TransactionManager;
-import transaction_manager.messaging.ServerContextRequestMessage;
-import transaction_manager.messaging.ServersContextMessage;
-import transaction_manager.messaging.TransactionContentMessage;
+import transaction_manager.messaging.*;
 
 import java.time.Duration;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TransactionManagerStub implements TransactionManager {
     private final ManagedMessagingService mms;
@@ -36,6 +34,8 @@ public class TransactionManagerStub implements TransactionManager {
                 new MessagingConfig());
         mms.start();
     }
+
+    //TODO throw decent exceptions
 
     @Override
     public CompletableFuture<Timestamp<Long>> startTransaction() {

@@ -1,4 +1,4 @@
-package jraft.rpc;
+package transaction_manager.raft.rpc;
 
 import java.io.Serializable;
 

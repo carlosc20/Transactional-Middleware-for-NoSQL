@@ -43,7 +43,7 @@ public abstract class AbstractCertifier implements Certifier<Long>{
 
     public abstract Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> ts);
 
-    public abstract void update();
+    public abstract void update(Timestamp<Long> commitTimestamp);
 
     protected boolean isWritable(BitWriteSet newBws, long startTimestamp, long commitTs){
         // ts / timestamp -> divisão com long é truncada com as casas décimais do timestamp.

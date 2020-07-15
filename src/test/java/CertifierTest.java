@@ -23,7 +23,7 @@ public class CertifierTest {
         Timestamp<Long> tc = this.certifier.commit(bws, ts);
         if (tc.toPrimitive() > -1) {
             System.out.println("Transaction with ts: " + ts.toPrimitive() + " has tc: " + tc.toPrimitive());
-            this.certifier.update();
+            this.certifier.update(tc);
             return true;
         }
         return false;

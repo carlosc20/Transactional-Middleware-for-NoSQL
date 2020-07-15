@@ -15,4 +15,5 @@ public interface Timestamp<V> extends Comparable<Timestamp<V>>, Serializable {
     V toPrimitive();
     int hashCode();
     void setPrimitive(V new_value);
+    void set(Timestamp<V> o);
 }

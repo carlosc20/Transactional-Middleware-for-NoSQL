@@ -1,17 +1,15 @@
 package transaction_manager;
 
 import certifier.Certifier;
-import certifier.IntervalCertifierImpl;
-import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 
 public class State {
-    private Certifier<Long> certifier;
-    private Timestamp<Long> lastNPVSCrash;
+    private final Certifier<Long> certifier;
+    private final Timestamp<Long> lastNPVSCrash;
 
-    public State(long timestep){
-        certifier = new IntervalCertifierImpl(timestep);
-        lastNPVSCrash = new MonotonicTimestamp(-1);
+    public State(Certifier<Long> certifier, Timestamp<Long> lastNPVSCrash){
+        this.certifier = certifier;
+        this.lastNPVSCrash = lastNPVSCrash;
     }
 
     public Certifier<Long> getCertifier() {
@@ -20,13 +18,5 @@ public class State {
 
     public Timestamp<Long> getLastNPVSCrash() {
         return lastNPVSCrash;
-    }
-
-    public void setLastNPVSCrash(Timestamp<Long> lastNPVSCrash) {
-        this.lastNPVSCrash = lastNPVSCrash;
-    }
-
-    public void setCertifier(Certifier<Long> certifier) {
-        this.certifier = certifier;
     }
 }

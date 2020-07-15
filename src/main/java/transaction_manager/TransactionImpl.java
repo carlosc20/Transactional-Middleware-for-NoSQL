@@ -1,4 +1,4 @@
-package transaction_manager.client_side;
+package transaction_manager;
 
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
@@ -6,7 +6,6 @@ import nosql.messaging.GetMessage;
 import npvs.NPVS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction_manager.TransactionManager;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 
@@ -25,7 +24,7 @@ public class TransactionImpl implements Transaction {
     private final Timestamp<Long> ts;
     private boolean latestTimestamp;
 
-    private final Map<ByteArrayWrapper,byte[]> writeMap;
+    private final HashMap<ByteArrayWrapper,byte[]> writeMap;
 
     public TransactionImpl(NPVS<Long> npvs, KeyValueDriver driver, TransactionManager serverStub, Timestamp<Long> ts) {
         this.writeMap = new HashMap<>();

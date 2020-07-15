@@ -73,4 +73,9 @@ public class MonotonicTimestamp implements Timestamp<Long>{
     public void setPrimitive(Long new_value) {
         ts = new_value;
     }
+
+    @Override
+    public void set(Timestamp<Long> o) {
+        ts = o.toPrimitive();
+    }
 }

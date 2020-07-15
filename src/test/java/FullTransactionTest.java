@@ -1,6 +1,7 @@
 import org.junit.Test;
-import transaction_manager.client_side.TransactionController;
-import transaction_manager.client_side.TransactionImpl;
+import transaction_manager.TransactionController;
+import transaction_manager.TransactionImpl;
+import transaction_manager.standalone.TransactionManagerStub;
 
 import java.util.concurrent.ExecutionException;
 
@@ -20,7 +21,8 @@ public class FullTransactionTest {
         //new NPVSServer(20000).start();
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
 
-        TransactionController transactionController = new TransactionController(12345, 12346,30000);
+        TransactionManagerStub tms = new TransactionManagerStub( 12346, 30000);
+        TransactionController transactionController = new TransactionController(12345, tms);
         transactionController.buildContext();
         TransactionImpl t1 = transactionController.startTransaction();
         TransactionImpl t11 = transactionController.startTransaction();

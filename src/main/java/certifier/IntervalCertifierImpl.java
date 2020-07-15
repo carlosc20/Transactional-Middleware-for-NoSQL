@@ -70,14 +70,12 @@ public class IntervalCertifierImpl extends AbstractCertifier {
     }
 
     @Override
-    public void update() {
-        //TODO caso em que chega um commit mais adiantado (com gap)
-        currentCommitTs.add(timestep);
-        currentStartTs.setPrimitive(currentCommitTs.toPrimitive());
+    public void update(Timestamp<Long> commitTimestamp) {
+        currentCommitTs.set(commitTimestamp);
+        currentStartTs.set(commitTimestamp);
         LOG.info("Updating certifier Timestamps -> currentStartTs: {}, currentCommitTs: {}", currentStartTs.toPrimitive(), currentCommitTs.toPrimitive());
-        if (startsOnWait.size() > 0){
+        if (startsOnWait.size() > 0)
             startsOnWait.forEach(x -> x.complete(null));
-        }
     }
 
 }

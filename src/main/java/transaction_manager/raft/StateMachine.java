@@ -1,15 +1,6 @@
-package jraft;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
+package transaction_manager.raft;
 
 import certifier.Timestamp;
-import jraft.callbacks.CompletableClosure;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.alipay.remoting.exception.CodecException;
 import com.alipay.remoting.serialization.SerializerManager;
 import com.alipay.sofa.jraft.Closure;
@@ -18,33 +9,43 @@ import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
-import jraft.snapshot.StateSnapshot;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
-import transaction_manager.utils.BitWriteSet;
+import nosql.KeyValueDriver;
+import npvs.NPVS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import transaction_manager.messaging.ServersContextMessage;
+import transaction_manager.messaging.TransactionContentMessage;
+import transaction_manager.raft.callbacks.TransactionClosure;
+import transaction_manager.raft.snapshot.ExtendedState;
+import transaction_manager.raft.snapshot.StateSnapshot;
 
-import static jraft.TransactionManagerOperation.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Counter state machine.
- *
- * @author boyan (boyan@alibaba-inc.com)
- *
- * 2018-Apr-09 4:52:31 PM
- */
+import static transaction_manager.raft.TransactionManagerOperation.*;
+
 public class StateMachine extends StateMachineAdapter {
-
     private static final Logger LOG = LoggerFactory.getLogger(StateMachine.class);
 
-    private final ExtendedState state = new ExtendedState(1000);
+    private final RaftTransactionManagerImpl transactionManager;
     /**
      * Leader term
      */
     private final AtomicLong leaderTerm = new AtomicLong(-1);
 
+
+    public StateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
+        super();
+        this.transactionManager = new RaftTransactionManagerImpl(timestep, npvs, driver, scm);
+    }
+
     public boolean isLeader() {
-        return this.leaderTerm.get() > 0;
+        return transactionManager.isLeader();
     }
 
     /**
@@ -52,27 +53,21 @@ public class StateMachine extends StateMachineAdapter {
      */
     //TODO arranjar
     public long getTimestamp() {
-        try {
-            return this.state.getCertifier().start().get().toPrimitive();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
         return -1;
     }
-
     //TODO
     public Timestamp<Long> getCurrentTs(){
-        return this.state.getCertifier().getCurrentCommitTs();
+        return null;
     }
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
             TransactionManagerOperation transactionManagerOperation = null;
 
-            CompletableClosure<?> closure = null;
+            TransactionClosure closure = null;
             if (iter.done() != null) {
                 // This task is applied by this node, get value from closure to avoid additional parsing.
-                closure = (CompletableClosure<?>) iter.done();
+                closure = (TransactionClosure) iter.done();
                 transactionManagerOperation = closure.getTransactionManagerOperation();
             } else {
                 // Have to parse FetchAddRequest from this user log.
@@ -89,32 +84,27 @@ public class StateMachine extends StateMachineAdapter {
         }
     }
 
-    private void applyOperation(TransactionManagerOperation transactionManagerOperation, CompletableClosure<?> closure){
+    private void applyOperation(TransactionManagerOperation transactionManagerOperation, TransactionClosure closure){
         if (transactionManagerOperation != null) {
             switch (transactionManagerOperation.getOp()) {
                 case START_TXN:
-                    state.getCertifier().start().thenAccept(ts -> resolveClosure(ts, closure));
-                    //LOG.info("Get value={} at logIndex={}", current, iter.getIndex());
+                    transactionManager.startTransaction().thenAccept(res ->{
+                        closure.success(res);
+                        closure.run(Status.OK());
+                    });
                     break;
                 case COMMIT:
-                    final BitWriteSet bws = transactionManagerOperation.getBws();
-                    final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
-                    Timestamp<Long> tc = state.getCertifier().commit(bws, startTimestamp);
-                    resolveClosure(tc, closure);
-                    //LOG.info("Timestamp{} at logIndex={}", current, iter.getIndex());
+                    final TransactionContentMessage tcm = transactionManagerOperation.getTcm();
+                    transactionManager.tryCommit(tcm).thenAccept(res -> {
+                        closure.success(res);
+                        closure.run(Status.OK());
+                    });
                     break;
-                case DEL_NON_ACK_FLUSH:
-                    final Timestamp<Long> txnId = transactionManagerOperation.getStartTimestamp();
-                    state.removeFlush(txnId);
-                    resolveClosure(null, closure);
+                case UPDATE_STATE:
+                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getTimestamp();
+                    transactionManager.removeFlush(commitTimestamp);
+                    LOG.info("removing TC={} from nonAckedFlushes", commitTimestamp);
             }
-        }
-    }
-
-
-    private void resolveClosure(Timestamp<Long> result, CompletableClosure<?> closure){
-        if (closure != null) {
-             closure.getCompletableFuture().complete(result);
         }
     }
 
@@ -123,7 +113,7 @@ public class StateMachine extends StateMachineAdapter {
         //TODO colocar locks?
         Utils.runInThread(() -> {
             final StateSnapshot snapshot = new StateSnapshot(writer.getPath() + File.separator + "data");
-            if (snapshot.save(this.state)) {
+            if (snapshot.save(this.transactionManager.getExtendedState())) {
                 if (writer.addFile("data")) {
                     done.run(Status.OK());
                 } else {
@@ -153,9 +143,7 @@ public class StateMachine extends StateMachineAdapter {
         final StateSnapshot snapshot = new StateSnapshot(reader.getPath() + File.separator + "data");
         try {
             ExtendedState es = snapshot.load();
-            this.state.setNonAckedFlushs(es.getNonAckedFlushs());
-            this.state.setCertifier(es.getCertifier());
-            this.state.setLastNPVSCrash(es.getLastNPVSCrash());
+            this.transactionManager.setState(es);
             return true;
         } catch (final IOException e) {
             LOG.error("Fail to load snapshot from {}", snapshot.getPath());

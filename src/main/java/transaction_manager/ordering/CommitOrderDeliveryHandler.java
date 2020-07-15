@@ -2,6 +2,8 @@ package transaction_manager.ordering;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -9,6 +11,8 @@ import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 
 public class CommitOrderDeliveryHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(CommitOrderDeliveryHandler.class);
+
     private Timestamp<Long> lastArrival;
     private ArrayList<FlushAcknowledgment> outOfOrderCommits;
     private long timestep;
@@ -26,8 +30,9 @@ public class CommitOrderDeliveryHandler {
         this.timestep = timestep;
     }
 
-    public CompletableFuture<Void> returnInOrder(Timestamp<Long> commitTs){
+    public CompletableFuture<Void> deliverInOrder(Timestamp<Long> commitTs){
         if (commitTs.isRightAfter(lastArrival, timestep)){
+            LOG.info("Commit is in order TC: " + commitTs);
             lastArrival.add(timestep);
             return CompletableFuture.completedFuture(null);
         }
@@ -35,12 +40,13 @@ public class CommitOrderDeliveryHandler {
             CompletableFuture<Void> new_cf = new CompletableFuture<>();
             outOfOrder = true;
             outOfOrderCommits.add(new FlushAcknowledgment(new_cf, commitTs));
+            LOG.info("Commit is out of order TC: " + commitTs);
             return new_cf;
         }
     }
 
     //TODO OTIMIZAR
-    public void completeNewInOrder(){
+    public void deliverNewInOrder(){
         if(!outOfOrder)
             return;
         outOfOrderCommits.sort(Comparator.comparing(FlushAcknowledgment::getCommitTs));

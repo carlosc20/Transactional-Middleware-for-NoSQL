@@ -1,6 +1,4 @@
-package jraft.rpc;
-
-import transaction_manager.messaging.Message;
+package transaction_manager.messaging;
 
 import java.io.Serializable;
 
