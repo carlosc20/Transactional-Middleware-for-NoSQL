@@ -12,8 +12,8 @@ import com.alipay.sofa.jraft.rhea.options.StoreEngineOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.TransactionManagerService;
+import transaction_manager.raft.callbacks.TransactionClosure;
 import transaction_manager.raft.callbacks.CompletableClosure;
-import transaction_manager.raft.callbacks.ServerRestrictClosure;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.ByteArrayWrapper;
@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class RaftTMService extends TransactionManagerService {
+public class RaftTMService {
     private static final Logger LOG = LoggerFactory.getLogger(RaftTMService.class);
-
+/*
     private final RaftTMServer raftTMServer;
     private final Executor readIndexExecutor;
 
@@ -35,19 +35,19 @@ public class RaftTMService extends TransactionManagerService {
         this.readIndexExecutor = createReadIndexExecutor();
     }
 
-    public void startTransaction(final CompletableClosure<Long> closure) {
+    public void startTransaction(final TransactionClosure<Long> closure) {
         closure.setCompletableFuture(new CompletableFuture<>());
         applyOperation(TransactionManagerOperation.createStartTransaction(), closure);
     }
 
-    public void tryCommit(TransactionContentMessage tx, final CompletableClosure<Boolean> closure) {
+    public void tryCommit(TransactionContentMessage tx, final TransactionClosure<Boolean> closure) {
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
         cf.thenAccept(commitTimestamp -> commitConsumer(commitTimestamp, closure, tx.getWriteMap()));
         closure.setCompletableFuture(cf);
-        applyOperation(TransactionManagerOperation.createCommit(tx.getStartTimestamp(), tx.getWriteMap(), tx.getWriteSet()), closure);
+        applyOperation(TransactionManagerOperation.createCommit(tx.getTimestamp(), tx.getWriteMap(), tx.getWriteSet()), closure);
     }
 
-    private void commitConsumer(Timestamp<Long> commitTimestamp, CompletableClosure<Boolean> closure, Map<ByteArrayWrapper, byte[]> writeMap){
+    private void commitConsumer(Timestamp<Long> commitTimestamp, TransactionClosure<Boolean> closure, Map<ByteArrayWrapper, byte[]> writeMap){
         if (commitTimestamp.toPrimitive() > 0){
             CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
             //TODO verificar o getCurrentTimestamp()
@@ -67,12 +67,12 @@ public class RaftTMService extends TransactionManagerService {
     @Override
     public void updateState(Timestamp<Long> commitTimestamp) {
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
-        CompletableClosure<Void> cc = new ServerRestrictClosure<>(cf);
+        TransactionClosure<Void> cc = new CompletableClosure<>(cf);
         applyOperation(TransactionManagerOperation.createUpdateState(commitTimestamp), cc);
     }
 
 
-    public void getServersContext(final CompletableClosure<ServersContextMessage> closure){
+    public void getServersContext(final TransactionClosure<ServersContextMessage> closure){
         if (!isLeader())
             handlerNotLeaderError(closure);
         else{
@@ -86,7 +86,7 @@ public class RaftTMService extends TransactionManagerService {
         return StoreEngineHelper.createReadIndexExecutor(opts.getReadIndexCoreThreads());
     }
 
-    private void applyOperation(final TransactionManagerOperation op, final CompletableClosure<?> closure) {
+    public void applyOperation(final TransactionManagerOperation op, final TransactionClosure<?> closure) {
         if (!isLeader()) {
             handlerNotLeaderError(closure);
             return;
@@ -121,7 +121,7 @@ public class RaftTMService extends TransactionManagerService {
         return this.raftTMServer.redirect().getRedirect();
     }
 
-    private void handlerNotLeaderError(final CompletableClosure closure) {
+    private void handlerNotLeaderError(final TransactionClosure closure) {
         closure.failure("Not leader.", getRedirect());
         closure.run(new Status(RaftError.EPERM, "Not leader"));
     }

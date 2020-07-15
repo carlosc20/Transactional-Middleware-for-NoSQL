@@ -6,23 +6,28 @@ import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
+import nosql.KeyValueDriver;
+import nosql.MongoAsynchKV;
+import npvs.NPVS;
+import npvs.NPVSStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionCommitRequest;
 import transaction_manager.messaging.TransactionStartRequest;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class StandaloneTMServer {
-    private static final Logger LOG = LoggerFactory.getLogger(StandaloneTMServer.class);
+public class TransactionManagerServer {
+    private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerServer.class);
     private final ManagedMessagingService mms;
     private final ExecutorService e;
     private final Serializer s;
-    private final StandaloneTMService transactionManagerService;
+    private final TransactionManagerImpl transactionManagerService;
 
     //TODO builder pattern
-    public StandaloneTMServer(int myPort, int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName){
+    public TransactionManagerServer(long timestep, int myPort, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
@@ -33,7 +38,7 @@ public class StandaloneTMServer {
                 Address.from(myPort),
                 new MessagingConfig());
 
-        this.transactionManagerService = new StandaloneTMService(npvsStubPort, npvsPort, databaseURI, databaseName, databaseCollectionName, 1000);
+        this.transactionManagerService = new TransactionManagerImpl(timestep, npvs, driver, scm);
     }
 
     void start() {
@@ -58,6 +63,16 @@ public class StandaloneTMServer {
     }
 
     public static void main(String[] args) {
-        new StandaloneTMServer(30000, 30001,20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
+        long timestep = 1000;
+        int npvsStubPort = 30001;
+        int npvsPort = 20000;
+        String databaseURI = "mongodb://127.0.0.1:27017";
+        String databaseName =  "testeLei";
+        String databaseCollectionName = "teste1";
+
+        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsPort);
+        KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
+        ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
+        new TransactionManagerServer(timestep, 30000, npvs, driver, scm).start();
     }
 }

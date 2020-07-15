@@ -21,14 +21,15 @@ import java.util.stream.Collectors;
 public abstract class TransactionManagerService {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerService.class);
     private final KeyValueDriver driver;
+    //stub
     private final NPVS<Long> npvs;
     private final ServersContextMessage scm;
     private final CommitOrderDeliveryHandler codh;
 
-    public TransactionManagerService(long timestep, int npvsStubPort, int npvsPort, String databaseURI, String databaseName, String databaseCollectionName) {
-        npvs = new NPVSStub(npvsStubPort, npvsPort);
-        driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
-        scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
+    public TransactionManagerService(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
+        this.npvs = npvs;
+        this.driver = driver;
+        this.scm = scm;
         codh = new CommitOrderDeliveryHandler(timestep);
     }
 
@@ -40,6 +41,7 @@ public abstract class TransactionManagerService {
         return consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
                 .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp))
                 .thenCompose(future -> codh.deliverInOrder(provisionalCommitTimestamp))
+                //TODO a partir daqui resposta do cliente já devia de poder ser dada
                 .thenAccept(x -> updateState(provisionalCommitTimestamp))
                 .thenAccept(x -> codh.deliverNewInOrder());
     }

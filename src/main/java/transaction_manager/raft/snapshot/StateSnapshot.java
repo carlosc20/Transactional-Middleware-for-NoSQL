@@ -2,7 +2,6 @@ package transaction_manager.raft.snapshot;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction_manager.raft.ExtendedState;
 
 import java.io.*;
 

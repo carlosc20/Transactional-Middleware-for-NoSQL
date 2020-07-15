@@ -1,6 +1,7 @@
 package transaction_manager.raft;
 
 import certifier.Timestamp;
+import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
@@ -15,16 +16,14 @@ public class TransactionManagerOperation implements Serializable {
     public static final byte  UPDATE_STATE = 0x03;
 
     private final byte op;
-    private final Timestamp<Long> timestamp;
-    private final Map<ByteArrayWrapper, byte[]> writeMap;
-    private final BitWriteSet bws;
+    private final TransactionContentMessage tcm;
 
     public static TransactionManagerOperation createStartTransaction() {
         return new TransactionManagerOperation(START_TXN);
     }
 
-    public static TransactionManagerOperation createCommit(Timestamp<Long> startTimestamp, Map<ByteArrayWrapper, byte[]> writeMap, BitWriteSet bws) {
-        return new TransactionManagerOperation(COMMIT, startTimestamp, writeMap, bws);
+    public static TransactionManagerOperation createCommit(TransactionContentMessage tcm) {
+        return new TransactionManagerOperation(COMMIT, tcm);
     }
 
     public static TransactionManagerOperation createUpdateState(Timestamp<Long> startTimestamp){
@@ -33,23 +32,17 @@ public class TransactionManagerOperation implements Serializable {
 
     public TransactionManagerOperation(byte op) {
         this.op = op;
-        this.timestamp = null;
-        this.writeMap = null;
-        this.bws = null;
+        this.tcm = null;
     }
 
-    public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp, Map<ByteArrayWrapper, byte[]> writeMap, BitWriteSet bws) {
+    public TransactionManagerOperation(byte op, TransactionContentMessage tcm) {
         this.op = op;
-        this.timestamp = startTimestamp;
-        this.writeMap = writeMap;
-        this.bws = bws;
+        this.tcm = tcm;
     }
 
     public TransactionManagerOperation(byte op, Timestamp<Long> commitTimestamp){
         this.op = op;
-        this.timestamp = commitTimestamp;
-        this.writeMap = null;
-        this.bws = null;
+        this.tcm = new TransactionContentMessage(commitTimestamp);
     }
 
     public byte getOp() {
@@ -57,12 +50,21 @@ public class TransactionManagerOperation implements Serializable {
     }
 
     public Timestamp<Long> getTimestamp() {
-        return timestamp;
+        assert tcm != null;
+        return tcm.getTimestamp();
     }
 
-    public BitWriteSet getBws(){return bws;}
+    public BitWriteSet getBws(){
+        assert tcm != null;
+        return tcm.getWriteSet();
+    }
 
     public Map<ByteArrayWrapper, byte[]> getWriteMap() {
-        return writeMap;
+        assert tcm != null;
+        return tcm.getWriteMap();
+    }
+
+    public TransactionContentMessage getTcm() {
+        return tcm;
     }
 }

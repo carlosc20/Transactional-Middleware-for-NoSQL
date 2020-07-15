@@ -24,7 +24,7 @@ public class TransactionImpl implements Transaction {
     private final Timestamp<Long> ts;
     private boolean latestTimestamp;
 
-    private final Map<ByteArrayWrapper,byte[]> writeMap;
+    private final HashMap<ByteArrayWrapper,byte[]> writeMap;
 
     public TransactionImpl(NPVS<Long> npvs, KeyValueDriver driver, TransactionManager serverStub, Timestamp<Long> ts) {
         this.writeMap = new HashMap<>();
