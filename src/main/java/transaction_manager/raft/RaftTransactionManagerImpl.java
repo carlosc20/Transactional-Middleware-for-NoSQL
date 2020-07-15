@@ -10,15 +10,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RaftTransactionManagerImpl extends RaftTransactionManager{
     private final AtomicLong leaderTerm = new AtomicLong(-1);
-    private RaftTMService rtms;
+    private RequestHandler requestHandler;
 
-    public RaftTransactionManagerImpl(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
+    public RaftTransactionManagerImpl(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler) {
         super(timestep, npvs, driver, scm);
+        this.requestHandler = requestHandler;
     }
 
     @Override
     public void updateStateByRaftOperation(Timestamp<Long> commitTimestamp) {
-        //rtms.applyOperation(TransactionManagerOperation.createUpdateState(commitTimestamp), null);
+        requestHandler.applyOperation(TransactionManagerOperation.createUpdateState(commitTimestamp), null);
     }
 
     @Override

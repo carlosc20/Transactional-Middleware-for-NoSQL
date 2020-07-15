@@ -12,6 +12,7 @@ import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
+import com.mongodb.internal.connection.Server;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
 import org.slf4j.Logger;
@@ -39,13 +40,17 @@ public class StateMachine extends StateMachineAdapter {
     private final AtomicLong leaderTerm = new AtomicLong(-1);
 
 
-    public StateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
+    public StateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
         super();
-        this.transactionManager = new RaftTransactionManagerImpl(timestep, npvs, driver, scm);
+        this.transactionManager = new RaftTransactionManagerImpl(timestep, npvs, driver, scm, requestHandler);
     }
 
     public boolean isLeader() {
         return transactionManager.isLeader();
+    }
+
+    public ServersContextMessage getServersContext(){
+        return transactionManager.getServersContext();
     }
 
     /**

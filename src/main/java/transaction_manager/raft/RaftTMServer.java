@@ -46,24 +46,23 @@ public class RaftTMServer {
         String databaseURI = "mongodb://127.0.0.1:27017";
         String databaseName =  "testeLei";
         String databaseCollectionName = "teste1";
-        /*
-        RaftTMService transactionManagerService = new RaftTMService(timestep,this, 30001,20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1");
+
+        RequestHandler requestHandler = new RequestHandler(this);
 
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Boolean>(
                 TransactionCommitRequest.class,
-                (req , closure) -> transactionManagerService.tryCommit(req.getTransactionContentMessage(), closure)));
+                (req , closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)));
 
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Long>(
                 TransactionStartRequest.class,
-                (req , closure) -> transactionManagerService.startTransaction(closure)));
+                (req , closure) -> requestHandler.startTransaction(closure)));
 
 
         rpcServer.registerProcessor(new RequestProcessor<ServerContextRequestMessage, ServersContextMessage>(
                 ServerContextRequestMessage.class,
-                (req , closure) -> transactionManagerService.getServersContext(closure)));
-*/
+                (req , closure) -> requestHandler.getServersContext(closure)));
 
         // Initialize the state machine.
         List<Address> npvsServers = new ArrayList<>();
@@ -73,7 +72,7 @@ public class RaftTMServer {
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
         ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
 
-        this.fsm = new StateMachine(timestep, npvs, driver, scm);
+        this.fsm = new StateMachine(timestep, npvs, driver, scm, requestHandler);
         // Set the state machine to the startup parameters.
         nodeOptions.setFsm(this.fsm);
         // Set the storage path.
