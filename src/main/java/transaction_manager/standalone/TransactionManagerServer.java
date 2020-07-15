@@ -16,6 +16,8 @@ import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionCommitRequest;
 import transaction_manager.messaging.TransactionStartRequest;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,7 +43,7 @@ public class TransactionManagerServer {
         this.transactionManagerService = new TransactionManagerImpl(timestep, npvs, driver, scm);
     }
 
-    void start() {
+    public void start() {
         mms.start();
         mms.registerHandler("start", (a,b) -> {
             TransactionStartRequest tsr = s.decode(b);
@@ -70,9 +72,13 @@ public class TransactionManagerServer {
         String databaseName =  "testeLei";
         String databaseCollectionName = "teste1";
 
-        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsPort);
+        List<Address> npvsServers = new ArrayList<>();
+        npvsServers.add(Address.from(20000));
+        npvsServers.add(Address.from(20001));
+
+        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
-        ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
+        ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
         new TransactionManagerServer(timestep, 30000, npvs, driver, scm).start();
     }
 }

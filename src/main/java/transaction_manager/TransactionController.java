@@ -26,7 +26,7 @@ public class TransactionController {
     public void buildContext(){
         LOG.info("Sending request to build controller");
         ServersContextMessage scm = serverStub.getServersContext();
-        this.npvs = new NPVSStub(npvsStubPort, scm.getNpvsPort());
+        this.npvs = new NPVSStub(npvsStubPort, scm.getNpvsServers());
         this.driver = new MongoAsynchKV(scm.getDatabaseURI(), scm.getDatabaseName(), scm.getDatabaseCollectionName());
         LOG.info("Controller built");
     }

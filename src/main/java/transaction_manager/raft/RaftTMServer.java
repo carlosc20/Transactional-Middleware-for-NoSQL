@@ -7,6 +7,7 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
 import npvs.NPVS;
@@ -21,6 +22,8 @@ import transaction_manager.messaging.TransactionStartRequest;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RaftTMServer {
     private RaftGroupService raftGroupService;
@@ -63,9 +66,12 @@ public class RaftTMServer {
 */
 
         // Initialize the state machine.
-        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsPort);
+        List<Address> npvsServers = new ArrayList<>();
+        npvsServers.add(Address.from(20000));
+        npvsServers.add(Address.from(20001));
+        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
-        ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsPort);
+        ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
 
         this.fsm = new StateMachine(timestep, npvs, driver, scm);
         // Set the state machine to the startup parameters.

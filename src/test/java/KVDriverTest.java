@@ -1,5 +1,6 @@
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
+import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
 import nosql.messaging.GetMessage;
 import nosql.messaging.ScanMessage;
@@ -20,7 +21,7 @@ public class KVDriverTest {
 
     @Test
     public void rwTs() throws ExecutionException, InterruptedException {
-        MongoAsynchKV mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
+        KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         wmb.put(1, "key1", "value1");
@@ -54,7 +55,7 @@ public class KVDriverTest {
 
     @Test
     public void rwKV() throws ExecutionException, InterruptedException {
-        MongoAsynchKV mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
+        KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
         // writing
         HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();

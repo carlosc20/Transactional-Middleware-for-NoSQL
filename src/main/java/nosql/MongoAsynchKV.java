@@ -115,4 +115,8 @@ public class MongoAsynchKV implements KeyValueDriver {
                 .subscribe(new GenericSubscriber<>(result -> cf.complete(null)));
         return cf;
     }
+
+    public void drop() {
+        collection.drop();
+    }
 }

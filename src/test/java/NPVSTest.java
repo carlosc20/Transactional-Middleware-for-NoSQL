@@ -1,10 +1,15 @@
 import certifier.MonotonicTimestamp;
+import io.atomix.utils.net.Address;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
 import org.junit.Test;
+import spread.SpreadException;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.WriteMapsBuilder;
 
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -12,7 +17,10 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 
 public class NPVSTest {
-    private NPVSStub npvs = new NPVSStub(10000, 20000);
+
+    private final List<Address> npvsServers = new ArrayList<>();
+    private final NPVSStub npvs = new NPVSStub(10000, npvsServers);
+
 
     public void fetchAndAssert(long timestamp, ByteArrayWrapper baw, String str){
         npvs.get(baw, new MonotonicTimestamp(timestamp))
@@ -24,8 +32,13 @@ public class NPVSTest {
     }
 
     @Test
-    public void writeRead() throws InterruptedException {
-        new NPVSServer(20000);
+    public void writeRead() throws InterruptedException, SpreadException, UnknownHostException {
+
+        npvsServers.add(Address.from(20000));
+        npvsServers.add(Address.from(20001));
+        new NPVSServer(20000, 40000, "0").start();
+        new NPVSServer(20001, 40000, "1").start();
+
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         ExecutorService taskExecutor = Executors.newFixedThreadPool(8);
 

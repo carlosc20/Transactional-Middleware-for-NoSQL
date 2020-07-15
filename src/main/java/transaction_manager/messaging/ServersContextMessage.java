@@ -1,16 +1,20 @@
 package transaction_manager.messaging;
 
+import io.atomix.utils.net.Address;
+
+import java.util.List;
+
 public class ServersContextMessage {
     private final String databaseURI;
     private final String databaseName;
     private final String databaseCollectionName;
-    private final int npvsPort;
+    private final List<Address> npvsServers;
 
-    public ServersContextMessage(String databaseURI, String databaseName, String databaseCollectionName, int npvsPort){
+    public ServersContextMessage(String databaseURI, String databaseName, String databaseCollectionName, List<Address> npvsServers){
         this.databaseURI = databaseURI;
         this.databaseName = databaseName;
         this.databaseCollectionName = databaseCollectionName;
-        this.npvsPort = npvsPort;
+        this.npvsServers = npvsServers;
     }
 
     public String getDatabaseURI() {
@@ -25,7 +29,7 @@ public class ServersContextMessage {
         return databaseCollectionName;
     }
 
-    public int getNpvsPort() {
-        return npvsPort;
+    public List<Address> getNpvsServers() {
+        return npvsServers;
     }
 }
