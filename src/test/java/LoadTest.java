@@ -42,10 +42,11 @@ public class LoadTest {
         new TransactionManagerServer(timestep, serverPort, npvs, driver, scm).start();
         System.out.println("Transaction Manager Server ready");
 
-        test(serverPort);
+        //testParallel(serverPort);
+        testSequential(serverPort);
     }
 
-    static void test(int serverPort) throws ExecutionException, InterruptedException {
+    static void testSequential(int serverPort) throws ExecutionException, InterruptedException {
         final int CLIENTS = 1;
         final int TRANSACTIONS = 20;
         final int WRITES = 2;
@@ -77,7 +78,9 @@ public class LoadTest {
 
             for (int j = 0; j < READS; j++) {
                 String key = String.valueOf(rnd.nextInt(KEY_POOL));
+                System.out.println("coiso1");
                 tx.read(key.getBytes());
+                System.out.println("coiso2");
                 timer.addCheckpoint("Read " + i);
             }
 
@@ -96,6 +99,72 @@ public class LoadTest {
 
         System.out.println("Conflicts: " + conflicts);
 
+        timer.print();
+    }
+
+    static void testParallel(int serverPort) throws ExecutionException, InterruptedException {
+        final int CLIENTS = 1;
+        final int TRANSACTIONS = 20;
+        final int WRITES = 2;
+        final int READS = 2;
+        final int KEY_POOL = 100;
+
+        Timer timer = new Timer();
+        timer.start();
+
+        List<Thread> threads = new ArrayList<>(CLIENTS);
+        Random rnd = new Random();
+        for (int i = 0; i < CLIENTS; i++) {
+            int p = i;
+            threads.add(new Thread(() ->
+                    {
+                        TransactionManager tms = new TransactionManagerStub(50000 + p, serverPort);
+                        TransactionController tc = new TransactionController(60000 + p, tms);
+                        tc.buildContext();
+
+                        timer.addCheckpoint("Controllers created with context" + Thread.currentThread().getId());
+                        for (int j = 0; j < TRANSACTIONS; j++) {
+
+                            try {
+                                Transaction tx = tc.startTransaction();
+                                timer.addCheckpoint("Transaction started " + j + " " + Thread.currentThread().getId());
+                                System.out.println("Transaction started " + j + " " + Thread.currentThread().getId());
+
+                                for (int k = 0; k < READS; k++) {
+                                    String key = String.valueOf(rnd.nextInt(KEY_POOL));
+                                    tx.read(key.getBytes());
+                                    timer.addCheckpoint("Read " + j);
+                                }
+
+                                for (int k = 0; k < WRITES; k++) {
+                                    String key = String.valueOf(rnd.nextInt(KEY_POOL));
+                                    String value = String.valueOf(rnd.nextInt());
+                                    tx.write(key.getBytes(), value.getBytes());
+                                    timer.addCheckpoint("Write " + j);
+                                }
+
+                                if(!tx.commit()) {
+                                    System.out.println("Conflict");
+                                }
+                                timer.addCheckpoint("Transaction commited " + j + " " + Thread.currentThread().getId());
+                                System.out.println("Transaction commited " + j + " " + Thread.currentThread().getId());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                    })
+            );
+        }
+
+        for (Thread t : threads) {
+            t.start();
+        }
+
+        for (Thread t : threads) {
+            t.join();
+        }
+        System.out.println("Acabou");
         timer.print();
     }
 
