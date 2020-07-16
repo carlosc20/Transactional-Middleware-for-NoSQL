@@ -24,11 +24,9 @@ public class GenericSubscriber<T> implements Subscriber<T>{
 
     @Override
     public void onError(Throwable throwable) {
-        System.out.println("Failed");
+        throwable.printStackTrace();
     }
 
     @Override
-    public void onComplete() {
-        System.out.println("Completed");
-    }
+    public void onComplete() {}
 }

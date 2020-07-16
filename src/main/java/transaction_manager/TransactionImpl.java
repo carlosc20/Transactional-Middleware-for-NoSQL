@@ -77,7 +77,6 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    //TODO fix
     public List<byte[]> scan(List<byte[]> keys) {
         ArrayList<byte[]> list = new ArrayList<>();
         for(byte[] key : keys)

@@ -22,17 +22,15 @@ import java.util.concurrent.ExecutionException;
 public class LoadTest {
 
     public static void main(String[] args) throws ExecutionException, InterruptedException, SpreadException, UnknownHostException {
-        Timer timer = new Timer();
-        timer.start();
-        final int serverPort = 30000;
 
         List<Address> npvsServers = new ArrayList<>();
         npvsServers.add(Address.from(20000));
         npvsServers.add(Address.from(20001));
         new NPVSServer(20000, 40000, "1").start();
         new NPVSServer(20001, 40000, "2").start();
-        timer.addCheckpoint("NPVS servers started");
+        System.out.println("NPVS servers ready");
 
+        int serverPort = 30000;
         long timestep = 1000;
         int npvsStubPort = 30001;
         String databaseURI = "mongodb://127.0.0.1:27017";
@@ -41,31 +39,31 @@ public class LoadTest {
         NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
         ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
-        new TransactionManagerServer(timestep, 30000, npvs, driver, scm).start();
-        timer.addCheckpoint("TM server started");
+        new TransactionManagerServer(timestep, serverPort, npvs, driver, scm).start();
+        System.out.println("Transaction Manager Server ready");
 
         test(serverPort);
-        timer.addCheckpoint("Ended");
-
-        timer.print();
     }
 
     static void test(int serverPort) throws ExecutionException, InterruptedException {
-        final int CLIENTS = 3;
-        final int TRANSACTIONS = 10;
-        final int OPERATIONS = 3;
-        final float RWP = 0.5f;
+        final int CLIENTS = 1;
+        final int TRANSACTIONS = 20;
+        final int WRITES = 2;
+        final int READS = 2;
+        final int KEY_POOL = 100;
 
         Timer timer = new Timer();
         timer.start();
 
+
         List<TransactionController> controllers = new ArrayList<>();
         for (int i = 0; i < CLIENTS; i++) {
-            TransactionManager tms = new TransactionManagerStub( 12346, serverPort);
-            TransactionController tc = new TransactionController(12345, tms);
+            TransactionManager tms = new TransactionManagerStub(50000 + i, serverPort);
+            TransactionController tc = new TransactionController(60000 + i, tms);
             tc.buildContext();
             controllers.add(tc);
         }
+        System.out.println("Controllers ready");
         timer.addCheckpoint("Controllers created with context");
 
         int conflicts = 0;
@@ -74,27 +72,30 @@ public class LoadTest {
         for (int i = 0; i < TRANSACTIONS; i++) {
             int n = rnd.nextInt(CLIENTS);
             TransactionController tc = controllers.get(n);
-            Transaction tx = tc.startTransaction(); // várias por cliente?
+            Transaction tx = tc.startTransaction();
+            timer.addCheckpoint("Transaction started " + i);
 
-            for (int j = 0; j < OPERATIONS; j++) {
-                String key = String.valueOf(rnd.nextInt(100));
+            for (int j = 0; j < READS; j++) {
+                String key = String.valueOf(rnd.nextInt(KEY_POOL));
+                tx.read(key.getBytes());
+                timer.addCheckpoint("Read " + i);
+            }
 
-                if(rnd.nextFloat() < RWP) {
-                    tx.read(key.getBytes());
-                } else {
-                    String value = String.valueOf(rnd.nextInt());
-                    tx.write(key.getBytes(), value.getBytes());
-                }
+            for (int j = 0; j < WRITES; j++) {
+                String key = String.valueOf(rnd.nextInt(KEY_POOL));
+                String value = String.valueOf(rnd.nextInt());
+                tx.write(key.getBytes(), value.getBytes());
+                timer.addCheckpoint("Write " + i);
             }
 
             if(!tx.commit()) {
                 conflicts++;
             }
+            timer.addCheckpoint("Transaction commited " + i);
         }
 
-        System.out.println(conflicts);
+        System.out.println("Conflicts: " + conflicts);
 
-        timer.addCheckpoint("End");
         timer.print();
     }
 

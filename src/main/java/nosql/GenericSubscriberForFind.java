@@ -28,13 +28,12 @@ public class GenericSubscriberForFind<T> implements Subscriber<T> {
 
     @Override
     public void onError(Throwable throwable) {
-        System.out.println("Failed");
+        throwable.printStackTrace();
     }
 
     @Override
     public void onComplete() {
         if (!foundDoc)
             onCompleteCallback.accept(null);
-        System.out.println("Completed");
     }
 }

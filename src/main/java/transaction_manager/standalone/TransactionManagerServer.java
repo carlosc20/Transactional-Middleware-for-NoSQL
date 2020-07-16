@@ -67,7 +67,6 @@ public class TransactionManagerServer {
     public static void main(String[] args) {
         long timestep = 1000;
         int npvsStubPort = 30001;
-        int npvsPort = 20000;
         String databaseURI = "mongodb://127.0.0.1:27017";
         String databaseName =  "testeLei";
         String databaseCollectionName = "teste1";

@@ -57,10 +57,12 @@ public class NPVSServer {
 
     public void start() throws UnknownHostException, SpreadException {
 
+        /*
         this.spreadConnection.connect(InetAddress.getByName("localhost"), spreadPort, this.privateName,
                 false, true);
         this.spreadGroup.join(this.spreadConnection, "npvs");
         this.spreadConnection.add(messageListener());
+        */
 
         mms.start();
         mms.registerHandler("get", (a,b) -> {
@@ -79,6 +81,8 @@ public class NPVSServer {
                     .thenApply(s::encode);
         });
     }
+
+
     public AdvancedMessageListener messageListener() {
         return new AdvancedMessageListener() {
             @Override

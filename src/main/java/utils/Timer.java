@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class Timer {
-    private ArrayList<Checkpoint> checkpoints;
-    private TimeUnit timeUnit;
+    final private ArrayList<Checkpoint> checkpoints;
+    final private TimeUnit timeUnit;
 
     public Timer(){
         this.checkpoints = new ArrayList<>();
@@ -31,16 +31,15 @@ public class Timer {
 
     private void print(String info){
         if(!info.equals("")) {
-            System.out.println("Checkpoint related info: ");
-            System.out.println(info);
+            System.out.println("|      \"" + info + "\"");
         }
     }
 
     private void print(int i, long l1, long l2, String info){
         long total = timeUnit.convert(l1, TimeUnit.NANOSECONDS);
         long last = timeUnit.convert(l2, TimeUnit.NANOSECONDS);
-        System.out.println("\nEvent: " + i + " -----------------------------------------------------------------------------");
-        System.out.println("Total time elapsed: " + total + ", time elapsed since last checkpoint: " + last);
+        System.out.println("|");
+        System.out.println(String.format("%1$-6s", i) + " total: " + String.format("%1$-10s", total) + ", since last checkpoint: " + String.format("%1$-10s", last));
         print(info);
     }
 
@@ -53,11 +52,11 @@ public class Timer {
             print(1, System.nanoTime() - c.time, 0, c.info);
         }
         else{
-            Checkpoint begining = checkpoints.get(0);
-            print(begining.info);
+            Checkpoint beginning = checkpoints.get(0);
+            print(beginning.info);
             for(int i = 1; i<checkpoints.size(); i++){
                 Checkpoint c = checkpoints.get(i);
-                print(i, c.time - begining.time, c.time - checkpoints.get(i-1).time, c.info);
+                print(i, c.time - beginning.time, c.time - checkpoints.get(i-1).time, c.info);
             }
         }
         this.checkpoints.clear();
