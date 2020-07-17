@@ -1,6 +1,8 @@
 package utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class Timer {
@@ -21,12 +23,16 @@ public class Timer {
 	addCheckpoint("Start");
     }
 
-    public void addCheckpoint(){
+    public synchronized void addCheckpoint(){
         checkpoints.add(new Checkpoint(System.nanoTime()));
     }
 
     public synchronized void addCheckpoint(String info){
         checkpoints.add(new Checkpoint(System.nanoTime(), info));
+    }
+
+    public synchronized void addCheckpoint(String info, String category){
+        checkpoints.add(new Checkpoint(System.nanoTime(), info, category));
     }
 
     private void print(String info){
@@ -44,14 +50,17 @@ public class Timer {
     }
 
     public void print(){
-        System.out.println("Timeunit used: " + timeUnit.toString());
-        if(checkpoints.size() == 0)
+        if(checkpoints.size() == 0) {
             System.out.println("No checkpoint added");
-        else if(checkpoints.size() == 1){
+            return;
+        }
+        System.out.println("Timeunit used: " + timeUnit.toString());
+
+        if(checkpoints.size() == 1){
             Checkpoint c = checkpoints.get(0);
             print(1, System.nanoTime() - c.time, 0, c.info);
         }
-        else{
+        else {
             Checkpoint beginning = checkpoints.get(0);
             print(beginning.info);
             for(int i = 1; i<checkpoints.size(); i++){
@@ -60,5 +69,44 @@ public class Timer {
             }
         }
         this.checkpoints.clear();
+    }
+
+    public void printStats() {
+        if(checkpoints.size() < 2) {
+            System.out.println("Need more than 1 checkpoint for stats");
+            return;
+        }
+        System.out.println("Timeunit used: " + timeUnit.toString());
+
+
+        Checkpoint beginning = checkpoints.get(0);
+
+        Stats stats = new Stats();
+        Map<String,Stats> catStats = new HashMap<>();
+
+        for(int i = 1; i<checkpoints.size(); i++){
+            Checkpoint c = checkpoints.get(i);
+            long total = c.time - beginning.time;
+            long sinceLast = c.time - checkpoints.get(i-1).time;
+            String category = c.category;
+
+            stats.addValue(sinceLast);
+
+            if (category != null){
+                Stats s = catStats.get(category);
+                if(s == null){
+                    s = new Stats();
+                    catStats.put(category,s);
+                }
+                s.addValue(sinceLast);
+            }
+        }
+        
+        System.out.println("All");
+        System.out.println(stats);
+
+        for (Map.Entry<String, Stats> entry : catStats.entrySet()) {
+            System.out.println(entry.getKey() + "\n" + entry.getValue());
+        }
     }
 }

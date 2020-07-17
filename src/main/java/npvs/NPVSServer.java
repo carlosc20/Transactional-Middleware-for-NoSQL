@@ -57,6 +57,7 @@ public class NPVSServer {
 
     public void start() throws UnknownHostException, SpreadException {
 
+        // TODO voltar a por quando for para usar
         /*
         this.spreadConnection.connect(InetAddress.getByName("localhost"), spreadPort, this.privateName,
                 false, true);
@@ -145,7 +146,7 @@ public class NPVSServer {
                 m.setUnreliable();
         }
         spreadConnection.multicast(m);
-        System.out.println("Safe flooding to group ("+ this.spreadGroup+ "): ");
+        System.out.println("Flooding to group ("+ this.spreadGroup+ "): ");
     }
 
     public static void main(String[] args) throws SpreadException, UnknownHostException {
