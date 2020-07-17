@@ -1,3 +1,5 @@
+package runnable_tests;
+
 import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;

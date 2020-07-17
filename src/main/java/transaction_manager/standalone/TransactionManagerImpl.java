@@ -30,17 +30,17 @@ public class TransactionManagerImpl extends TransactionManagerService implements
     }
 
     @Override
-    public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tc) {
+    public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
         Timestamp<Long> commitTimestamp = certifierCommit(tc);
         if(commitTimestamp.toPrimitive() > 0) {
             //TODO muito importante e se falha?
             //TODO return correto
             LOG.info("Making transaction with TC: {} changes persist", commitTimestamp.toPrimitive());
             return flush(tc, commitTimestamp, certifier.getCurrentCommitTs())
-                    .thenApply(x -> true);
+                    .thenApply(x -> commitTimestamp);
         } else {
             LOG.info("aborted a transaction with TS {}", tc.getTimestamp());
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
         }
     }
 

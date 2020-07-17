@@ -45,7 +45,7 @@ public class TransactionManagerStub implements TransactionManager {
     }
 
     @Override
-    public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tx) {
+    public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tx) {
         TransactionCommitRequest tcr = new TransactionCommitRequest(tx);
         return mms.sendAndReceive(manager, "commit", s.encode(tcr), Duration.ofSeconds(20), e)
                 .thenApply(s::decode);

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -86,6 +87,17 @@ public class TransactionImpl implements Transaction {
 
     @Override
     public Boolean commit() {
+        try {
+            LOG.info("Transaction: {} committing", ts.toPrimitive());
+            Timestamp<Long> ts = serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();
+            return ts.toPrimitive() >= 0;
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Timestamp<Long> commitTs() {
         try {
             LOG.info("Transaction: {} committing", ts.toPrimitive());
             return serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();

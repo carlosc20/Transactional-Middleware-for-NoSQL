@@ -1,3 +1,5 @@
+package runnable_tests;
+
 import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
@@ -21,30 +23,10 @@ import java.util.concurrent.ExecutionException;
 
 public class LoadTest {
 
-    public static void main(String[] args) throws ExecutionException, InterruptedException, SpreadException, UnknownHostException {
-        /*
-        List<Address> npvsServers = new ArrayList<>();
-        npvsServers.add(Address.from(20000));
-        npvsServers.add(Address.from(20001));
-        new NPVSServer(20000, 40000, "1").start();
-        new NPVSServer(20001, 40000, "2").start();
-        System.out.println("NPVS servers ready");
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
 
-        int serverPort = 30000;
-        long timestep = 1000;
-        int npvsStubPort = 30001;
-        String databaseURI = "mongodb://127.0.0.1:27017";
-        String databaseName =  "testeLei";
-        String databaseCollectionName = "teste1";
-        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
-        KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
-        ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
-        new TransactionManagerServer(timestep, serverPort, npvs, driver, scm).start();
-        System.out.println("Transaction Manager Server ready");
-
-         */
         testParallel(30000);
-        //testSequential(serverPort);
+        //testSequential(30000);
     }
 
     static void testSequential(int serverPort) throws ExecutionException, InterruptedException {

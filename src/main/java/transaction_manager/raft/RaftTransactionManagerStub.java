@@ -51,14 +51,15 @@ public class RaftTransactionManagerStub implements TransactionManager {
     }
 
     @Override
-    public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tx) {
+    public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tx) {
         TransactionCommitRequest tcr = new TransactionCommitRequest(tx);
         try {
-            return CompletableFuture.completedFuture((Boolean) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 30000));
+            // TODO return timestamp
+            return CompletableFuture.completedFuture((Timestamp<Long>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 30000));
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
-        return CompletableFuture.completedFuture(false);
+        return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
     }
 
     @Override

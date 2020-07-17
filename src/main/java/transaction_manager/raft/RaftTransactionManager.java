@@ -1,5 +1,6 @@
 package transaction_manager.raft;
 
+import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
@@ -22,17 +23,17 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     }
 
     @Override
-    public CompletableFuture<Boolean> tryCommit(TransactionContentMessage tc) {
+    public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
         Timestamp<Long> commitTimestamp = certifierCommit(tc);
         if(commitTimestamp.toPrimitive() > 0) {
             nonAckedFlushs.put(commitTimestamp.toPrimitive(), tc.getWriteMap());
             if(isLeader())
-                return flush(tc, commitTimestamp, getCertifier().getCurrentCommitTs()).thenApply(x -> true);
+                return flush(tc, commitTimestamp, getCertifier().getCurrentCommitTs()).thenApply(x -> commitTimestamp);
             else
                 //return for a follower is irrelevant
                 return CompletableFuture.completedFuture(null);
         }
-        return CompletableFuture.completedFuture(false);
+        return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
     }
 
     public Map<Long, Map<ByteArrayWrapper, byte[]>> getNonAckedFlushs() {
