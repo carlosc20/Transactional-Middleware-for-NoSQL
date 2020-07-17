@@ -25,7 +25,7 @@ public class Timer {
         checkpoints.add(new Checkpoint(System.nanoTime()));
     }
 
-    public void addCheckpoint(String info){
+    public synchronized void addCheckpoint(String info){
         checkpoints.add(new Checkpoint(System.nanoTime(), info));
     }
 
