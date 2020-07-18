@@ -12,12 +12,11 @@ import transaction_manager.messaging.ServersContextMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 public class RaftServerBuilder {
     private long timestep;
     private Address npvsStubPort;
-    private List<Address> npvsServers;
+    private ArrayList<String> npvsServers;
     private String databaseURI;
     private String databaseName;
     private String databaseCollectionName;
@@ -35,10 +34,9 @@ public class RaftServerBuilder {
     public RaftTMServer build() throws IOException {
         PeerId peerId = buildPeerId();
         NodeOptions nodeOptions = buildStandardNodeOptions();
-        RaftTMServer server = new RaftTMServer(dataPath, groupId, peerId, nodeOptions);
+        RaftTMServer server = new RaftTMServer(dataPath, groupId, peerId, nodeOptions, buildServersContextMessage());
         server.setDriver(buildDriver());
         server.setNpvs(buildNPVS());
-        server.setScm(buildServersContextMessage());
         return server;
     }
 
@@ -88,7 +86,7 @@ public class RaftServerBuilder {
     public RaftServerBuilder withStandardServersPort(int offset, int numberOfNPVS){
         npvsStubPort = Address.from(30000 + offset);
         for (int i = 0; i < numberOfNPVS; i++){
-            npvsServers.add(Address.from(20000 + i));
+            npvsServers.add("localhost:" + 20000 + i);
         }
         return this;
     }
@@ -138,8 +136,8 @@ public class RaftServerBuilder {
         return this;
     }
 
-    public RaftServerBuilder addNpvsServer(Address npvsServerPort){
-        this.npvsServers.add(npvsServerPort);
+    public RaftServerBuilder addNpvsServer(String npvsServerAddress){
+        this.npvsServers.add(npvsServerAddress);
         return this;
     }
 }

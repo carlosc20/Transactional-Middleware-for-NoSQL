@@ -1,13 +1,13 @@
 import certifier.MonotonicTimestamp;
 import org.junit.Test;
-import transaction_manager.controll.CommitOrderDeliveryHandler;
+import transaction_manager.control.CommitOrderHandler;
 
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
 
 public class CommitOrderTest {
-    CommitOrderDeliveryHandler codh = new CommitOrderDeliveryHandler();
+    CommitOrderHandler codh = new CommitOrderHandler();
     long ts = 0;
 
 

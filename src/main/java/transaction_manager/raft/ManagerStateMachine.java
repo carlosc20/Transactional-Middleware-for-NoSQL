@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static transaction_manager.raft.TransactionManagerOperation.*;
 
-public class StateMachine extends StateMachineAdapter {
-    private static final Logger LOG = LoggerFactory.getLogger(StateMachine.class);
+public class ManagerStateMachine extends StateMachineAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(ManagerStateMachine.class);
 
     private final RaftTransactionManagerImpl transactionManager;
     /**
@@ -39,7 +39,7 @@ public class StateMachine extends StateMachineAdapter {
     private final AtomicLong leaderTerm = new AtomicLong(-1);
 
 
-    public StateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
+    public ManagerStateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
         super();
         this.transactionManager = new RaftTransactionManagerImpl(timestep, npvs, driver, scm, requestHandler);
     }
@@ -52,17 +52,6 @@ public class StateMachine extends StateMachineAdapter {
         return transactionManager.getServersContext();
     }
 
-    /**
-     * Returns current timestamp.
-     */
-    //TODO arranjar
-    public long getTimestamp() {
-        return -1;
-    }
-    //TODO
-    public Timestamp<Long> getCurrentTs(){
-        return null;
-    }
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
@@ -113,6 +102,15 @@ public class StateMachine extends StateMachineAdapter {
     }
 
     @Override
+    public void onLeaderStart(final long term) {
+        this.leaderTerm.set(term);
+        //TODO testar
+        //this.transactionManager.scheduleLeaderEvents(3, TimeUnit.MINUTES);
+        //this.transactionManager.triggerNonAckedFlushes();
+        super.onLeaderStart(term);
+    }
+
+    @Override
     public void onSnapshotSave(final SnapshotWriter writer, final Closure done) {
         //TODO colocar locks?
         Utils.runInThread(() -> {
@@ -127,11 +125,6 @@ public class StateMachine extends StateMachineAdapter {
                 done.run(new Status(RaftError.EIO, "Fail to save counter snapshot %s", snapshot.getPath()));
             }
         });
-    }
-
-    @Override
-    public void onError(final RaftException e) {
-        LOG.error("Raft error: {}", e, e);
     }
 
     @Override
@@ -155,17 +148,29 @@ public class StateMachine extends StateMachineAdapter {
         }
     }
 
-    @Override
-    public void onLeaderStart(final long term) {
-        //TODO flush all requests
-        this.leaderTerm.set(term);
-        super.onLeaderStart(term);
+    /**
+     * Returns current timestamp.
+     */
+    //TODO arranjar
+    public long getTimestamp() {
+        return -1;
     }
 
+    //TODO
+    public Timestamp<Long> getCurrentTs(){
+        return null;
+    }
+
+    //TODO ter cuidado com isto. Pedidos ainda não acabados
     @Override
     public void onLeaderStop(final Status status) {
         this.leaderTerm.set(-1);
         super.onLeaderStop(status);
+    }
+
+    @Override
+    public void onError(final RaftException e) {
+        LOG.error("Raft error: {}", e, e);
     }
 
 }

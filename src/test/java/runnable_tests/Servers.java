@@ -17,9 +17,10 @@ import java.util.List;
 public class Servers {
 
     public static void main(String[] args) throws SpreadException, UnknownHostException {
-        List<Address> npvsServers = new ArrayList<>();
-        npvsServers.add(Address.from(20000));
-        npvsServers.add(Address.from(20001));
+        ArrayList<String> npvsServers = new ArrayList<>();
+        npvsServers.add("localhost:20000");
+        npvsServers.add("localhost:20001");
+
         new NPVSServer(20000, 40000, "1").start();
         new NPVSServer(20001, 40000, "2").start();
         System.out.println("NPVS servers ready");

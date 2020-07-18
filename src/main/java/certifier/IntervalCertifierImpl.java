@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.BitWriteSet;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 
 import java.util.Queue;
@@ -15,7 +16,7 @@ public class IntervalCertifierImpl extends AbstractCertifier {
 
     private final Timestamp<Long> currentStartTs;
     private final Timestamp<Long> provisionalCommitTs;
-    private final Queue<CompletableFuture<Void>> startsOnWait;
+    private final LinkedList<CompletableFuture<Void>> startsOnWait;
 
     //TODO ver
     //não se vai esperar concorrência nestas estruturas -> Muitas escritas e poucas/raras leituras -> 1 thread

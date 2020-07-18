@@ -1,11 +1,10 @@
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
-import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
 import nosql.messaging.GetMessage;
 import nosql.messaging.ScanMessage;
 import org.junit.Test;
-import transaction_manager.controll.PipelineWriter;
+import transaction_manager.control.PipelineWriterHandler;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.Timer;
 import utils.WriteMapsBuilder;
@@ -13,13 +12,12 @@ import utils.WriteMapsBuilder;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.*;
 import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 
 public class KVDriverTest {
-    KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
+    MongoAsynchKV mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
     @Test
     public void readwriteTs() throws ExecutionException, InterruptedException {
@@ -97,21 +95,20 @@ public class KVDriverTest {
     @Test
     public void timestampWritePipe() throws InterruptedException, ExecutionException {
         ExecutorService e = Executors.newFixedThreadPool(8);
-        PipelineWriter pipelineWriter = new PipelineWriter(e);
+        PipelineWriterHandler pipelineWriterHandler = new PipelineWriterHandler(e);
         WriteMapsBuilder wmb = new WriteMapsBuilder();
 
-        for(int j = 0; j < 200; j++)
+        for(int j = 0; j < 50; j++)
             wmb.put(1, "marco" + j, "dantas");
 
         Timer timer = new Timer(TimeUnit.MILLISECONDS);
         timer.start();
         HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
-
-        int size = 10;
+        int size = 25000;
         CompletableFuture<?>[] futures = new CompletableFuture<?>[size];
         for(int i = 0; i < size; i++){
             final long l = i;
-            futures[i] = CompletableFuture.supplyAsync(()-> pipelineWriter.put(l, mkv.put(new MonotonicTimestamp(l)), mkv.put(writeMap)),e);
+            futures[i] = pipelineWriterHandler.put(mkv.put(new MonotonicTimestamp(l)), mkv.put(writeMap));
         }
         CompletableFuture.allOf(futures).get();
         timer.print();
@@ -122,17 +119,18 @@ public class KVDriverTest {
         ExecutorService e = Executors.newFixedThreadPool(8);
         WriteMapsBuilder wmb = new WriteMapsBuilder();
 
-        for(int j = 0; j < 70; j++)
+        for(int j = 0; j < 250; j++)
             wmb.put(1, "marco" + j, "dantas");
 
         Timer timer = new Timer(TimeUnit.MILLISECONDS);
         timer.start();
         HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
-        CompletableFuture<?>[] futures = new CompletableFuture<?>[20000];
-        for(int i = 0; i < 20000; i+=2){
+        CompletableFuture<?>[] futures = new CompletableFuture<?>[10000];
+        for(int i = 0; i < 10000; i+=1){
             final long l = i;
-            futures[i] = CompletableFuture.runAsync(() -> mkv.put(new MonotonicTimestamp(l)), e);
-            futures[i+1] = CompletableFuture.runAsync(() -> mkv.put(writeMap), e);
+            //futures[i] = CompletableFuture.runAsync(() -> mkv.put(new MonotonicTimestamp(l)), e);
+            //futures[i+1] = CompletableFuture.runAsync(() -> mkv.put(writeMap), e);
+            futures[i] = CompletableFuture.runAsync(() -> mkv.put(writeMap, new MonotonicTimestamp(l)), e);
         }
         CompletableFuture.allOf(futures).get();
         timer.print();
@@ -142,16 +140,16 @@ public class KVDriverTest {
     public void timestampWriteSequential() throws ExecutionException, InterruptedException {
         WriteMapsBuilder wmb = new WriteMapsBuilder();
 
-        for(int j = 0; j < 70; j++)
+        for(int j = 0; j < 500; j++)
             wmb.put(1, "marco" + j, "dantas");
 
         Timer timer = new Timer(TimeUnit.MILLISECONDS);
         timer.start();
         HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
-        for (int i = 0; i < 10000; i += 1) {
+        for (int i = 0; i < 15000; i += 1) {
             final long l = i;
-            mkv.put(new MonotonicTimestamp(l))
-                    .thenAccept(x -> mkv.put(writeMap)).get();
+            mkv.put(new MonotonicTimestamp(l)).get();
+            mkv.put(writeMap).get();
         }
         timer.print();
     }

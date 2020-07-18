@@ -6,12 +6,9 @@ import npvs.NPVS;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.raft.snapshot.ExtendedState;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RaftTransactionManagerImpl extends RaftTransactionManager{
-    private ScheduledExecutorService e = Executors.newScheduledThreadPool(8);
     private final AtomicLong leaderTerm = new AtomicLong(-1);
     private RequestHandler requestHandler;
 
@@ -33,13 +30,4 @@ public class RaftTransactionManagerImpl extends RaftTransactionManager{
     public ExtendedState getExtendedState(){
         return new ExtendedState(getState(), getNonAckedFlushs());
     }
-
-    /*
-    public void scheduleLeaderEvents(){
-        //garbage collection
-        e.scheduleAtFixedRate(() ->)
-    }
-
-     */
-
 }

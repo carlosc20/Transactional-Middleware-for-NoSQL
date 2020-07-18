@@ -10,25 +10,31 @@ import transaction_manager.raft.snapshot.ExtendedState;
 import transaction_manager.standalone.TransactionManagerImpl;
 import transaction_manager.utils.ByteArrayWrapper;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public abstract class RaftTransactionManager extends TransactionManagerImpl {
-    private Map<Long, Map<ByteArrayWrapper, byte[]>> nonAckedFlushs;
+    private Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> nonAckedFlushs;
 
     public RaftTransactionManager(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
         super(timestep, npvs, driver, scm);
-        this.nonAckedFlushs = new HashMap<>();
+        this.nonAckedFlushs = new LinkedHashMap<>();
     }
+
+    public abstract boolean isLeader();
+
+    public abstract void updateStateByRaftOperation(Timestamp<Long> commitTimestamp);
 
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
         Timestamp<Long> commitTimestamp = certifierCommit(tc);
         if(commitTimestamp.toPrimitive() > 0) {
-            nonAckedFlushs.put(commitTimestamp.toPrimitive(), tc.getWriteMap());
+            nonAckedFlushs.put(commitTimestamp, tc.getWriteMap());
             if(isLeader())
-                return flush(tc, commitTimestamp, getCertifier().getCurrentCommitTs()).thenApply(x -> commitTimestamp);
+                return flush(tc.getWriteMap(), commitTimestamp, getCertifier().getCurrentCommitTs())
+                            .thenApply(x -> commitTimestamp);
             else
                 //return for a follower is irrelevant
                 return CompletableFuture.completedFuture(null);
@@ -36,33 +42,34 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
         return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
     }
 
-    public Map<Long, Map<ByteArrayWrapper, byte[]>> getNonAckedFlushs() {
-        return nonAckedFlushs;
-    }
-
     @Override
     public void updateState(Timestamp<Long> commitTimestamp) {
        updateStateByRaftOperation(commitTimestamp);
     }
 
-    public abstract void updateStateByRaftOperation(Timestamp<Long> commitTimestamp);
-
-    public abstract boolean isLeader();
+    public Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> getNonAckedFlushs() {
+        return nonAckedFlushs;
+    }
 
     public void removeFlush(Timestamp<Long> startTimestamp){
-        nonAckedFlushs.remove(startTimestamp.toPrimitive());
+        nonAckedFlushs.remove(startTimestamp);
     }
 
-    /*
     public void triggerNonAckedFlushes(){
-        nonAckedFlushs.
+        nonAckedFlushs.forEach((k,v) -> flush(v, k, getCertifier().getCurrentCommitTs()));
     }
 
-     */
+    public void scheduleLeaderEvents(int periodicity, TimeUnit unit){
+        //garbage collection
+        getExecutorService().schedule(()->{
+            if(isLeader()){
+                Timestamp<Long> lowWaterMark = getCertifier().getSafeToDeleteTimestamp();
+            }
+        }, periodicity, unit);
+    }
 
     public void setState(ExtendedState es){
         super.setState(es.getStandaloneState());
         this.nonAckedFlushs = es.getNonAckedFlushs();
     }
-
 }

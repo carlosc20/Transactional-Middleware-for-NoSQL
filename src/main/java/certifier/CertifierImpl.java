@@ -4,9 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.BitWriteSet;
 
+import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 
-public class CertifierImpl extends AbstractCertifier{
+public class CertifierImpl extends AbstractCertifier {
     private static final Logger LOG = LoggerFactory.getLogger(CertifierImpl.class);
     private final Timestamp<Long> currentStartTs;
 

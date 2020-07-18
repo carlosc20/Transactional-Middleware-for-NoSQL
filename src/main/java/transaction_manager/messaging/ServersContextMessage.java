@@ -1,16 +1,16 @@
 package transaction_manager.messaging;
 
-import io.atomix.utils.net.Address;
-
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
-public class ServersContextMessage {
+public class ServersContextMessage implements Serializable {
     private final String databaseURI;
     private final String databaseName;
     private final String databaseCollectionName;
-    private final List<Address> npvsServers;
+    private final ArrayList<String> npvsServers;
 
-    public ServersContextMessage(String databaseURI, String databaseName, String databaseCollectionName, List<Address> npvsServers){
+    public ServersContextMessage(String databaseURI, String databaseName, String databaseCollectionName, ArrayList<String> npvsServers){
         this.databaseURI = databaseURI;
         this.databaseName = databaseName;
         this.databaseCollectionName = databaseCollectionName;
@@ -29,7 +29,17 @@ public class ServersContextMessage {
         return databaseCollectionName;
     }
 
-    public List<Address> getNpvsServers() {
+    public List<String> getNpvsServers() {
         return npvsServers;
+    }
+
+    @Override
+    public String toString() {
+        return "ServersContextMessage{" +
+                "databaseURI='" + databaseURI + '\'' +
+                ", databaseName='" + databaseName + '\'' +
+                ", databaseCollectionName='" + databaseCollectionName + '\'' +
+                ", npvsServers=" + npvsServers.toString() +
+                '}';
     }
 }

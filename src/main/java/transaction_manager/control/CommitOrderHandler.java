@@ -1,4 +1,4 @@
-package transaction_manager.controll;
+package transaction_manager.control;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
@@ -8,22 +8,22 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 
-public class CommitOrderDeliveryHandler implements FlushControll{
-    private static final Logger LOG = LoggerFactory.getLogger(CommitOrderDeliveryHandler.class);
+public class CommitOrderHandler implements CommitControlHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(CommitOrderHandler.class);
 
     private Timestamp<Long> lastArrival;
     private ArrayList<FlushAcknowledgment> outOfOrderCommits;
     private long timestep;
     private boolean outOfOrder;
 
-    public CommitOrderDeliveryHandler(){
+    public CommitOrderHandler(){
         this.lastArrival = new MonotonicTimestamp(0);
         this.outOfOrderCommits = new ArrayList<>();
         this.timestep = 1;
         this.outOfOrder = false;
     }
 
-    public CommitOrderDeliveryHandler(long timestep){
+    public CommitOrderHandler(long timestep){
         this();
         this.timestep = timestep;
     }
@@ -55,9 +55,9 @@ public class CommitOrderDeliveryHandler implements FlushControll{
                 this.lastArrival.add(timestep);
                 fa.getCf().complete(null);
                 iter.remove();
+                completeDeliveries();
+                return;
             }
-            else
-                break;
         }
         if (outOfOrderCommits.size() == 0)
             outOfOrder = false;

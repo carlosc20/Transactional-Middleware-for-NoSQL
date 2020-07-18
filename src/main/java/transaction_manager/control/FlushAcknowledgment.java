@@ -1,4 +1,4 @@
-package transaction_manager.controll;
+package transaction_manager.control;
 
 import certifier.Timestamp;
 import java.util.concurrent.CompletableFuture;

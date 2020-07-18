@@ -9,9 +9,9 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
 import org.apache.commons.io.FileUtils;
+import transaction_manager.messaging.ServerContextRequestMessage;
 import transaction_manager.raft.rpc.RequestProcessor;
 import transaction_manager.raft.rpc.ValueResponse;
-import transaction_manager.messaging.ServerContextRequestMessage;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionCommitRequest;
 import transaction_manager.messaging.TransactionStartRequest;
@@ -22,14 +22,14 @@ import java.io.IOException;
 public class RaftTMServer {
     private RaftGroupService raftGroupService;
     private Node node;
-    private StateMachine fsm;
+    private ManagerStateMachine fsm;
     private NPVS<Long> npvs;
     private KeyValueDriver driver;
     private ServersContextMessage scm;
     private long timestep;
 
     public RaftTMServer(final String dataPath, final String groupId, final PeerId serverId,
-                        final NodeOptions nodeOptions) throws IOException {
+                        final NodeOptions nodeOptions, ServersContextMessage scm) throws IOException {
 
         // Initialize the path.
         FileUtils.forceMkdir(new File(dataPath));
@@ -37,7 +37,6 @@ public class RaftTMServer {
         // Here Raft RPC and business RPC share the same RPC server. They can use different RPC servers, too.
         final RpcServer rpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint());
         // Register the business processor.
-
 
         RequestHandler requestHandler = new RequestHandler(this);
 
@@ -54,7 +53,7 @@ public class RaftTMServer {
                 (req , closure) -> requestHandler.getServersContext(closure)));
 
         // Initialize the state machine.
-        this.fsm = new StateMachine(timestep, npvs, driver, scm, requestHandler);
+        this.fsm = new ManagerStateMachine(timestep, npvs, driver, scm, requestHandler);
         // Set the state machine to the startup parameters.
         nodeOptions.setFsm(this.fsm);
         // Set the storage path.
@@ -73,7 +72,7 @@ public class RaftTMServer {
         this.node = this.raftGroupService.start();
     }
 
-    public StateMachine getFsm() {
+    public ManagerStateMachine getFsm() {
         return this.fsm;
     }
 
@@ -88,8 +87,9 @@ public class RaftTMServer {
     /**
      * Redirect request to new leader
      */
-    public ValueResponse redirect() {
-        final ValueResponse response = new ValueResponse();
+    public ValueResponse<Void> redirect() {
+        System.out.println("Redirectingggggg");
+        final ValueResponse<Void> response = new ValueResponse<>();
         response.setSuccess(false);
         if (this.node != null) {
             final PeerId leader = this.node.getLeaderId();
@@ -108,7 +108,7 @@ public class RaftTMServer {
         this.node = node;
     }
 
-    public void setFsm(StateMachine fsm) {
+    public void setFsm(ManagerStateMachine fsm) {
         this.fsm = fsm;
     }
 
@@ -133,7 +133,7 @@ public class RaftTMServer {
             System.out
                     .println("Usage: java com.alipay.sofa.jraft.example.counter.CounterServer {dataPath} {groupId} {serverId} {initConf} {offset}");
             System.out
-                    .println("Example: java com.alipay.sofa.jraft.example.counter.CounterServer /tmp/server1 counter 127.0.0.1:8081 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083");
+                    .println("Example: java com.alipay.sofa.jraft.example.counter.CounterServer /tmp/server1 counter 127.0.0.1:8081 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083 1");
             System.exit(1);
         }
         final String dataPath = args[0];

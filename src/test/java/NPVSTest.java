@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
 
 public class NPVSTest {
 
-    private final List<Address> npvsServers = new ArrayList<>();
+    private final List<String> npvsServers = new ArrayList<>();
     private final NPVSStub npvs = new NPVSStub(Address.from(10000), npvsServers);
 
 
@@ -34,8 +34,8 @@ public class NPVSTest {
     @Test
     public void writeRead() throws InterruptedException, SpreadException, UnknownHostException {
 
-        npvsServers.add(Address.from(20000));
-        npvsServers.add(Address.from(20001));
+        npvsServers.add("localhost:20000");
+        npvsServers.add("localhost:20001");
         new NPVSServer(20000, 40000, "0").start();
         new NPVSServer(20001, 40000, "1").start();
 

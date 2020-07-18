@@ -25,10 +25,11 @@ public class NPVSStub implements NPVS<Long> {
     private final Serializer s;
     private final List<Address> servers;
 
-    public NPVSStub(Address port, List<Address> servers){
+    public NPVSStub(Address port, List<String> servers){
         e = Executors.newFixedThreadPool(1);
 
-        this.servers = servers;
+        this.servers = new ArrayList<>();
+        servers.forEach(v -> this.servers.add(Address.from(v)));
 
         s = new SerializerBuilder()
                 .addType(FlushMessage.class)

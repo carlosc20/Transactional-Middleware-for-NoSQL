@@ -1,7 +1,6 @@
 package npvs.failuredetection;
 
 import spread.*;
-
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -18,7 +17,6 @@ public class FailureDetectionService {
     private SpreadGroup[] members;
     private final Map<SpreadGroup, Boolean> crashed;
 
-
     enum State {
         WAITING_OK,
         WAITING_ALL,
@@ -26,7 +24,6 @@ public class FailureDetectionService {
     }
 
     private State state;
-
 
     public FailureDetectionService(int spreadPort, String privateName, int totalServers) {
 
@@ -142,7 +139,7 @@ public class FailureDetectionService {
                 }
                 floodMessage(Boolean.TRUE, newMember, "reliable"); // TODO ao receber ve se tao todos ou n
             }
-            crashed.put(newMember, false); // necessário?
+            crashed.put(newMember, false); // necessário? -> acho que não....   ass: Dantas
         }
         else {
             if (state == State.WAITING_ALL)

@@ -3,6 +3,8 @@ import org.junit.Test;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
+import transaction_manager.raft.RaftTransactionManagerImpl;
+import transaction_manager.raft.RaftTransactionManagerStub;
 import transaction_manager.standalone.TransactionManagerStub;
 
 import java.util.concurrent.ExecutionException;
@@ -10,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 import static org.junit.Assert.*;
 
 public class FullTransactionTest {
-
+    TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
 
     @Test
     public void justRead(){
@@ -22,9 +24,7 @@ public class FullTransactionTest {
     public void writeThenRead() throws InterruptedException, ExecutionException {
         //new NPVSServer(20000).start();
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
-
-        TransactionManager tms = new TransactionManagerStub( 12346, 30000);
-        TransactionController transactionController = new TransactionController(Address.from(12345), tms);
+        TransactionController transactionController = new TransactionController(Address.from(23415), tms);
         transactionController.buildContext();
         TransactionImpl t1 = transactionController.startTransaction();
         TransactionImpl t11 = transactionController.startTransaction();

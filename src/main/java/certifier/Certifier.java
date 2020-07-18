@@ -2,9 +2,10 @@ package certifier;
 
 import transaction_manager.utils.BitWriteSet;
 
+import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 
-public interface Certifier<V> {
+public interface Certifier<V> extends Serializable {
     CompletableFuture<Timestamp<V>> start();
     Timestamp<V> commit(BitWriteSet ws, Timestamp<V> ts);
     void update(Timestamp<Long> commitTimestamp);

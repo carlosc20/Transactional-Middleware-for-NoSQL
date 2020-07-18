@@ -71,9 +71,9 @@ public class TransactionManagerServer {
         String databaseName =  "testeLei";
         String databaseCollectionName = "teste1";
 
-        List<Address> npvsServers = new ArrayList<>();
-        npvsServers.add(Address.from(20000));
-        npvsServers.add(Address.from(20001));
+        ArrayList<String> npvsServers = new ArrayList<>();
+        npvsServers.add("localhost:20000");
+        npvsServers.add("localhost:20001");
 
         NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);

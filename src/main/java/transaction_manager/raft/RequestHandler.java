@@ -39,12 +39,8 @@ public class RequestHandler {
 
     //TODO any server can execute this
     public void getServersContext(final TransactionClosure<ServersContextMessage> closure){
-        if (!isLeader())
-            handlerNotLeaderError(closure);
-        else{
-            closure.success(getServersContext());
-            closure.run(Status.OK());
-        }
+        closure.success(getServersContext());
+        closure.run(Status.OK());
     }
 
     private Executor createReadIndexExecutor() {

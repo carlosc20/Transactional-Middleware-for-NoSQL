@@ -10,6 +10,7 @@ import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import transaction_manager.TransactionManager;
 import transaction_manager.messaging.*;
+import transaction_manager.raft.rpc.ValueResponse;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -29,6 +30,11 @@ public class RaftTransactionManagerStub implements TransactionManager {
         RouteTable.getInstance().updateConfiguration(groupId, conf);
         cliClientService = new CliClientServiceImpl();
         cliClientService.init(new CliOptions());
+        try {
+            refreshLeader();
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void refreshLeader() throws TimeoutException, InterruptedException {
@@ -43,7 +49,7 @@ public class RaftTransactionManagerStub implements TransactionManager {
     public CompletableFuture<Timestamp<Long>> startTransaction() {
         TransactionStartRequest tsr = new TransactionStartRequest();
         try {
-            return CompletableFuture.completedFuture((MonotonicTimestamp) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tsr, 30000));
+            return CompletableFuture.completedFuture(((ValueResponse<MonotonicTimestamp>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tsr, 30000)).getValue());
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
@@ -55,7 +61,7 @@ public class RaftTransactionManagerStub implements TransactionManager {
         TransactionCommitRequest tcr = new TransactionCommitRequest(tx);
         try {
             // TODO return timestamp
-            return CompletableFuture.completedFuture((Timestamp<Long>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 30000));
+            return CompletableFuture.completedFuture(((ValueResponse<Timestamp<Long>>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 30000)).getValue());
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
@@ -66,7 +72,7 @@ public class RaftTransactionManagerStub implements TransactionManager {
     public ServersContextMessage getServersContext() {
         ServerContextRequestMessage scr = new ServerContextRequestMessage();
         try {
-            return (ServersContextMessage) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), scr, 30000);
+            return ((ValueResponse<ServersContextMessage>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), scr, 30000)).getValue();
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }

@@ -2,6 +2,7 @@ package certifier;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 public class MonotonicTimestamp implements Timestamp<Long>{
