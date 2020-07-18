@@ -25,7 +25,7 @@ public class NPVSStub implements NPVS<Long> {
     private final Serializer s;
     private final List<Address> servers;
 
-    public NPVSStub(int port, List<Address> servers){
+    public NPVSStub(Address port, List<Address> servers){
         e = Executors.newFixedThreadPool(1);
 
         this.servers = servers;
@@ -38,7 +38,7 @@ public class NPVSStub implements NPVS<Long> {
                 .build();
         mms = new NettyMessagingService(
                 "server",
-                Address.from(port),
+                port,
                 new MessagingConfig());
         mms.start();
     }

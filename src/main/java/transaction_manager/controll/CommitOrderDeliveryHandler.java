@@ -1,16 +1,14 @@
-package transaction_manager.ordering;
+package transaction_manager.controll;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 
-public class CommitOrderDeliveryHandler {
+public class CommitOrderDeliveryHandler implements FlushControll{
     private static final Logger LOG = LoggerFactory.getLogger(CommitOrderDeliveryHandler.class);
 
     private Timestamp<Long> lastArrival;
@@ -30,7 +28,8 @@ public class CommitOrderDeliveryHandler {
         this.timestep = timestep;
     }
 
-    public CompletableFuture<Void> deliverInOrder(Timestamp<Long> commitTs){
+    @Override
+    public CompletableFuture<Void> deliver(Timestamp<Long> commitTs){
         if (commitTs.isRightAfter(lastArrival, timestep)){
             LOG.info("Commit is in order TC: " + commitTs);
             lastArrival.add(timestep);
@@ -45,11 +44,10 @@ public class CommitOrderDeliveryHandler {
         }
     }
 
-    //TODO OTIMIZAR
-    public void deliverNewInOrder(){
+    @Override
+    public void completeDeliveries(){
         if(!outOfOrder)
             return;
-        outOfOrderCommits.sort(Comparator.comparing(FlushAcknowledgment::getCommitTs));
         Iterator<FlushAcknowledgment> iter = outOfOrderCommits.iterator();
         while (iter.hasNext()){
             FlushAcknowledgment fa = iter.next();

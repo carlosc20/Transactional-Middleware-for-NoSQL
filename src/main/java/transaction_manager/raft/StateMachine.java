@@ -12,7 +12,6 @@ import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
-import com.mongodb.internal.connection.Server;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
 import org.slf4j.Logger;
@@ -154,7 +153,6 @@ public class StateMachine extends StateMachineAdapter {
             LOG.error("Fail to load snapshot from {}", snapshot.getPath());
             return false;
         }
-
     }
 
     @Override

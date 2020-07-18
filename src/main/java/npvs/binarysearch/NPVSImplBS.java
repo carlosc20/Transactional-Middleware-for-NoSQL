@@ -2,7 +2,6 @@ package npvs.binarysearch;
 
 import certifier.Timestamp;
 import npvs.NPVS;
-import npvs.NPVSServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.ByteArrayWrapper;
@@ -22,6 +21,7 @@ public class NPVSImplBS implements NPVS<Long> {
 
     // Nota -> treeMap talvez tenha melhores resultados, por causa da inserção
     // Caso numero de procuras seja reduzido o melhor seria alguma espécie de lista ligada
+
     private final Map<ByteArrayWrapper, ArrayList<Version>> versionsByKey;
 
 

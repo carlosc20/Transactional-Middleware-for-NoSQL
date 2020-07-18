@@ -1,7 +1,6 @@
-package transaction_manager.ordering;
+package transaction_manager.controll;
 
 import certifier.Timestamp;
-
 import java.util.concurrent.CompletableFuture;
 
 public class FlushAcknowledgment {

@@ -1,7 +1,6 @@
 import certifier.MonotonicTimestamp;
-import certifier.Timestamp;
 import org.junit.Test;
-import transaction_manager.ordering.CommitOrderDeliveryHandler;
+import transaction_manager.controll.CommitOrderDeliveryHandler;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -18,9 +17,9 @@ public class CommitOrderTest {
     }
 
     public CompletableFuture<Void> deliverPipeline(long tc){
-        return codh.deliverInOrder(new MonotonicTimestamp(tc))
+        return codh.deliver(new MonotonicTimestamp(tc))
                 .thenAccept(x -> updateState(tc))
-                .thenAccept(x -> codh.deliverNewInOrder());
+                .thenAccept(x -> codh.completeDeliveries());
     }
 
 

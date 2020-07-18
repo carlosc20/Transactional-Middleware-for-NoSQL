@@ -1,6 +1,7 @@
 package runnable_tests;
 
 import certifier.Timestamp;
+import io.atomix.utils.net.Address;
 import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
@@ -39,7 +40,7 @@ public class ValidityTest {
             threads.add(new Thread(() ->
                     {
                         TransactionManager tms = new TransactionManagerStub(50000 + p, serverPort);
-                        TransactionController tc = new TransactionController(60000 + p, tms);
+                        TransactionController tc = new TransactionController(Address.from(60000 + p), tms);
                         tc.buildContext();
 
                         for (int j = 0; j < TRANSACTIONS; j++) {

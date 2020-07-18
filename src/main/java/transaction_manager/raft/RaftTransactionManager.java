@@ -53,6 +53,13 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
         nonAckedFlushs.remove(startTimestamp.toPrimitive());
     }
 
+    /*
+    public void triggerNonAckedFlushes(){
+        nonAckedFlushs.
+    }
+
+     */
+
     public void setState(ExtendedState es){
         super.setState(es.getStandaloneState());
         this.nonAckedFlushs = es.getNonAckedFlushs();

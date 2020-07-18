@@ -5,24 +5,21 @@ import nosql.MongoAsynchKV;
 import nosql.messaging.GetMessage;
 import nosql.messaging.ScanMessage;
 import org.junit.Test;
+import transaction_manager.controll.PipelineWriter;
 import transaction_manager.utils.ByteArrayWrapper;
+import utils.Timer;
 import utils.WriteMapsBuilder;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 
 public class KVDriverTest {
+    KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
     @Test
     public void rwTs() throws ExecutionException, InterruptedException {
-        KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
-
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         wmb.put(1, "key1", "value1");
         wmb.put(1, "key11", "value11");
@@ -31,14 +28,16 @@ public class KVDriverTest {
         Timestamp<Long> mt1 = new MonotonicTimestamp(100);
         Timestamp<Long> mt2 = new MonotonicTimestamp(200);
 
-        mkv.put(wmb.getWriteMap(1), mt1).get();
+        mkv.put(mt1).get();
+        mkv.put(wmb.getWriteMap(1)).get();
 
         GetMessage gm1 = mkv.get(new ByteArrayWrapper("key1".getBytes())).get();
 
         assertEquals("Should be equal", 0, gm1.getTs().compareTo(mt1));
         assertEquals("Should be equal", 0, new String(gm1.getValue()).compareTo("value1"));
 
-        mkv.put(wmb.getWriteMap(2), mt2).get();
+        mkv.put(mt2).get();
+        mkv.put(wmb.getWriteMap(2)).get();
 
         GetMessage gm2 = mkv.get(new ByteArrayWrapper("key2".getBytes())).get();
         assertEquals("Should be equal", 0, gm2.getTs().compareTo(mt2));
@@ -55,24 +54,19 @@ public class KVDriverTest {
 
     @Test
     public void rwKV() throws ExecutionException, InterruptedException {
-        KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
-
         // writing
-        HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();
-        byte[] key = "key".getBytes();
-        ByteArrayWrapper keyWrapper = new ByteArrayWrapper(key);
-        byte[] value = "value".getBytes();
-        writeMap.put(keyWrapper, value);
+        WriteMapsBuilder wmb = new WriteMapsBuilder();
+        wmb.put(1, "marco", "dantas");
+        wmb.put(1, "bananas", "meloes");
+        wmb.put(1, "melancia", "fruta");
 
-        mkv.put(writeMap, new MonotonicTimestamp(1));
-
+        HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
+        mkv.put(writeMap).get();
 
         // reading
-        Set<ByteArrayWrapper> query = writeMap.keySet();
-        query.add(new ByteArrayWrapper("empty".getBytes()));
 
+        wmb.put(1, "empty", "empty");
         CompletableFuture<ScanMessage> result = mkv.scan(writeMap.keySet());
-
 
         // testing
         Iterator<byte[]> it1 = writeMap.values().iterator();
@@ -85,6 +79,68 @@ public class KVDriverTest {
             assertNull("Key wasn't written to, should be null", it2.next());
         }
 
+    }
+
+    @Test
+    public void timestampWritePipe() throws InterruptedException, ExecutionException {
+        ExecutorService e = Executors.newFixedThreadPool(8);
+        PipelineWriter pipelineWriter = new PipelineWriter(e);
+        WriteMapsBuilder wmb = new WriteMapsBuilder();
+
+        for(int j = 0; j < 200; j++)
+            wmb.put(1, "marco" + j, "dantas");
+
+        Timer timer = new Timer(TimeUnit.MILLISECONDS);
+        timer.start();
+        HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
+
+        int size = 10;
+        CompletableFuture<?>[] futures = new CompletableFuture<?>[size];
+        for(int i = 0; i < size; i++){
+            final long l = i;
+            futures[i] = CompletableFuture.supplyAsync(()-> pipelineWriter.put(l, mkv.put(new MonotonicTimestamp(l)), mkv.put(writeMap)),e);
+        }
+        CompletableFuture.allOf(futures).get();
+        timer.print();
+    }
+
+    @Test
+    public void timestampWriteNoRestrictions() throws ExecutionException, InterruptedException {
+        ExecutorService e = Executors.newFixedThreadPool(8);
+        WriteMapsBuilder wmb = new WriteMapsBuilder();
+
+        for(int j = 0; j < 70; j++)
+            wmb.put(1, "marco" + j, "dantas");
+
+        Timer timer = new Timer(TimeUnit.MILLISECONDS);
+        timer.start();
+        HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
+        CompletableFuture<?>[] futures = new CompletableFuture<?>[20000];
+        for(int i = 0; i < 20000; i+=2){
+            final long l = i;
+            futures[i] = CompletableFuture.runAsync(() -> mkv.put(new MonotonicTimestamp(l)), e);
+            futures[i+1] = CompletableFuture.runAsync(() -> mkv.put(writeMap), e);
+        }
+        CompletableFuture.allOf(futures).get();
+        timer.print();
+    }
+
+    @Test
+    public void timestampWriteSequential() throws ExecutionException, InterruptedException {
+        WriteMapsBuilder wmb = new WriteMapsBuilder();
+
+        for(int j = 0; j < 70; j++)
+            wmb.put(1, "marco" + j, "dantas");
+
+        Timer timer = new Timer(TimeUnit.MILLISECONDS);
+        timer.start();
+        HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
+        for (int i = 0; i < 10000; i += 1) {
+            final long l = i;
+            mkv.put(new MonotonicTimestamp(l))
+                    .thenAccept(x -> mkv.put(writeMap)).get();
+        }
+        timer.print();
     }
 
 }

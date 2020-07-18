@@ -7,9 +7,11 @@ import java.util.function.Consumer;
 
 public class GenericSubscriber<T> implements Subscriber<T>{
     private final Consumer<T> onNextCallback;
+    private final Consumer<Void> onErrorCallback;
 
-    public GenericSubscriber(Consumer<T> onNextCallback){
+    public GenericSubscriber(Consumer<T> onNextCallback, Consumer<Void> onErrorCallback){
         this.onNextCallback = onNextCallback;
+        this.onErrorCallback = onErrorCallback;
     }
 
     @Override
@@ -25,8 +27,10 @@ public class GenericSubscriber<T> implements Subscriber<T>{
     @Override
     public void onError(Throwable throwable) {
         throwable.printStackTrace();
+        onErrorCallback.accept(null);
     }
 
     @Override
-    public void onComplete() {}
+    public void onComplete() {
+    }
 }

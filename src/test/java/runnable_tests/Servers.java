@@ -30,7 +30,7 @@ public class Servers {
         String databaseURI = "mongodb://127.0.0.1:27017";
         String databaseName =  "testeLei";
         String databaseCollectionName = "teste1";
-        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
+        NPVS<Long> npvs = new NPVSStub(Address.from(npvsStubPort), npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
         ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
         new TransactionManagerServer(timestep, serverPort, npvs, driver, scm).start();

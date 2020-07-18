@@ -2,7 +2,9 @@ package nosql;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
+import com.mongodb.Function;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -17,13 +19,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
 //TODO meter os subscribers genéricos
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.or;
 
-public class MongoAsynchKV implements KeyValueDriver {
+public class MongoAsynchKV implements KeyValueDriver{
 
     private final MongoCollection<Document> collection;
 
@@ -82,7 +86,7 @@ public class MongoAsynchKV implements KeyValueDriver {
     @Override
     //TODO antes de escrever os tuplos escrever o timestamp
     //xxxResult para o caso de virmos a usar (erros na escrita)
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> timestamp) {
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
         CompletableFuture<?>[] futures = new CompletableFuture<?>[writeMap.size()];
         for(int i = 0; i < writeMap.size(); i++)
             futures[i] = new CompletableFuture<>();
@@ -91,29 +95,45 @@ public class MongoAsynchKV implements KeyValueDriver {
         for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()){
             byte[] value = kv.getValue();
             String key = kv.getKey().toString();
-            final int local_l = location;
-
             if(value != null){
-                Document doc = new Document("_id", key)
-                    .append("value", value);
-                collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
-                    .subscribe(new GenericSubscriber<>(result -> futures[local_l].complete(null)));
+                Document doc = new Document("_id", key).append("value", value);
+                replaceOne(key, doc, futures, location);
             }
             else
-                collection.deleteOne(eq("_id", kv.getKey().toString()))
-                    .subscribe(new GenericSubscriber<>(result -> futures[local_l].complete(null)));
+                deleteOne(key, futures, location);
             location++;
         }
-        return CompletableFuture.allOf(futures).thenCompose(x -> putTimestamp(timestamp));
+        return CompletableFuture.allOf(futures);
     }
 
-    //TODO garantir que fica sempre o max timestamp
-    private CompletableFuture<Void> putTimestamp(Timestamp<Long> timestamp){
+    @Override
+    public CompletableFuture<Void> put(Timestamp<Long> timestamp){
         CompletableFuture<Void> cf = new CompletableFuture<>();
         Document doc = new Document("_id", "timestamp").append("value", timestamp.toPrimitive());
-        collection.replaceOne(eq("_id", "timestamp"), doc, new ReplaceOptions().upsert(true))
-                .subscribe(new GenericSubscriber<>(result -> cf.complete(null)));
+        replaceOne("timestamp", doc, cf);
         return cf;
+    }
+
+    public void replaceOne(String key, Document doc, CompletableFuture<?>[] futures, final int location){
+        collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
+            .subscribe(new GenericSubscriber<>(
+                result -> futures[location].complete(null),
+                err -> replaceOne(key, doc, futures, location)));
+    }
+
+
+    public void replaceOne(String key, Document doc, CompletableFuture<Void> cf){
+        collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
+            .subscribe(new GenericSubscriber<>(
+                result -> cf.complete(null),
+                err -> replaceOne(key, doc, cf)));
+    }
+
+    public void deleteOne(String key, CompletableFuture<?>[] futures, final int location){
+        collection.deleteOne(eq("_id", key))
+            .subscribe(new GenericSubscriber<>(
+                result -> futures[location].complete(null),
+                err -> deleteOne(key, futures, location)));
     }
 
     public void drop() {

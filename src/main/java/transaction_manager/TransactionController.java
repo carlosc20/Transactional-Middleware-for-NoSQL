@@ -1,6 +1,7 @@
 package transaction_manager;
 
 import certifier.Timestamp;
+import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
 import npvs.NPVS;
@@ -16,9 +17,9 @@ public class TransactionController {
     private NPVS<Long> npvs;
     private KeyValueDriver driver;
     private final TransactionManager serverStub;
-    private final int npvsStubPort;
+    private final Address npvsStubPort;
 
-    public TransactionController(int npvsStubPort, TransactionManager serverStub){
+    public TransactionController(Address npvsStubPort, TransactionManager serverStub){
         this.serverStub = serverStub;
         this.npvsStubPort = npvsStubPort;
     }

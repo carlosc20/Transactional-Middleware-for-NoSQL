@@ -43,7 +43,7 @@ public class LoadTest {
         List<TransactionController> controllers = new ArrayList<>();
         for (int i = 0; i < CLIENTS; i++) {
             TransactionManager tms = new TransactionManagerStub(50000 + i, serverPort);
-            TransactionController tc = new TransactionController(60000 + i, tms);
+            TransactionController tc = new TransactionController(Address.from(60000 + i), tms);
             tc.buildContext();
             controllers.add(tc);
         }
@@ -103,7 +103,7 @@ public class LoadTest {
                         timer.start();
 
                         TransactionManager tms = new TransactionManagerStub(50000 + p, serverPort);
-                        TransactionController tc = new TransactionController(60000 + p, tms);
+                        TransactionController tc = new TransactionController(Address.from(60000 + p), tms);
                         tc.buildContext();
 
                         timer.addCheckpoint(p + " -> Controllers created with context");

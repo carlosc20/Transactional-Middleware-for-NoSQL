@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 public class NPVSTest {
 
     private final List<Address> npvsServers = new ArrayList<>();
-    private final NPVSStub npvs = new NPVSStub(10000, npvsServers);
+    private final NPVSStub npvs = new NPVSStub(Address.from(10000), npvsServers);
 
 
     public void fetchAndAssert(long timestamp, ByteArrayWrapper baw, String str){

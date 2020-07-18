@@ -1,37 +1,42 @@
 package transaction_manager;
 import certifier.Timestamp;
 
-import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
-import nosql.MongoAsynchKV;
 import npvs.NPVS;
-import npvs.NPVSStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.controll.FlushControll;
+import transaction_manager.controll.PipelineWriter;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
-import transaction_manager.ordering.CommitOrderDeliveryHandler;
+import transaction_manager.controll.CommitOrderDeliveryHandler;
 import transaction_manager.utils.ByteArrayWrapper;
 import transaction_manager.utils.KeyValue;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public abstract class TransactionManagerService {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerService.class);
     private final KeyValueDriver driver;
     //stub
+    private final ExecutorService e;
     private final NPVS<Long> npvs;
     private final ServersContextMessage scm;
-    private final CommitOrderDeliveryHandler codh;
+    private final FlushControll flushControll;
+    private final PipelineWriter pipelineWriter;
 
     public TransactionManagerService(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
+        this.e = Executors.newScheduledThreadPool(8);
         this.npvs = npvs;
         this.driver = driver;
         this.scm = scm;
-        codh = new CommitOrderDeliveryHandler(timestep);
+        this.flushControll = new CommitOrderDeliveryHandler(timestep);
+        this.pipelineWriter = new PipelineWriter(e);
     }
 
     public abstract void updateState(Timestamp<Long> commitTimestamp);
@@ -41,10 +46,10 @@ public abstract class TransactionManagerService {
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
         return consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
                 .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp))
-                .thenCompose(future -> codh.deliverInOrder(provisionalCommitTimestamp))
+                .thenCompose(future -> flushControll.deliver(provisionalCommitTimestamp))
                 //TODO a partir daqui resposta do cliente já devia de poder ser dada
                 .thenAccept(x -> updateState(provisionalCommitTimestamp))
-                .thenAccept(x -> codh.deliverNewInOrder());
+                .thenAccept(x -> flushControll.completeDeliveries());
     }
 
     public CompletableFuture<Map<ByteArrayWrapper, byte[]>> getPreviousConsistentValues(Map<ByteArrayWrapper, byte[]> writeMap){
@@ -74,7 +79,8 @@ public abstract class TransactionManagerService {
 
     public CompletableFuture<Void> saveToDB(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp){
         LOG.info("Putting new key/values in the DB with TC: {}", provisionalCommitTimestamp.toPrimitive());
-        return driver.put(writeMap, provisionalCommitTimestamp);
+        //return pipelineWriter.put(1, driver.put(provisionalCommitTimestamp), driver.put(writeMap));
+        return null;
     }
 
     public ServersContextMessage getServersContext() {
