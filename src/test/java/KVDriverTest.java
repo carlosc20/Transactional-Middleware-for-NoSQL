@@ -11,6 +11,9 @@ import utils.Timer;
 import utils.WriteMapsBuilder;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
@@ -19,7 +22,7 @@ public class KVDriverTest {
     KeyValueDriver mkv = new MongoAsynchKV("mongodb://127.0.0.1:27017", "testeLei", "teste1");
 
     @Test
-    public void rwTs() throws ExecutionException, InterruptedException {
+    public void readwriteTs() throws ExecutionException, InterruptedException {
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         wmb.put(1, "key1", "value1");
         wmb.put(1, "key11", "value11");
@@ -53,27 +56,33 @@ public class KVDriverTest {
 
 
     @Test
-    public void rwKV() throws ExecutionException, InterruptedException {
+    // TODO deletes
+    public void readWriteSimple() throws ExecutionException, InterruptedException {
         // writing
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         wmb.put(1, "marco", "dantas");
         wmb.put(1, "bananas", "meloes");
         wmb.put(1, "melancia", "fruta");
+        wmb.put(1, "apagado", "fruta");
 
         HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
         mkv.put(writeMap).get();
 
         // reading
+        Set<ByteArrayWrapper> query = new HashSet<>(writeMap.keySet());
+        query.add(new ByteArrayWrapper("empty".getBytes()));
 
-        wmb.put(1, "empty", "empty");
-        CompletableFuture<ScanMessage> result = mkv.scan(writeMap.keySet());
+        ScanMessage result = mkv.scan(query).get();
 
         // testing
         Iterator<byte[]> it1 = writeMap.values().iterator();
-        Iterator<byte[]> it2 = result.get().getValues().iterator();
+        Iterator<byte[]> it2 = result.getValues().iterator();
 
         while (it1.hasNext()) {
-            assertEquals("Read doesn't match update", new String(it1.next()), new String(it2.next()));
+            byte[] value1 = it1.next();
+            byte[] value2 = it2.next();
+            assertNotNull("Read was null", value2);
+            assertEquals("Read doesn't match update", new String(value1), new String(value2));
         }
         if(it2.hasNext()) {
             assertNull("Key wasn't written to, should be null", it2.next());

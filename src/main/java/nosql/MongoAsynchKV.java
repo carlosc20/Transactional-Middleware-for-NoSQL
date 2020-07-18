@@ -3,8 +3,8 @@ package nosql;
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import com.mongodb.Function;
-import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.client.model.*;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -15,9 +15,7 @@ import org.bson.Document;
 import org.bson.types.Binary;
 import transaction_manager.utils.ByteArrayWrapper;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -83,28 +81,42 @@ public class MongoAsynchKV implements KeyValueDriver{
     }
 
 
-    @Override
-    //TODO antes de escrever os tuplos escrever o timestamp
-    //xxxResult para o caso de virmos a usar (erros na escrita)
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
-        CompletableFuture<?>[] futures = new CompletableFuture<?>[writeMap.size()];
-        for(int i = 0; i < writeMap.size(); i++)
-            futures[i] = new CompletableFuture<>();
 
-        int location = 0;
-        for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()){
+    @Override
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
+
+        List<WriteModel<Document>> docs = new ArrayList<>(writeMap.size());
+
+        for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()) {
             byte[] value = kv.getValue();
             String key = kv.getKey().toString();
+
+            Document doc = new Document("_id", key);
+            WriteModel<Document> model;
             if(value != null){
-                Document doc = new Document("_id", key).append("value", value);
-                replaceOne(key, doc, futures, location);
+                Document newDoc = new Document("_id", key).append("value", value);
+                model = new ReplaceOneModel<>(doc, newDoc, new ReplaceOptions().upsert(true));
             }
-            else
-                deleteOne(key, futures, location);
-            location++;
+            else {
+                // TODO delete
+                model = new DeleteOneModel<>(doc);
+            }
+            docs.add(model);
         }
-        return CompletableFuture.allOf(futures);
+
+        CompletableFuture<Void> cf = new CompletableFuture<>();
+
+        collection.bulkWrite(docs, new BulkWriteOptions().ordered(false))
+                .subscribe(new GenericSubscriber<>(
+                        result -> cf.complete(null),
+                        err -> put(writeMap)));
+
+
+
+
+        return cf;
     }
+
 
     @Override
     public CompletableFuture<Void> put(Timestamp<Long> timestamp){
