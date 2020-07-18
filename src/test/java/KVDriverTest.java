@@ -54,18 +54,20 @@ public class KVDriverTest {
         }).get();
     }
 
+    private ByteArrayWrapper wrapString(String s) {
+        return new ByteArrayWrapper(s.getBytes());
+    }
 
     @Test
     // TODO deletes
     public void readWriteSimple() throws ExecutionException, InterruptedException {
         // writing
-        WriteMapsBuilder wmb = new WriteMapsBuilder();
-        wmb.put(1, "marco", "dantas");
-        wmb.put(1, "bananas", "meloes");
-        wmb.put(1, "melancia", "fruta");
-        wmb.put(1, "apagado", "fruta");
+        HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();
+        writeMap.put(wrapString("marco"), "dantas".getBytes());
+        writeMap.put(wrapString("bananas"), "meloes".getBytes());
+        writeMap.put(wrapString("melancia"), "fruta".getBytes());
+        writeMap.put(wrapString("apagado"), null);
 
-        HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
         mkv.put(writeMap).get();
 
         // reading
@@ -81,8 +83,10 @@ public class KVDriverTest {
         while (it1.hasNext()) {
             byte[] value1 = it1.next();
             byte[] value2 = it2.next();
-            assertNotNull("Read was null", value2);
-            assertEquals("Read doesn't match update", new String(value1), new String(value2));
+            if (value1 == null)
+                assertNull("Was deleted, should be null", value2);
+            else
+                assertEquals("Read doesn't match update", new String(value1), new String(value2));
         }
         if(it2.hasNext()) {
             assertNull("Key wasn't written to, should be null", it2.next());

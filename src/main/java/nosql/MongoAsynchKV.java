@@ -80,42 +80,40 @@ public class MongoAsynchKV implements KeyValueDriver{
                 });
     }
 
-
-
     @Override
     public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
 
-        List<WriteModel<Document>> docs = new ArrayList<>(writeMap.size());
+        List<WriteModel<Document>> writes = new ArrayList<>(writeMap.size());
 
         for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()) {
             byte[] value = kv.getValue();
             String key = kv.getKey().toString();
 
-            Document doc = new Document("_id", key);
+            Document finder = new Document("_id", key);
             WriteModel<Document> model;
             if(value != null){
                 Document newDoc = new Document("_id", key).append("value", value);
-                model = new ReplaceOneModel<>(doc, newDoc, new ReplaceOptions().upsert(true));
+                model = new ReplaceOneModel<>(finder, newDoc, new ReplaceOptions().upsert(true));
             }
             else {
-                // TODO delete
-                model = new DeleteOneModel<>(doc);
+                model = new DeleteOneModel<>(finder);
             }
-            docs.add(model);
+            writes.add(model);
         }
 
         CompletableFuture<Void> cf = new CompletableFuture<>();
 
-        collection.bulkWrite(docs, new BulkWriteOptions().ordered(false))
+        collection.bulkWrite(writes, new BulkWriteOptions().ordered(false))
                 .subscribe(new GenericSubscriber<>(
                         result -> cf.complete(null),
-                        err -> put(writeMap)));
-
-
-
+                        err -> put(writeMap)
+                        ));
 
         return cf;
     }
+
+
+
 
 
     @Override
@@ -126,13 +124,6 @@ public class MongoAsynchKV implements KeyValueDriver{
         return cf;
     }
 
-    public void replaceOne(String key, Document doc, CompletableFuture<?>[] futures, final int location){
-        collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
-            .subscribe(new GenericSubscriber<>(
-                result -> futures[location].complete(null),
-                err -> replaceOne(key, doc, futures, location)));
-    }
-
 
     public void replaceOne(String key, Document doc, CompletableFuture<Void> cf){
         collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
@@ -141,12 +132,43 @@ public class MongoAsynchKV implements KeyValueDriver{
                 err -> replaceOne(key, doc, cf)));
     }
 
-    public void deleteOne(String key, CompletableFuture<?>[] futures, final int location){
-        collection.deleteOne(eq("_id", key))
-            .subscribe(new GenericSubscriber<>(
-                result -> futures[location].complete(null),
-                err -> deleteOne(key, futures, location)));
+
+    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> timestamp) {
+
+        List<WriteModel<Document>> writes = new ArrayList<>(writeMap.size());
+
+        Document tsFinder = new Document("_id", "timestamp");
+        Document tsNewDoc = new Document("_id", "timestamp").append("value", timestamp.toPrimitive());
+        WriteModel<Document> tsModel = new ReplaceOneModel<>(tsFinder, tsNewDoc, new ReplaceOptions().upsert(true));
+        writes.add(tsModel);
+
+        for(Map.Entry<ByteArrayWrapper, byte[]> kv : writeMap.entrySet()) {
+            byte[] value = kv.getValue();
+            String key = kv.getKey().toString();
+
+            Document finder = new Document("_id", key);
+            WriteModel<Document> model;
+            if(value != null){
+                Document newDoc = new Document("_id", key).append("value", value);
+                model = new ReplaceOneModel<>(finder, newDoc, new ReplaceOptions().upsert(true));
+            }
+            else {
+                model = new DeleteOneModel<>(finder);
+            }
+            writes.add(model);
+        }
+
+        CompletableFuture<Void> cf = new CompletableFuture<>();
+
+        collection.bulkWrite(writes, new BulkWriteOptions().ordered(true))
+                .subscribe(new GenericSubscriber<>(
+                        result -> cf.complete(null),
+                        err -> put(writeMap)
+                ));
+
+        return cf;
     }
+
 
     public void drop() {
         collection.drop();
