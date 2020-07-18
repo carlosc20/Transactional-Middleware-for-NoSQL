@@ -24,6 +24,7 @@ public class ValidityTest {
         //testSequential(30000);
     }
 
+    // TODO verificar
     static void testParallel(int serverPort) throws ExecutionException, InterruptedException {
         final int CLIENTS = 2;
         final int TRANSACTIONS = 5; // por client

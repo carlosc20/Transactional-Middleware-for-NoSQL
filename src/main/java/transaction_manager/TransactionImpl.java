@@ -89,7 +89,7 @@ public class TransactionImpl implements Transaction {
         try {
             LOG.info("Transaction: {} committing", ts.toPrimitive());
             Timestamp<Long> ts = serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();
-            return ts.toPrimitive() >= 0;
+            return ts.toPrimitive() >= 0; // ts < 0 on error
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
