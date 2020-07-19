@@ -44,21 +44,29 @@ public class RaftTMServer {
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Timestamp<Long>>(
                 TransactionCommitRequest.class,
-                (req , closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)));
+                (req , closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)
+        ));
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Timestamp<Long>>(
                 TransactionStartRequest.class,
-                (req , closure) -> requestHandler.startTransaction(closure)));
+                (req , closure) -> requestHandler.startTransaction(closure))
+        );
 
         rpcServer.registerProcessor(new RequestProcessor<ServerContextRequestMessage, ServersContextMessage>(
                 ServerContextRequestMessage.class,
-                (req , closure) -> requestHandler.getServersContext(closure)));
-
+                (req , closure) -> requestHandler.getServersContext(closure)
+        ));
 
         rpcServer.registerProcessor(new RequestProcessor<GetFullState, ExtendedState>(
                 GetFullState.class,
                 (req, closure) -> {closure.success(fsm.getExtendedState()); closure.run(Status.OK());}
         ));
+
+        rpcServer.registerProcessor(new RequestProcessor<GetTimestamp, Timestamp<Long>>(
+                GetTimestamp.class,
+                (req, closure) -> {closure.success(fsm.getCurrentTs()); closure.run(Status.OK());}
+        ));
+
 
         // Initialize the state machine.
         this.fsm = new ManagerStateMachine(timestep, npvs, driver, scm, requestHandler);

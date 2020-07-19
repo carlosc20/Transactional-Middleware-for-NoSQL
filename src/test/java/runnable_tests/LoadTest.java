@@ -21,24 +21,24 @@ public class LoadTest {
     }
 
     final static int KEY_POOL = 100;
+    final static int CLIENTS = 2;
+    final static int TRANSACTIONS = 10; // sequential -> dividido pelos clients, parallel -> por client
+    final static int WRITES = 2;
+    final static int READS = 2;
 
-    static void read(Timer timer, Transaction tx, Random rnd) {
+
+    static void read(Transaction tx, Random rnd) {
         String key = String.valueOf(rnd.nextInt(KEY_POOL));
         tx.read(key.getBytes());
     }
 
-    static void write(Timer timer, Transaction tx, Random rnd) {
+    static void write(Transaction tx, Random rnd) {
         String key = String.valueOf(rnd.nextInt(KEY_POOL));
         String value = String.valueOf(rnd.nextInt());
         tx.write(key.getBytes(), value.getBytes());
     }
 
     static void testSequential(int serverPort) throws ExecutionException, InterruptedException {
-        final int CLIENTS = 1;
-        final int TRANSACTIONS = 20; // dividido pelos clients
-        final int WRITES = 2;
-        final int READS = 2;
-
 
         Timer timer = new Timer();
         timer.start();
@@ -66,20 +66,20 @@ public class LoadTest {
 
             for (int r = 0, w = 0; r + w < READS + WRITES;) {
                 if(r >= READS ) {
-                    write(timer, tx, rnd);
+                    write(tx, rnd);
                     timer.addCheckpoint("Write " + i);
                     w++;
                 } else  if(w >= WRITES) {
-                    read(timer, tx, rnd);
+                    read(tx, rnd);
                     timer.addCheckpoint("Read " + i);
                     r++;
                 } else {
                     if (rnd.nextBoolean()) {
-                        read(timer, tx, rnd);
+                        read(tx, rnd);
                         timer.addCheckpoint("Read " + i);
                         r++;
                     } else {
-                        write(timer, tx, rnd);
+                        write(tx, rnd);
                         timer.addCheckpoint("Write " + i);
                         w++;
                     }
@@ -98,11 +98,6 @@ public class LoadTest {
     }
 
     static void testParallel(int serverPort) throws ExecutionException, InterruptedException {
-        final int CLIENTS = 2;
-        final int TRANSACTIONS = 5; // por client
-        final int WRITES = 2;
-        final int READS = 2;
-        final int KEY_POOL = 100;
 
         List<Timer> timers = new ArrayList<>(CLIENTS);
 
@@ -130,20 +125,20 @@ public class LoadTest {
 
                                 for (int r = 0, w = 0; r + w < READS + WRITES;) {
                                     if(r >= READS ) {
-                                        write(timer, tx, rnd);
+                                        write(tx, rnd);
                                         timer.addCheckpoint(p + " -> Write " + j, "Write");
                                         w++;
                                     } else  if(w >= WRITES) {
-                                        read(timer, tx, rnd);
+                                        read(tx, rnd);
                                         timer.addCheckpoint(p + " -> Read " + j, "Read");
                                         r++;
                                     } else {
                                         if (rnd.nextBoolean()) {
-                                            read(timer, tx, rnd);
+                                            read(tx, rnd);
                                             timer.addCheckpoint(p + " -> Read " + j, "Read");
                                             r++;
                                         } else {
-                                            write(timer, tx, rnd);
+                                            write(tx, rnd);
                                             timer.addCheckpoint(p + " -> Write " + j, "Write");
                                             w++;
                                         }

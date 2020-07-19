@@ -152,17 +152,8 @@ public class ManagerStateMachine extends StateMachineAdapter {
         }
     }
 
-    /**
-     * Returns current timestamp.
-     */
-    //TODO arranjar
-    public long getTimestamp() {
-        return -1;
-    }
-
-    //TODO
     public Timestamp<Long> getCurrentTs(){
-        return null;
+        return transactionManager.getCertifier().getCurrentCommitTs();
     }
 
     //TODO ter cuidado com isto. Pedidos ainda não acabados
