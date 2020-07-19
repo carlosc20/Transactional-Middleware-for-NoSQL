@@ -31,7 +31,7 @@ public class CommitOrderHandler implements CommitControlHandler {
     @Override
     public CompletableFuture<Void> deliver(Timestamp<Long> commitTs){
         if (commitTs.isRightAfter(lastArrival, timestep)){
-            LOG.info("Commit is in order TC: " + commitTs);
+            LOG.info("Commit is in order TC: " + commitTs.toPrimitive());
             lastArrival.add(timestep);
             return CompletableFuture.completedFuture(null);
         }
@@ -39,7 +39,8 @@ public class CommitOrderHandler implements CommitControlHandler {
             CompletableFuture<Void> new_cf = new CompletableFuture<>();
             outOfOrder = true;
             outOfOrderCommits.add(new FlushAcknowledgment(new_cf, commitTs));
-            LOG.info("Commit is out of order TC: " + commitTs);
+            long expected = lastArrival.toPrimitive() + timestep;
+            LOG.info("Commit is out of order TC: " + commitTs.toPrimitive() + " expected: " + expected);
             return new_cf;
         }
     }
@@ -62,4 +63,10 @@ public class CommitOrderHandler implements CommitControlHandler {
         if (outOfOrderCommits.size() == 0)
             outOfOrder = false;
     }
+
+    @Override
+    public void setTimestamp(Timestamp<Long> tc) {
+        this.lastArrival.set(tc);
+    }
+
 }

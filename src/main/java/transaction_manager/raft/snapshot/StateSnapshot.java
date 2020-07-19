@@ -8,7 +8,7 @@ import java.io.*;
 public class StateSnapshot {
     private static final Logger LOG = LoggerFactory.getLogger(StateSnapshot.class);
 
-    private String              path;
+    private String path;
 
     static <T> T cast(Object obj, Class<T> clazz) {
         return clazz.isInstance(obj)? clazz.cast(obj): null;
@@ -33,6 +33,7 @@ public class StateSnapshot {
      * Save value to snapshot file.
      */
     public boolean save(ExtendedState s) {
+        System.out.println(s.toString());
         try(ObjectOutputStream out = new ObjectOutputStream(
             new BufferedOutputStream(new FileOutputStream(new File(path))))) {
             out.writeObject(s);
@@ -46,8 +47,7 @@ public class StateSnapshot {
     public ExtendedState load() throws IOException {
         File f = new File(path);
         try(ObjectInputStream in = new ObjectInputStream(
-                new BufferedInputStream(new FileInputStream(f)))) {
-            return cast(in.readObject());
+                new BufferedInputStream(new FileInputStream(f)))) { return cast(in.readObject());
         } catch (ClassNotFoundException e) {
             throw new IOException("Fail to load snapshot from " + path);
         }

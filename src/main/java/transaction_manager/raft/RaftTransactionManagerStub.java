@@ -81,11 +81,11 @@ public class RaftTransactionManagerStub implements TransactionManager {
         return null;
     }
 
-    public ExtendedState getExtendedState() {
+    //debug
+    public ExtendedState getExtendedState(int index) {
         try {
-            List<PeerId> pps = RouteTable.getInstance().getConfiguration("manager").getPeers();
-            System.out.println(pps.toString());
-            return ((ValueResponse<ExtendedState>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), new GetFullState(), 30000)).getValue();
+            PeerId pid = RouteTable.getInstance().getConfiguration("manager").getPeers().get(index);
+            return ((ValueResponse<ExtendedState>) cliClientService.getRpcClient().invokeSync(pid.getEndpoint(), new GetFullState(), 30000)).getValue();
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }

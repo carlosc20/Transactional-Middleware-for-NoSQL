@@ -2,16 +2,16 @@ package transaction_manager.raft.snapshot;
 
 import certifier.Timestamp;
 import transaction_manager.State;
-import transaction_manager.utils.ByteArrayWrapper;
+import transaction_manager.raft.FlushAgainInfo;
 
 import java.io.Serializable;
 import java.util.Map;
 
 public class ExtendedState implements Serializable {
     private final State standaloneState;
-    private final Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> nonAckedFlushs;
+    private final Map<Timestamp<Long>, FlushAgainInfo> nonAckedFlushs;
 
-    public ExtendedState(State standaloneState, Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> nonAckedFlushs){
+    public ExtendedState(State standaloneState, Map<Timestamp<Long>, FlushAgainInfo> nonAckedFlushs){
         this.standaloneState = standaloneState;
         this.nonAckedFlushs = nonAckedFlushs;
     }
@@ -20,7 +20,7 @@ public class ExtendedState implements Serializable {
         return standaloneState;
     }
 
-    public Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> getNonAckedFlushs() {
+    public Map<Timestamp<Long>, FlushAgainInfo> getNonAckedFlushs() {
         return nonAckedFlushs;
     }
 

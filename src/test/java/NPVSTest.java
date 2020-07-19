@@ -3,6 +3,7 @@ import io.atomix.utils.net.Address;
 import npvs.NPVSReply;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
+import npvs.messaging.FlushMessage;
 import org.junit.Test;
 import spread.SpreadException;
 import transaction_manager.utils.ByteArrayWrapper;
@@ -44,16 +45,16 @@ public class NPVSTest {
         ExecutorService taskExecutor = Executors.newFixedThreadPool(8);
 
         ByteArrayWrapper baw = new ByteArrayWrapper("marco".getBytes());
-        wmb.put(1, "marco", "dantas");
-        wmb.put(1, "zé", "machado");
-        wmb.put(2, "marco", "dantas2");
-        wmb.put(4, "marco", "dantas4");
-        wmb.put(10, "marco", "dantas10");
+        wmb.put(1000, "marco", "dantas");
+        wmb.put(1000, "zé", "machado");
+        wmb.put(2000, "marco", "dantas2");
+        wmb.put(4000, "marco", "dantas4");
+        wmb.put(10000, "marco", "dantas10");
 
-        npvs.put(wmb.getWriteMap(1), new MonotonicTimestamp(1));
-        npvs.put(wmb.getWriteMap(2), new MonotonicTimestamp(2));
-        npvs.put(wmb.getWriteMap(4), new MonotonicTimestamp(4));
-        npvs.put(wmb.getWriteMap(10), new MonotonicTimestamp(10));
+        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(1000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(2000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(4000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(10000)));
 
         Thread.sleep(2000); //para todos os writes serem efetivos
 

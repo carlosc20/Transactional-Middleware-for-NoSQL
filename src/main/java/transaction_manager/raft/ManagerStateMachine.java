@@ -94,6 +94,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
                     transactionManager.removeFlush(commitTimestamp);
                     if(closure != null)
                         ((CompletableClosure<Void>) closure).complete(commitTimestamp);
+                    break;
             }
         }
     }
@@ -110,7 +111,8 @@ public class ManagerStateMachine extends StateMachineAdapter {
         this.transactionManager.setTerm(term);
         //TODO testar
         //this.transactionManager.scheduleLeaderEvents(3, TimeUnit.MINUTES);
-        //this.transactionManager.triggerNonAckedFlushes();
+        this.transactionManager.triggerNonAckedFlushes();
+        this.transactionManager.setCommitControlHandlerTimestamp();
         super.onLeaderStart(term);
     }
 
@@ -138,7 +140,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
             return false;
         }
         if (reader.getFileMeta("data") == null) {
-            LOG.error("Fail to find data file in {}", reader.getPath());
+            LOG.error("1 Fail to find data file in {}", reader.getPath());
             return false;
         }
         final StateSnapshot snapshot = new StateSnapshot(reader.getPath() + File.separator + "data");
@@ -147,7 +149,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
             this.transactionManager.setState(es);
             return true;
         } catch (final IOException e) {
-            LOG.error("Fail to load snapshot from {}", snapshot.getPath());
+            LOG.error("2 Fail to load snapshot from {}", snapshot.getPath());
             return false;
         }
     }

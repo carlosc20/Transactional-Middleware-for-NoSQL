@@ -3,13 +3,13 @@ import certifier.Timestamp;
 
 import nosql.KeyValueDriver;
 import npvs.NPVS;
+import npvs.messaging.FlushMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.control.CommitControlHandler;
 import transaction_manager.control.FlushControlHandler;
 import transaction_manager.control.PipelineWriterHandler;
 import transaction_manager.messaging.ServersContextMessage;
-import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.control.CommitOrderHandler;
 import transaction_manager.utils.ByteArrayWrapper;
 import transaction_manager.utils.KeyValue;
@@ -17,10 +17,8 @@ import transaction_manager.utils.KeyValue;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class TransactionManagerService {
@@ -44,14 +42,17 @@ public abstract class TransactionManagerService {
 
     public abstract void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
 
-    public CompletableFuture<Timestamp<Long>> flush(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
+    public CompletableFuture<Timestamp<Long>> flush(FlushMessage flushMessage, Timestamp<Long> provisionalCommitTimestamp) {
+        Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
-        consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
+
+        consistentKeyValues.thenCompose(wm -> saveToNPVS(flushMessage))
             .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
             .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
             .thenAccept(x -> updateState(provisionalCommitTimestamp, cf))
             .thenAccept(x -> commitControlHandler.completeDeliveries());
+
         return cf;
     }
 
@@ -71,12 +72,12 @@ public abstract class TransactionManagerService {
                     .collect(Collectors.toMap(KeyValue::getKey, KeyValue::getValue)));
     }
 
-    public CompletableFuture<Void> saveToNPVS(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> currentCommitTimestamp){
-        if(writeMap.size() > 0){
-            LOG.info("Putting consistent key/values in NPVS with TC: {}", currentCommitTimestamp.toPrimitive());
-            return npvs.put(writeMap, currentCommitTimestamp);
+    public CompletableFuture<Void> saveToNPVS(FlushMessage flushMessage){
+        if(flushMessage.getWriteMap().size() > 0){
+            LOG.info("Putting consistent key/values in NPVS with TC: {}", flushMessage.getCurrentTimestamp().toPrimitive());
+            return npvs.put(flushMessage);
         }
-        LOG.info("No old consistent key/values to be transfered to TC: {}", currentCommitTimestamp.toPrimitive());
+        LOG.info("No old consistent key/values to be transfered to TC: {}", flushMessage.getCurrentTimestamp().toPrimitive());
         return CompletableFuture.completedFuture(null);
     }
 
@@ -91,5 +92,13 @@ public abstract class TransactionManagerService {
 
     public ScheduledExecutorService getExecutorService() {
         return executorService;
+    }
+
+    public CommitControlHandler getCommitControlHandler() {
+        return commitControlHandler;
+    }
+
+    public FlushControlHandler getFlushControlHandler() {
+        return flushControlHandler;
     }
 }

@@ -1,5 +1,6 @@
 package certifier;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
@@ -7,7 +8,7 @@ import java.util.Objects;
 
 public class MonotonicTimestamp implements Timestamp<Long>{
 
-    private long ts;
+    private Long ts;
 
     public MonotonicTimestamp(long ts) {
         this.ts = ts;
@@ -61,13 +62,21 @@ public class MonotonicTimestamp implements Timestamp<Long>{
     }
 
     @Override
-    public boolean equals(Timestamp<Long> o) {
-        return ts == o.toPrimitive();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MonotonicTimestamp that = (MonotonicTimestamp) o;
+
+        return new EqualsBuilder()
+                .append(ts, that.ts)
+                .isEquals();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ts);
+        return ts.hashCode();
     }
 
     @Override

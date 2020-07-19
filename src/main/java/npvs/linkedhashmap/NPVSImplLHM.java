@@ -1,6 +1,7 @@
 package npvs.linkedhashmap;
 
 import certifier.Timestamp;
+import npvs.AbstractNPVS;
 import npvs.NPVS;
 import npvs.NPVSReply;
 import transaction_manager.utils.ByteArrayWrapper;
@@ -10,13 +11,14 @@ import java.util.Map;
 
 import java.util.concurrent.CompletableFuture;
 
-public class NPVSImplLHM implements NPVS<Long> {
+public class NPVSImplLHM extends AbstractNPVS {
     private final Map<ByteArrayWrapper, LinkedHashMap<Timestamp<Long>, byte[]>> versionsByKey;
 
-    public NPVSImplLHM() {this.versionsByKey = new LinkedHashMap<>();}
+    public NPVSImplLHM() {
+        super();
+        this.versionsByKey = new LinkedHashMap<>();}
 
-    @Override
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
+    public CompletableFuture<Void> putImpl(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
         writeMap.forEach((key, v) -> {
             if (versionsByKey.containsKey(key))
                 this.versionsByKey.get(key).put(ts, v);
@@ -30,7 +32,6 @@ public class NPVSImplLHM implements NPVS<Long> {
         return CompletableFuture.completedFuture(null);
     }
 
-    @Override
     public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
             System.out.println("no key");

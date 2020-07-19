@@ -108,7 +108,6 @@ public class MongoAsynchKV implements KeyValueDriver{
                         result -> cf.complete(null),
                         err -> put(writeMap)
                         ));
-
         return cf;
     }
 

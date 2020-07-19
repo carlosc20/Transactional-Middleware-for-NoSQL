@@ -74,7 +74,7 @@ public class IntervalCertifierImpl extends AbstractCertifier {
     public void update(Timestamp<Long> commitTimestamp) {
         currentCommitTs.set(commitTimestamp);
         currentStartTs.set(commitTimestamp);
-        LOG.info("Updating certifier Timestamps -> currentStartTs: {}, currentCommitTs: {}", currentStartTs.toPrimitive(), currentCommitTs.toPrimitive());
+        LOG.info("Updating certifier Timestamps -> currentCommitTs: {}", currentCommitTs.toPrimitive());
         if (startsOnWait.size() > 0)
             startsOnWait.forEach(x -> x.complete(null));
     }
@@ -84,7 +84,12 @@ public class IntervalCertifierImpl extends AbstractCertifier {
         return "IntervalCertifierImpl{" +
                 "currentStartTs=" + currentStartTs.toPrimitive() + "\n" +
                 ", provisionalCommitTs=" + provisionalCommitTs.toPrimitive() + "\n" +
-                super.toString() +
+                ", startsOnWait=" + startsOnWait.toString() + "\n" +
+                ", timestep=" + timestep + "\n" +
+                ", currentCommitTs=" + currentCommitTs.toPrimitive() + "\n" +
+                ", lowWaterMark=" + lowWaterMark.toPrimitive() + "\n" +
+                ", runningTransactions=" + runningTransactions + "\n" +
+                ", history=" + getCardinality() +
                 '}';
     }
 }

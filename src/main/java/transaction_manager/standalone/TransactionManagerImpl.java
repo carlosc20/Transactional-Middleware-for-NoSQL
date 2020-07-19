@@ -3,6 +3,7 @@ package transaction_manager.standalone;
 import certifier.*;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
+import npvs.messaging.FlushMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.State;
@@ -34,7 +35,8 @@ public class TransactionManagerImpl extends TransactionManagerService implements
         Timestamp<Long> commitTimestamp = certifierCommit(tc);
         if(commitTimestamp.toPrimitive() > 0) {
             LOG.info("Making transaction with TC: {} changes persist", commitTimestamp.toPrimitive());
-            return flush(tc.getWriteMap(), commitTimestamp, certifier.getCurrentCommitTs());
+            FlushMessage flushMessage = new FlushMessage(tc.getWriteMap(), tc.getTimestamp(), certifier.getCurrentCommitTs());
+            return flush(flushMessage, commitTimestamp);
         } else {
             LOG.info("aborted a transaction with TS {}", tc.getTimestamp());
             return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));

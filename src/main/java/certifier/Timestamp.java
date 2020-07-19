@@ -9,7 +9,7 @@ public interface Timestamp<V> extends Comparable<Timestamp<V>>, Serializable {
     boolean isRightAfter(Timestamp<V> o, V interval);
     boolean isBeforeOrEqual(Timestamp<V> o);
     boolean isAfterOrEqual(Timestamp<V> o);
-    boolean equals(Timestamp<V> o);
+    boolean equals(Object o);
     void increment();
     void add(V quantity);
     V toPrimitive();

@@ -2,6 +2,7 @@ package runnable_tests;
 
 import certifier.Timestamp;
 import io.atomix.utils.net.Address;
+import npvs.messaging.FlushMessage;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
@@ -66,7 +67,7 @@ public class ValidityTest {
                                 }
 
                                 Timestamp<Long> cts = tx.commitTs();
-                                npvs.put(writes, cts);
+                                npvs.put(new FlushMessage(writes, tx.getTs() ,cts));
                                 System.out.println(p + " -> Transaction commited " + j);
                             } catch (Exception e) {
                                 e.printStackTrace();

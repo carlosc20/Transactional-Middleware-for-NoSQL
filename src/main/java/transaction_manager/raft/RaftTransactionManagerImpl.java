@@ -39,6 +39,6 @@ public class RaftTransactionManagerImpl extends RaftTransactionManager{
     }
 
     public ExtendedState getExtendedState(){
-        return new ExtendedState(getState(), getNonAckedFlushs());
+        return new ExtendedState(getState(), getNonAckedFlushes());
     }
 }

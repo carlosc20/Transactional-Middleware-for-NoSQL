@@ -41,10 +41,9 @@ public class NPVSStub implements NPVS<Long> {
     }
 
     @Override
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
-        FlushMessage fm = new FlushMessage(writeMap, ts);
+    public CompletableFuture<Void> put(FlushMessage flushMessage) {
         List<Map<ByteArrayWrapper, byte[]>> maps = new ArrayList<>(Collections.nCopies(servers.size(), null));
-        for (Map.Entry<ByteArrayWrapper, byte[]> entry : writeMap.entrySet()){
+        for (Map.Entry<ByteArrayWrapper, byte[]> entry : flushMessage.getWriteMap().entrySet()){
             byte[] data = entry.getKey().getData();
             int server = assignServer(data);
             Map<ByteArrayWrapper, byte[]> m = maps.get(server);
@@ -57,8 +56,11 @@ public class NPVSStub implements NPVS<Long> {
 
         CompletableFuture<?>[] futures = new CompletableFuture<?>[servers.size()];
         for (int i = 0; i < servers.size(); i++) {
-            Address address = servers.get(i);
-            futures[i] = mms.sendAndReceive(address, "put", s.encode(fm), Duration.ofSeconds(10), e)
+            //TODO mudar e não mandar só para um. Assim para testes
+            Address address = servers.get(0);
+            FlushMessage flushMessage1 = new FlushMessage(flushMessage);
+            flushMessage1.setWriteMap(maps.get(i));
+            futures[i] = mms.sendAndReceive(address, "put", s.encode(flushMessage1), Duration.ofSeconds(10), e)
                     .thenApply(s::decode);
         }
         return CompletableFuture.allOf(futures);

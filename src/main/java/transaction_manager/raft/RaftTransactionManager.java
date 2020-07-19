@@ -4,13 +4,13 @@ import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
+import npvs.messaging.FlushMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.raft.snapshot.ExtendedState;
 import transaction_manager.standalone.TransactionManagerImpl;
-import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,11 +19,11 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class RaftTransactionManager extends TransactionManagerImpl {
     private static final Logger LOG = LoggerFactory.getLogger(RaftTransactionManager.class);
-    private Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> nonAckedFlushs;
+    private Map<Timestamp<Long>, FlushAgainInfo> nonAckedFlushes;
 
     public RaftTransactionManager(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
         super(timestep, npvs, driver, scm);
-        this.nonAckedFlushs = new LinkedHashMap<>();
+        this.nonAckedFlushes = new LinkedHashMap<>();
     }
 
     public abstract boolean isLeader();
@@ -35,9 +35,11 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
         Timestamp<Long> commitTimestamp = certifierCommit(tc);
         if(commitTimestamp.toPrimitive() > 0) {
-            nonAckedFlushs.put(commitTimestamp, tc.getWriteMap());
+            LOG.info("Putting non acked TC={}", commitTimestamp.toPrimitive());
+            FlushMessage flushMessage = new FlushMessage(tc.getWriteMap(), tc.getTimestamp(), getCertifier().getCurrentCommitTs());
+            nonAckedFlushes.put(tc.getTimestamp(), new FlushAgainInfo(flushMessage, commitTimestamp));
             if(isLeader())
-                return flush(tc.getWriteMap(), commitTimestamp, getCertifier().getCurrentCommitTs());
+                return flush(flushMessage, commitTimestamp);
             else
                 //return for a follower is irrelevant
                 return CompletableFuture.completedFuture(null);
@@ -45,17 +47,18 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
         return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
     }
 
-    public Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> getNonAckedFlushs() {
-        return nonAckedFlushs;
+    public Map<Timestamp<Long>, FlushAgainInfo> getNonAckedFlushes() {
+        return nonAckedFlushes;
     }
 
-    public void removeFlush(Timestamp<Long> startTimestamp){
-        nonAckedFlushs.remove(startTimestamp);
+    public void removeFlush(Timestamp<Long> commitTimestamp){
+        LOG.info("Removing non acked flush TC={}", commitTimestamp.toPrimitive());
+        nonAckedFlushes.remove(commitTimestamp);
     }
 
     public void triggerNonAckedFlushes(){
-        LOG.info("flushing non aknowledged writes, size = {}", nonAckedFlushs.size());
-        nonAckedFlushs.forEach((k,v) -> flush(v, k, getCertifier().getCurrentCommitTs()));
+        LOG.info("flushing non aknowledged writes, size = {}", nonAckedFlushes.size());
+        nonAckedFlushes.forEach((k,v) -> flush(v.getFlushMessage(), v.getProvisionalCommitTimestamp()));
     }
 
     public void scheduleLeaderEvents(int periodicity, TimeUnit unit){
@@ -68,8 +71,12 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
         }, periodicity, unit);
     }
 
+    public void setCommitControlHandlerTimestamp(){
+        getCommitControlHandler().setTimestamp(getCertifier().getCurrentCommitTs());
+    }
+
     public void setState(ExtendedState es){
         super.setState(es.getStandaloneState());
-        this.nonAckedFlushs = es.getNonAckedFlushs();
+        this.nonAckedFlushes = es.getNonAckedFlushs();
     }
 }

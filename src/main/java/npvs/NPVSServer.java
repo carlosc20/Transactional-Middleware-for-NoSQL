@@ -1,6 +1,5 @@
 package npvs;
 
-import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -15,7 +14,6 @@ import npvs.messaging.ReadMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spread.*;
-import transaction_manager.utils.ByteArrayWrapper;
 
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
@@ -76,15 +74,14 @@ public class NPVSServer {
 
         mms.registerHandler("put", (a,b) -> {
             FlushMessage fm = s.decode(b);
-            System.out.println(myPort + " put request arrived with TS: " + fm.getTs().toPrimitive());
-            LOG.info("put request arrived with TC: {}",  fm.getTs().toPrimitive());
-            return npvs.put(fm.getWriteMap(), fm.getTs())
+            System.out.println(myPort + " put request arrived with TS: " + fm.getCurrentTimestamp() + "with id: " + fm.getTransactionStartTimestamp());
+            LOG.info("put request arrived with TC: {} with id: {}", fm.getCurrentTimestamp(), fm.getTransactionStartTimestamp());
+            return npvs.put(fm)
                     .thenApply(s::encode);
         });
     }
 
     public static void main(String[] args) throws SpreadException, UnknownHostException {
-
-        new NPVSServer(20001, 40000, "0").start();
+        new NPVSServer(20000, 40000, "0").start();
     }
 }

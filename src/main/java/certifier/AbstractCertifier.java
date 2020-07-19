@@ -91,21 +91,10 @@ public abstract class AbstractCertifier implements Certifier<Long>{
         return new MonotonicTimestamp(currentCommitTs);
     }
 
-    @Override
-    public String toString() {
-        return "AbstractCertifier{" +
-                "timestep=" + timestep + "\n" +
-                ", currentCommitTs=" + currentCommitTs.toPrimitive() + "\n" +
-                ", lowWaterMark=" + lowWaterMark.toPrimitive() + "\n" +
-                ", runningTransaction size=" + runningTransactions.size() + "\n" +
-                ", history size=" + getCardinality() +
-                '}';
-    }
-
     public String getCardinality(){
         StringBuilder sb = new StringBuilder();
         sb.append("[ ");
-        history.forEach((k, v) -> sb.append("k: ").append(k).append(" v: ").append(v).append(", "));
+        history.forEach((k, v) -> sb.append("k: ").append(k).append(" v: ").append(v.getSet().cardinality()).append(", "));
         sb.append(" ]");
         return sb.toString();
     }

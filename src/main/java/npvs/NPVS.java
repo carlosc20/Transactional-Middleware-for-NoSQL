@@ -1,13 +1,13 @@
 package npvs;
 
 import certifier.Timestamp;
+import npvs.messaging.FlushMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface NPVS<V> {
 
-    CompletableFuture<Void> put(Map<ByteArrayWrapper,byte[]> writeMap, Timestamp<V> ts);
+    CompletableFuture<Void> put(FlushMessage flushMessage);
     CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<V> ts);
 }

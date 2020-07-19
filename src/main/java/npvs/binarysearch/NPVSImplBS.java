@@ -1,6 +1,7 @@
 package npvs.binarysearch;
 
 import certifier.Timestamp;
+import npvs.AbstractNPVS;
 import npvs.NPVS;
 import npvs.NPVSReply;
 import org.slf4j.Logger;
@@ -12,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class NPVSImplBS implements NPVS<Long> {
+public class NPVSImplBS extends AbstractNPVS {
     //TODO comparar o custo com várias versões desta estrutura
     private static final Logger LOG = LoggerFactory.getLogger(NPVSImplBS.class);
     //ArrayList + binarySearch:
@@ -27,11 +28,12 @@ public class NPVSImplBS implements NPVS<Long> {
 
 
     public NPVSImplBS() {
+        super();
         this.versionsByKey = new HashMap<>();
     }
 
     @Override
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts){
+    public CompletableFuture<Void> putImpl(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts){
         writeMap.forEach((key, v) -> {
             Version newV = new Version(v, ts);
             if (versionsByKey.containsKey(key))
