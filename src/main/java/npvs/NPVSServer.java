@@ -31,8 +31,6 @@ public class NPVSServer {
 
     private Timestamp<Long> startTs;
 
-
-
     public NPVSServer(int myPort, int spreadPort, String privateName){
 
         this.myPort = myPort;
@@ -75,7 +73,7 @@ public class NPVSServer {
         mms.registerHandler("put", (a,b) -> {
             FlushMessage fm = s.decode(b);
             System.out.println(myPort + " put request arrived with TS: " + fm.getCurrentTimestamp() + "with id: " + fm.getTransactionStartTimestamp());
-            LOG.info("put request arrived with TC: {} with id: {}", fm.getCurrentTimestamp(), fm.getTransactionStartTimestamp());
+            LOG.info("put request arrived with TC: {} with id: {}", fm.getCurrentTimestamp().toPrimitive(), fm.getTransactionStartTimestamp().toPrimitive());
             return npvs.put(fm)
                     .thenApply(s::encode);
         });

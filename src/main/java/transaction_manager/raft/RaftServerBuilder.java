@@ -72,8 +72,8 @@ public class RaftServerBuilder {
         nodeOptions.setElectionTimeoutMs(1000);
         // Close the CLI service.
         nodeOptions.setDisableCli(false);
-        // Snapshot every 30 seconds
-        nodeOptions.setSnapshotIntervalSecs(60);
+        // Snapshot every 10 min
+        nodeOptions.setSnapshotIntervalSecs(60 * 10);
         final Configuration initConf = new Configuration();
         if (!initConf.parse(initConfStr)) {
             throw new IllegalArgumentException("Fail to parse initConf:" + initConfStr);

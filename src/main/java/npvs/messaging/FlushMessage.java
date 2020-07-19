@@ -42,4 +42,13 @@ public class FlushMessage implements Serializable {
     public FlushMessage getFlushMessage(){
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "FlushMessage{" +
+                "transactionStartTimestamp=" + transactionStartTimestamp.toPrimitive() +
+                ", currentTimestamp=" + currentTimestamp.toPrimitive() +
+                ", writeMap=" + writeMap.toString() +
+                '}';
+    }
 }

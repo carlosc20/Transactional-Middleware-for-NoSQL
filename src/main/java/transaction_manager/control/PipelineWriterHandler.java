@@ -19,7 +19,7 @@ public class PipelineWriterHandler implements FlushControlHandler {
         this.nextToPutInPipe = new LinkedList<>();
     }
 
-    public CompletableFuture<Void> put(CompletableFuture<Void> timestamp, CompletableFuture<Void> writeValues){
+    public CompletableFuture<Void> put(CompletableFuture<Boolean> timestamp, CompletableFuture<Boolean> writeValues){
         CompletableFuture<Void> res = new CompletableFuture<>();
         CompletableFuture.runAsync(() -> {
             if (nextToPutInPipe.size() == 0 && !inconsistent){
@@ -34,17 +34,31 @@ public class PipelineWriterHandler implements FlushControlHandler {
         return res;
     }
 
-    private void write(CompletableFuture<Void> timestamp, CompletableFuture<Void> write, CompletableFuture<Void> res){
+    private void write(CompletableFuture<Boolean> timestamp, CompletableFuture<Boolean> write, CompletableFuture<Void> res){
         inconsistent = true;
-        timestamp.thenAccept(x -> {
-            inconsistent = false;
-            CompletableFuture.runAsync(() -> {
-                if(nextToPutInPipe.size() > 0) {
-                    CompletableFuture<Void> cf = nextToPutInPipe.poll();
-                    cf.complete(null);
-                }
-            }, e);
-            CompletableFuture.runAsync(()-> write.thenAcceptAsync(y -> res.complete(null),e) ,e);
+        timestamp.thenAccept(okTs -> {
+            if(okTs) {
+                inconsistent = false;
+                CompletableFuture.runAsync(() -> {
+                    if (nextToPutInPipe.size() > 0) {
+                        CompletableFuture<Void> cf = nextToPutInPipe.poll();
+                        cf.complete(null);
+                    }
+                }, e);
+                CompletableFuture.runAsync(() -> callWriteValues(write, res), e);
+            }
+            else{
+                write(timestamp, write, res);
+            }
+        });
+    }
+
+    private void callWriteValues(CompletableFuture<Boolean> write, CompletableFuture<Void> res){
+        write.thenAccept(okWrite -> {
+            if (okWrite)
+                res.complete(null);
+            else
+                callWriteValues(write, res);
         });
     }
 }

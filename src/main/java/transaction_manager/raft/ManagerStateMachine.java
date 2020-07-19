@@ -26,7 +26,6 @@ import transaction_manager.raft.snapshot.StateSnapshot;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static transaction_manager.raft.TransactionManagerOperation.*;
 
@@ -89,9 +88,9 @@ public class ManagerStateMachine extends StateMachineAdapter {
                     transactionManager.tryCommit(tcm).thenAccept(res -> treatClosure(res, closure));
                     break;
                 case UPDATE_STATE:
-                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getTimestamp();
-                    transactionManager.getCertifier().update(commitTimestamp);
-                    transactionManager.removeFlush(commitTimestamp);
+                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getCurrentTimestamp();
+                    final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
+                    transactionManager.updateState(startTimestamp, commitTimestamp);
                     if(closure != null)
                         ((CompletableClosure<Void>) closure).complete(commitTimestamp);
                     break;

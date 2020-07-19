@@ -98,13 +98,13 @@ public class KVDriverTest {
         PipelineWriterHandler pipelineWriterHandler = new PipelineWriterHandler(e);
         WriteMapsBuilder wmb = new WriteMapsBuilder();
 
-        for(int j = 0; j < 50; j++)
+        for(int j = 0; j < 500; j++)
             wmb.put(1, "marco" + j, "dantas");
 
         Timer timer = new Timer(TimeUnit.MILLISECONDS);
         timer.start();
         HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
-        int size = 25000;
+        int size = 15000;
         CompletableFuture<?>[] futures = new CompletableFuture<?>[size];
         for(int i = 0; i < size; i++){
             final long l = i;

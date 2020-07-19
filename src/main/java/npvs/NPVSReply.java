@@ -1,7 +1,5 @@
 package npvs;
 
-import certifier.Timestamp;
-
 public class NPVSReply {
     private final boolean success;
     private final byte[] value;

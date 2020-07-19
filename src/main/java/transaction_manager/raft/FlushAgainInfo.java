@@ -6,7 +6,7 @@ import npvs.messaging.FlushMessage;
 import java.io.Serializable;
 
 public class FlushAgainInfo extends FlushMessage implements Serializable {
-    private Timestamp<Long> provisionalCommitTimestamp;
+    private final Timestamp<Long> provisionalCommitTimestamp;
 
     public FlushAgainInfo(FlushMessage flushMessage, Timestamp<Long> provisionalCommitTimestamp) {
         super(flushMessage);

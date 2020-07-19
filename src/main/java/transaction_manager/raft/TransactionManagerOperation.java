@@ -17,6 +17,7 @@ public class TransactionManagerOperation implements Serializable {
 
     private final byte op;
     private final TransactionContentMessage tcm;
+    private final Timestamp<Long> currentTimestamp;
 
     public static TransactionManagerOperation createStartTransaction() {
         return new TransactionManagerOperation(START_TXN);
@@ -26,32 +27,39 @@ public class TransactionManagerOperation implements Serializable {
         return new TransactionManagerOperation(COMMIT, tcm);
     }
 
-    public static TransactionManagerOperation createUpdateState(Timestamp<Long> startTimestamp){
-        return new TransactionManagerOperation(UPDATE_STATE, startTimestamp);
+    public static TransactionManagerOperation createUpdateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp){
+        return new TransactionManagerOperation(UPDATE_STATE, startTimestamp, commitTimestamp);
     }
 
     public TransactionManagerOperation(byte op) {
         this.op = op;
         this.tcm = null;
+        this.currentTimestamp = null;
     }
 
     public TransactionManagerOperation(byte op, TransactionContentMessage tcm) {
         this.op = op;
         this.tcm = tcm;
+        this.currentTimestamp = null;
     }
 
-    public TransactionManagerOperation(byte op, Timestamp<Long> commitTimestamp){
+    public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp){
         this.op = op;
-        this.tcm = new TransactionContentMessage(commitTimestamp);
+        this.tcm = new TransactionContentMessage(startTimestamp);
+        this.currentTimestamp = commitTimestamp;
     }
 
     public byte getOp() {
         return op;
     }
 
-    public Timestamp<Long> getTimestamp() {
+    public Timestamp<Long> getStartTimestamp() {
         assert tcm != null;
         return tcm.getTimestamp();
+    }
+
+    public Timestamp<Long> getCurrentTimestamp() {
+        return currentTimestamp;
     }
 
     public BitWriteSet getBws(){

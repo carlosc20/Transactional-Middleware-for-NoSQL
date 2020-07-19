@@ -15,7 +15,7 @@ public class RaftState {
 
     @Test
     public void readState(){
-        System.out.println(tms.getExtendedState(0).toString());
+        System.out.println(tms.getExtendedState(1).toString());
     }
 
     @Test

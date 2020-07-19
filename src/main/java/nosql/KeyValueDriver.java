@@ -15,8 +15,8 @@ public interface KeyValueDriver {
     CompletableFuture<byte[]> getWithoutTS(ByteArrayWrapper key);
     CompletableFuture<GetMessage> get(ByteArrayWrapper key);
     CompletableFuture<ScanMessage> scan(Set<ByteArrayWrapper> keyList);
-    CompletableFuture<Void> put(Map<ByteArrayWrapper,byte[]> writeMap);
-    CompletableFuture<Void> put(Timestamp<Long> timestamp);
+    CompletableFuture<Boolean> put(Map<ByteArrayWrapper,byte[]> writeMap);
+    CompletableFuture<Boolean> put(Timestamp<Long> timestamp);
     void drop();
 
 }

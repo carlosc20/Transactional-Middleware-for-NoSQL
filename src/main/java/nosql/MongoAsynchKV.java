@@ -81,7 +81,7 @@ public class MongoAsynchKV implements KeyValueDriver{
     }
 
     @Override
-    public CompletableFuture<Void> put(Map<ByteArrayWrapper, byte[]> writeMap) {
+    public CompletableFuture<Boolean> put(Map<ByteArrayWrapper, byte[]> writeMap) {
 
         List<WriteModel<Document>> writes = new ArrayList<>(writeMap.size());
 
@@ -101,12 +101,12 @@ public class MongoAsynchKV implements KeyValueDriver{
             writes.add(model);
         }
 
-        CompletableFuture<Void> cf = new CompletableFuture<>();
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
 
         collection.bulkWrite(writes, new BulkWriteOptions().ordered(false))
                 .subscribe(new GenericSubscriber<>(
-                        result -> cf.complete(null),
-                        err -> put(writeMap)
+                        result -> cf.complete(true),
+                        err -> cf.complete(false)
                         ));
         return cf;
     }
@@ -114,19 +114,19 @@ public class MongoAsynchKV implements KeyValueDriver{
 
 
     @Override
-    public CompletableFuture<Void> put(Timestamp<Long> timestamp){
-        CompletableFuture<Void> cf = new CompletableFuture<>();
+    public CompletableFuture<Boolean> put(Timestamp<Long> timestamp){
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
         Document doc = new Document("_id", "timestamp").append("value", timestamp.toPrimitive());
         replaceOne("timestamp", doc, cf);
         return cf;
     }
 
 
-    public void replaceOne(String key, Document doc, CompletableFuture<Void> cf){
+    public void replaceOne(String key, Document doc, CompletableFuture<Boolean> cf){
         collection.replaceOne(eq("_id", key), doc, new ReplaceOptions().upsert(true))
             .subscribe(new GenericSubscriber<>(
-                result -> cf.complete(null),
-                err -> replaceOne(key, doc, cf)));
+                result -> cf.complete(true),
+                err -> cf.complete(false)));
     }
 
 

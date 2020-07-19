@@ -63,7 +63,7 @@ public class IntervalCertifierImpl extends AbstractCertifier {
         if (isWritable(newBws, ts.toPrimitive(), pcts)) {
             history.put(pcts, newBws);
             provisionalCommitTs.add(timestep);
-            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts, pcts);
+            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts.toPrimitive(), pcts);
             return new MonotonicTimestamp(pcts);
         }
         else

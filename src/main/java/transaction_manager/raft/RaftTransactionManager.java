@@ -29,7 +29,12 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     public abstract boolean isLeader();
 
     @Override
-    public abstract void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
+    public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
+
+    public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp){
+        getCertifier().update(commitTimestamp);
+        removeFlush(startTimestamp);
+    }
 
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {

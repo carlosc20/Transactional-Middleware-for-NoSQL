@@ -56,12 +56,15 @@ public class NPVSStub implements NPVS<Long> {
 
         CompletableFuture<?>[] futures = new CompletableFuture<?>[servers.size()];
         for (int i = 0; i < servers.size(); i++) {
-            //TODO mudar e não mandar só para um. Assim para testes
+            //TODO mudar e não mandar só para um. Assim para testes!!!!!
             Address address = servers.get(0);
-            FlushMessage flushMessage1 = new FlushMessage(flushMessage);
-            flushMessage1.setWriteMap(maps.get(i));
-            futures[i] = mms.sendAndReceive(address, "put", s.encode(flushMessage1), Duration.ofSeconds(10), e)
-                    .thenApply(s::decode);
+            Map<ByteArrayWrapper, byte[]> map = maps.get(0);
+            if(map != null){
+                FlushMessage flushMessage1 = new FlushMessage(flushMessage);
+                flushMessage1.setWriteMap(map);
+                futures[i] = mms.sendAndReceive(address, "put", s.encode(flushMessage1), Duration.ofSeconds(10), e)
+                        .thenApply(s::decode);
+            }
         }
         return CompletableFuture.allOf(futures);
     }
@@ -76,7 +79,9 @@ public class NPVSStub implements NPVS<Long> {
                 .thenApply(s::decode);
     }
 
+    //TODO MUDARRRRRR!!!!!!!
     private int assignServer(byte[] key) {
-        return Arrays.hashCode(key) % servers.size();
+        return 0;
+        //return Arrays.hashCode(key) % servers.size();
     }
 }

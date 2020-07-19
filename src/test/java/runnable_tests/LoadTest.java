@@ -4,6 +4,7 @@ import io.atomix.utils.net.Address;
 import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionManager;
+import transaction_manager.raft.RaftTransactionManagerStub;
 import transaction_manager.standalone.TransactionManagerStub;
 import utils.timer.Timer;
 
@@ -111,7 +112,7 @@ public class LoadTest {
                         timers.add(timer);
                         timer.start();
 
-                        TransactionManager tms = new TransactionManagerStub(50000 + p, serverPort);
+                        TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");;
                         TransactionController tc = new TransactionController(Address.from(60000 + p), tms);
                         tc.buildContext();
 

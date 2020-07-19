@@ -23,9 +23,9 @@ public class RaftTransactionManagerImpl extends RaftTransactionManager{
     }
 
     @Override
-    public void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf) {
+    public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf) {
         LOG.info("Updating state TC: " + commitTimestamp.toPrimitive());
-        requestHandler.applyOperation(TransactionManagerOperation.createUpdateState(commitTimestamp), new CompletableClosure<Void>(cf));
+        requestHandler.applyOperation(TransactionManagerOperation.createUpdateState(startTimestamp, commitTimestamp), new CompletableClosure<Void>(cf));
     }
 
     @Override

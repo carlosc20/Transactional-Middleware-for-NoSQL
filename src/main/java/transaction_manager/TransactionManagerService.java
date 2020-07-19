@@ -40,7 +40,7 @@ public abstract class TransactionManagerService {
         this.flushControlHandler = new PipelineWriterHandler(executorService);
     }
 
-    public abstract void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
+    public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
 
     public CompletableFuture<Timestamp<Long>> flush(FlushMessage flushMessage, Timestamp<Long> provisionalCommitTimestamp) {
         Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
@@ -50,7 +50,7 @@ public abstract class TransactionManagerService {
         consistentKeyValues.thenCompose(wm -> saveToNPVS(flushMessage))
             .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
             .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
-            .thenAccept(x -> updateState(provisionalCommitTimestamp, cf))
+            .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cf))
             .thenAccept(x -> commitControlHandler.completeDeliveries());
 
         return cf;
@@ -82,6 +82,11 @@ public abstract class TransactionManagerService {
     }
 
     public CompletableFuture<Void> saveToDB(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp){
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         LOG.info("Putting new key/values in the DB with TC: {}", provisionalCommitTimestamp.toPrimitive());
         return flushControlHandler.put(driver.put(provisionalCommitTimestamp), driver.put(writeMap));
     }

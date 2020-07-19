@@ -48,7 +48,7 @@ public class TransactionManagerImpl extends TransactionManagerService implements
     }
 
     @Override
-    public void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf) {
+    public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf) {
         certifier.update(commitTimestamp);
         cf.complete(commitTimestamp);
     }
