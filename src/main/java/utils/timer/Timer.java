@@ -1,4 +1,7 @@
-package utils;
+package utils.timer;
+
+import utils.timer.Checkpoint;
+import utils.timer.Stats;
 
 import java.util.ArrayList;
 import java.util.HashMap;

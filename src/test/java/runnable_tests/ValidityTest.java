@@ -2,17 +2,13 @@ package runnable_tests;
 
 import certifier.Timestamp;
 import io.atomix.utils.net.Address;
-import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
 import transaction_manager.standalone.TransactionManagerStub;
 import transaction_manager.utils.ByteArrayWrapper;
-import utils.Timer;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
 public class ValidityTest {
@@ -65,7 +61,7 @@ public class ValidityTest {
                                 for (int k = 0; k < READS; k++) {
                                     byte[] key = String.valueOf(rnd.nextInt(KEY_POOL)).getBytes();
                                     byte[] value = tx.read(key);
-                                    byte[] value2 = npvs.get(new ByteArrayWrapper(key),sts).get();
+                                    byte[] value2 = npvs.get(new ByteArrayWrapper(key),sts).get().getValue();
                                     System.out.println(value == value2);
                                 }
 

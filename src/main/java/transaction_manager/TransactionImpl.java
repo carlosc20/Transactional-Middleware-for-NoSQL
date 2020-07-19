@@ -4,6 +4,7 @@ import certifier.Timestamp;
 import nosql.KeyValueDriver;
 import nosql.messaging.GetMessage;
 import npvs.NPVS;
+import npvs.NPVSReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.TransactionContentMessage;
@@ -55,26 +56,37 @@ public class TransactionImpl implements Transaction {
         }
         try {
             if (!latestTimestamp){
-                LOG.info("Transaction: {} -> Value of key: {} was fetched from NPVS", ts.toPrimitive(), k.toString());
-                return npvs.get(k, ts).get();
+                return getFromNPVS(k);
             }
-            else{
+            else {
                 GetMessage gm = driver.get(k).get();
                 if (gm.getTs().isAfter(ts)) {
                     LOG.info("Transaction: {} no longer on latest snapshot view, latest version: {}", ts.toPrimitive(), gm.getTs().toPrimitive());
                     this.latestTimestamp = false;
-                    return npvs.get(k, ts).get();
+                    return getFromNPVS(k);
                 }
                 else {
                     LOG.info("Transaction: {} -> Value of key: {} was fetched from the DB", ts.toPrimitive(), k.toString());
                     return gm.getValue();
                 }
             }
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | NPVSOutOfDateException e) {
+            // TODO
             e.printStackTrace();
         }
         return null;
     }
+
+    private byte[] getFromNPVS(ByteArrayWrapper key) throws NPVSOutOfDateException, ExecutionException, InterruptedException {
+        NPVSReply reply = npvs.get(key, ts).get();
+        if (!reply.isSuccess()) {
+            LOG.info("Transaction: {} -> Value of key: {}, NPVS was out of date", ts.toPrimitive(), key.toString());
+            throw new NPVSOutOfDateException();
+        }
+        LOG.info("Transaction: {} -> Value of key: {} was fetched from NPVS", ts.toPrimitive(), key.toString());
+        return reply.getValue();
+    }
+
 
     @Override
     public List<byte[]> scan(List<byte[]> keys) {

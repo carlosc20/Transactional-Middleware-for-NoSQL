@@ -2,6 +2,7 @@ package npvs.binarysearch;
 
 import certifier.Timestamp;
 import npvs.NPVS;
+import npvs.NPVSReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.ByteArrayWrapper;
@@ -45,13 +46,13 @@ public class NPVSImplBS implements NPVS<Long> {
     }
 
     @Override
-    public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
+    public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
             LOG.info("No such key has been found: {}", key.toString());
             return CompletableFuture.completedFuture(null);
         }
         ArrayList<Version> versions = versionsByKey.get(key);
-        return CompletableFuture.completedFuture(getSICompliantVersion(versions, ts));
+        return CompletableFuture.completedFuture(new NPVSReply(getSICompliantVersion(versions, ts)));
     }
 
     private byte[] getSICompliantVersion(ArrayList<Version> versions, Timestamp<Long> ts) {

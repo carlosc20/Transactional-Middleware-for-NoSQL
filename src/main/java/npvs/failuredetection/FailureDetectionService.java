@@ -42,7 +42,7 @@ public class FailureDetectionService {
         this.spreadGroup.join(this.spreadConnection, "group");
         this.spreadConnection.add(messageListener());
 
-        // TODO espera até saber se está ok ou nao?
+        // TODO Completable
     }
 
     public AdvancedMessageListener messageListener() {
@@ -57,9 +57,10 @@ public class FailureDetectionService {
                                 state = State.OK;
                             else
                                 state = State.WAITING_ALL;
+                            // TODO complete OK
                         }
                         else { // crashed
-                            // TODO recuperar, callback do npvs? npvs depois poe OK?
+                            // TODO complete CRASHED, npvs depois diz quando recuperou
                         }
                     }
                 } catch (Exception e) {
@@ -137,7 +138,7 @@ public class FailureDetectionService {
                 if (members.length == totalServers) {
                     state = State.OK; // all servers are ready
                 }
-                floodMessage(Boolean.TRUE, newMember, "reliable"); // TODO ao receber ve se tao todos ou n
+                floodMessage(Boolean.TRUE, newMember, "reliable");
             }
             crashed.put(newMember, false); // necessário? -> acho que não....   ass: Dantas
         }
@@ -145,7 +146,7 @@ public class FailureDetectionService {
             if (state == State.WAITING_ALL)
                 System.out.println("enviar msg a dizer waiting for all"); // crash is ok if still waiting for all
 
-            floodMessage(Boolean.FALSE, newMember, "reliable"); // TODO enviar msg a dizer que falhou
+            floodMessage(Boolean.FALSE, newMember, "reliable");
         }
 
     }

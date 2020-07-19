@@ -1,4 +1,4 @@
-package utils;
+package utils.timer;
 
 public class Checkpoint {
     String info;

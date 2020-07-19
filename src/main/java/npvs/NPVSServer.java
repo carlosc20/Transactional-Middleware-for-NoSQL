@@ -18,21 +18,24 @@ import spread.*;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.net.UnknownHostException;
+import java.util.concurrent.CompletableFuture;
 
 public class NPVSServer {
     private static final Logger LOG = LoggerFactory.getLogger(NPVSServer.class);
     private final ManagedMessagingService mms;
     private final Serializer s;
     private final NPVSImplBS npvs;
-    private final FailureDetectionService fds;
     private final int myPort;
 
+    private FailureDetectionService fds;
 
-    private Timestamp<Long> rebootingTs;
+    private final RaftMessagingService rms;
+
+    private Timestamp<Long> startTs;
+
+
 
     public NPVSServer(int myPort, int spreadPort, String privateName){
-
-        int totalServers = 3; // TODO
 
         this.myPort = myPort;
 
@@ -45,18 +48,28 @@ public class NPVSServer {
                 new MessagingConfig());
         this.npvs = new NPVSImplBS();
 
-        this.fds = new FailureDetectionService(spreadPort, privateName, totalServers);
+        this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
+
+        int totalServers = 3; // TODO
+        // this.fds = new FailureDetectionService(spreadPort, privateName, totalServers);
     }
 
     public void start() throws UnknownHostException, SpreadException {
 
+        startTs = rms.getTimestamp();
+
         // TODO voltar a por quando for para usar
-        //fds.start();
+        // fds.start();
+
         mms.start();
         mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
             System.out.println(myPort + " get request arrived with key: " + rm.getKey() + " and TS: " + rm.getTs().toPrimitive());
             LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
+            Timestamp<Long> requestTs = rm.getTs();
+            if (requestTs.isBefore(startTs))
+                return CompletableFuture.completedFuture(s.encode(NPVSReply.FAIL()));
+
             return npvs.get(rm.getKey(), rm.getTs())
                         .thenApply(s::encode);
         });

@@ -1,21 +1,12 @@
 package runnable_tests;
 
 import io.atomix.utils.net.Address;
-import nosql.KeyValueDriver;
-import nosql.MongoAsynchKV;
-import npvs.NPVS;
-import npvs.NPVSServer;
-import npvs.NPVSStub;
-import spread.SpreadException;
 import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionManager;
-import transaction_manager.messaging.ServersContextMessage;
-import transaction_manager.standalone.TransactionManagerServer;
 import transaction_manager.standalone.TransactionManagerStub;
-import utils.Timer;
+import utils.timer.Timer;
 
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -29,12 +20,25 @@ public class LoadTest {
         //testSequential(30000);
     }
 
+    final static int KEY_POOL = 100;
+
+    static void read(Timer timer, Transaction tx, Random rnd) {
+        String key = String.valueOf(rnd.nextInt(KEY_POOL));
+        tx.read(key.getBytes());
+    }
+
+    static void write(Timer timer, Transaction tx, Random rnd) {
+        String key = String.valueOf(rnd.nextInt(KEY_POOL));
+        String value = String.valueOf(rnd.nextInt());
+        tx.write(key.getBytes(), value.getBytes());
+    }
+
     static void testSequential(int serverPort) throws ExecutionException, InterruptedException {
         final int CLIENTS = 1;
         final int TRANSACTIONS = 20; // dividido pelos clients
         final int WRITES = 2;
         final int READS = 2;
-        final int KEY_POOL = 100;
+
 
         Timer timer = new Timer();
         timer.start();
@@ -59,17 +63,27 @@ public class LoadTest {
             Transaction tx = tc.startTransaction();
             timer.addCheckpoint("Transaction started " + i);
 
-            for (int j = 0; j < READS; j++) {
-                String key = String.valueOf(rnd.nextInt(KEY_POOL));
-                tx.read(key.getBytes());
-                timer.addCheckpoint("Read " + i);
-            }
 
-            for (int j = 0; j < WRITES; j++) {
-                String key = String.valueOf(rnd.nextInt(KEY_POOL));
-                String value = String.valueOf(rnd.nextInt());
-                tx.write(key.getBytes(), value.getBytes());
-                timer.addCheckpoint("Write " + i);
+            for (int r = 0, w = 0; r + w < READS + WRITES;) {
+                if(r >= READS ) {
+                    write(timer, tx, rnd);
+                    timer.addCheckpoint("Write " + i);
+                    w++;
+                } else  if(w >= WRITES) {
+                    read(timer, tx, rnd);
+                    timer.addCheckpoint("Read " + i);
+                    r++;
+                } else {
+                    if (rnd.nextBoolean()) {
+                        read(timer, tx, rnd);
+                        timer.addCheckpoint("Read " + i);
+                        r++;
+                    } else {
+                        write(timer, tx, rnd);
+                        timer.addCheckpoint("Write " + i);
+                        w++;
+                    }
+                }
             }
 
             if(!tx.commit()) {
@@ -114,18 +128,26 @@ public class LoadTest {
                                 timer.addCheckpoint(p + " -> Transaction started " + j, "Start");
                                 System.out.println(p + " -> Transaction started " + j);
 
-                                // TODO por reads e writes alternados
-                                for (int k = 0; k < READS; k++) {
-                                    String key = String.valueOf(rnd.nextInt(KEY_POOL));
-                                    tx.read(key.getBytes());
-                                    timer.addCheckpoint(p + " -> Read " + j, "Read");
-                                }
-
-                                for (int k = 0; k < WRITES; k++) {
-                                    String key = String.valueOf(rnd.nextInt(KEY_POOL));
-                                    String value = String.valueOf(rnd.nextInt());
-                                    tx.write(key.getBytes(), value.getBytes());
-                                    timer.addCheckpoint(p + " -> Write " + j, "Write");
+                                for (int r = 0, w = 0; r + w < READS + WRITES;) {
+                                    if(r >= READS ) {
+                                        write(timer, tx, rnd);
+                                        timer.addCheckpoint(p + " -> Write " + j, "Write");
+                                        w++;
+                                    } else  if(w >= WRITES) {
+                                        read(timer, tx, rnd);
+                                        timer.addCheckpoint(p + " -> Read " + j, "Read");
+                                        r++;
+                                    } else {
+                                        if (rnd.nextBoolean()) {
+                                            read(timer, tx, rnd);
+                                            timer.addCheckpoint(p + " -> Read " + j, "Read");
+                                            r++;
+                                        } else {
+                                            write(timer, tx, rnd);
+                                            timer.addCheckpoint(p + " -> Write " + j, "Write");
+                                            w++;
+                                        }
+                                    }
                                 }
 
                                 if(!tx.commit()) {

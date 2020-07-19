@@ -1,4 +1,4 @@
-package utils;
+package utils.timer;
 
 public class Stats {
     long max = Long.MIN_VALUE;

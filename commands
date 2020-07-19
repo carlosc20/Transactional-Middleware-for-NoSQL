@@ -1,3 +1,0 @@
-C:\Users\dantas\Documents\GitHub\LEI-2019-20\raft_server1 manager 127.0.0.1:8081 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083 1
-C:\Users\dantas\Documents\GitHub\LEI-2019-20\raft_server2 manager 127.0.0.1:8082 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083 2
-C:\Users\dantas\Documents\GitHub\LEI-2019-20\raft_server3 manager 127.0.0.1:8083 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083 3

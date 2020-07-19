@@ -3,6 +3,7 @@ package npvs.treemap;
 import certifier.Timestamp;
 import npvs.NPVS;
 
+import npvs.NPVSReply;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.*;
@@ -31,7 +32,7 @@ public class NPVSImplTM implements NPVS<Long>{
     }
 
     @Override
-    public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
+    public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
             System.out.println("no key");
             return CompletableFuture.completedFuture(null);
@@ -44,6 +45,6 @@ public class NPVSImplTM implements NPVS<Long>{
             value = versions.lastEntry().getValue();
         else
             value = entry.getValue();
-        return CompletableFuture.completedFuture(value);
+        return CompletableFuture.completedFuture(new NPVSReply(value));
     }
 }

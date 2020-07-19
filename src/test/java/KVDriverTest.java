@@ -6,7 +6,7 @@ import nosql.messaging.ScanMessage;
 import org.junit.Test;
 import transaction_manager.control.PipelineWriterHandler;
 import transaction_manager.utils.ByteArrayWrapper;
-import utils.Timer;
+import utils.timer.Timer;
 import utils.WriteMapsBuilder;
 
 import java.util.*;

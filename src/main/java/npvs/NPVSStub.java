@@ -65,7 +65,7 @@ public class NPVSStub implements NPVS<Long> {
     }
 
     @Override
-    public CompletableFuture<byte[]> get(ByteArrayWrapper key, Timestamp<Long> ts) {
+    public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         byte[] data = key.getData();
         int server = assignServer(data);
         Address address = servers.get(server);

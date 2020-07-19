@@ -1,5 +1,6 @@
 import certifier.MonotonicTimestamp;
 import io.atomix.utils.net.Address;
+import npvs.NPVSReply;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
 import org.junit.Test;
@@ -25,7 +26,7 @@ public class NPVSTest {
     public void fetchAndAssert(long timestamp, ByteArrayWrapper baw, String str){
         npvs.get(baw, new MonotonicTimestamp(timestamp))
             .thenAccept(x -> {
-                String new_str = new String(x);
+                String new_str = new String(x.getValue());
                 System.out.println(new_str + " Arrived! on request with ts: " + timestamp);
                 assertEquals("Should be equal", 0, new_str.compareTo(str));
             });
