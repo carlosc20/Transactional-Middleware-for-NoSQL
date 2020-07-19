@@ -37,10 +37,7 @@ public class NPVSServer {
         this.myPort = myPort;
 
         s = new SerializerBuilder()
-                .addType(FlushMessage.class)
-                .addType(ReadMessage.class)
-                .addType(ByteArrayWrapper.class)
-                .addType(MonotonicTimestamp.class)
+                .withRegistrationRequired(false)
                 .build();
         mms = new NettyMessagingService(
                 "server",
@@ -54,9 +51,7 @@ public class NPVSServer {
     public void start() throws UnknownHostException, SpreadException {
 
         // TODO voltar a por quando for para usar
-        fds.start();
-
-
+        //fds.start();
         mms.start();
         mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
@@ -77,6 +72,6 @@ public class NPVSServer {
 
     public static void main(String[] args) throws SpreadException, UnknownHostException {
 
-        new NPVSServer(20000, 40000, "0").start();
+        new NPVSServer(20001, 40000, "0").start();
     }
 }

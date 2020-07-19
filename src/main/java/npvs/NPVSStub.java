@@ -1,6 +1,5 @@
 package npvs;
 
-import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -32,10 +31,7 @@ public class NPVSStub implements NPVS<Long> {
         servers.forEach(v -> this.servers.add(Address.from(v)));
 
         s = new SerializerBuilder()
-                .addType(FlushMessage.class)
-                .addType(ReadMessage.class)
-                .addType(ByteArrayWrapper.class)
-                .addType(MonotonicTimestamp.class)
+                .withRegistrationRequired(false)
                 .build();
         mms = new NettyMessagingService(
                 "server",
@@ -60,13 +56,11 @@ public class NPVSStub implements NPVS<Long> {
         }
 
         CompletableFuture<?>[] futures = new CompletableFuture<?>[servers.size()];
-
         for (int i = 0; i < servers.size(); i++) {
             Address address = servers.get(i);
             futures[i] = mms.sendAndReceive(address, "put", s.encode(fm), Duration.ofSeconds(10), e)
                     .thenApply(s::decode);
         }
-
         return CompletableFuture.allOf(futures);
     }
 

@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
+import transaction_manager.raft.callbacks.CompletableClosure;
 import transaction_manager.raft.callbacks.TransactionClosure;
 import transaction_manager.raft.snapshot.ExtendedState;
 import transaction_manager.raft.snapshot.StateSnapshot;
@@ -33,15 +34,15 @@ public class ManagerStateMachine extends StateMachineAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ManagerStateMachine.class);
 
     private final RaftTransactionManagerImpl transactionManager;
-    /**
-     * Leader term
-     */
-    private final AtomicLong leaderTerm = new AtomicLong(-1);
-
 
     public ManagerStateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
         super();
         this.transactionManager = new RaftTransactionManagerImpl(timestep, npvs, driver, scm, requestHandler);
+    }
+
+    //debug
+    public ExtendedState getExtendedState(){
+        return transactionManager.getExtendedState();
     }
 
     public boolean isLeader() {
@@ -81,29 +82,32 @@ public class ManagerStateMachine extends StateMachineAdapter {
         if (transactionManagerOperation != null) {
             switch (transactionManagerOperation.getOp()) {
                 case START_TXN:
-                    transactionManager.startTransaction().thenAccept(res ->{
-                        closure.success(res);
-                        closure.run(Status.OK());
-                    });
+                    transactionManager.startTransaction().thenAccept(res -> treatClosure(res, closure));
                     break;
                 case COMMIT:
                     final TransactionContentMessage tcm = transactionManagerOperation.getTcm();
-                    transactionManager.tryCommit(tcm).thenAccept(res -> {
-                        closure.success(res);
-                        closure.run(Status.OK());
-                    });
+                    transactionManager.tryCommit(tcm).thenAccept(res -> treatClosure(res, closure));
                     break;
                 case UPDATE_STATE:
                     final Timestamp<Long> commitTimestamp = transactionManagerOperation.getTimestamp();
+                    transactionManager.getCertifier().update(commitTimestamp);
                     transactionManager.removeFlush(commitTimestamp);
-                    LOG.info("removing TC={} from nonAckedFlushes", commitTimestamp);
+                    if(closure != null)
+                        ((CompletableClosure<Void>) closure).complete(commitTimestamp);
             }
+        }
+    }
+
+    private void treatClosure(Timestamp<Long> ts, TransactionClosure closure){
+        if(closure != null) {
+            closure.success(ts);
+            closure.run(Status.OK());
         }
     }
 
     @Override
     public void onLeaderStart(final long term) {
-        this.leaderTerm.set(term);
+        this.transactionManager.setTerm(term);
         //TODO testar
         //this.transactionManager.scheduleLeaderEvents(3, TimeUnit.MINUTES);
         //this.transactionManager.triggerNonAckedFlushes();
@@ -164,7 +168,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
     //TODO ter cuidado com isto. Pedidos ainda não acabados
     @Override
     public void onLeaderStop(final Status status) {
-        this.leaderTerm.set(-1);
+        this.transactionManager.setTerm(-1);
         super.onLeaderStop(status);
     }
 

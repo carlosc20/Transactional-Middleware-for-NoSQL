@@ -1,8 +1,9 @@
 package transaction_manager.utils;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public final class ByteArrayWrapper {
+public final class ByteArrayWrapper implements Serializable {
     private final byte[] data;
 
     public ByteArrayWrapper(byte[] data){

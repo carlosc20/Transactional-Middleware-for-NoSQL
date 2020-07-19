@@ -34,8 +34,7 @@ public class TransactionManagerImpl extends TransactionManagerService implements
         Timestamp<Long> commitTimestamp = certifierCommit(tc);
         if(commitTimestamp.toPrimitive() > 0) {
             LOG.info("Making transaction with TC: {} changes persist", commitTimestamp.toPrimitive());
-            return flush(tc.getWriteMap(), commitTimestamp, certifier.getCurrentCommitTs())
-                    .thenApply(x -> commitTimestamp);
+            return flush(tc.getWriteMap(), commitTimestamp, certifier.getCurrentCommitTs());
         } else {
             LOG.info("aborted a transaction with TS {}", tc.getTimestamp());
             return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
@@ -47,8 +46,9 @@ public class TransactionManagerImpl extends TransactionManagerService implements
     }
 
     @Override
-    public void updateState(Timestamp<Long> commitTimestamp) {
+    public void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf) {
         certifier.update(commitTimestamp);
+        cf.complete(commitTimestamp);
     }
 
     public Certifier<Long> getCertifier() {

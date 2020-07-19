@@ -23,4 +23,12 @@ public class ExtendedState implements Serializable {
     public Map<Timestamp<Long>, Map<ByteArrayWrapper, byte[]>> getNonAckedFlushs() {
         return nonAckedFlushs;
     }
+
+    @Override
+    public String toString() {
+        return "ExtendedState{" +
+                "standaloneState=" + standaloneState.toString() + "\n" +
+                ", nonAckedFlushs size=" + nonAckedFlushs.size() + "\n" +
+                '}';
+    }
 }

@@ -14,8 +14,10 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.raft.callbacks.TransactionClosure;
+import transaction_manager.raft.snapshot.ExtendedState;
 
 import java.nio.ByteBuffer;
+import java.sql.Time;
 import java.util.concurrent.Executor;
 
 public class RequestHandler {
@@ -28,14 +30,13 @@ public class RequestHandler {
         this.readIndexExecutor = createReadIndexExecutor();
     }
 
-    public void startTransaction(final TransactionClosure<Long> closure) {
+    public void startTransaction(final TransactionClosure<Timestamp<Long>> closure) {
         applyOperation(TransactionManagerOperation.createStartTransaction(), closure);
     }
 
-    public void tryCommit(TransactionContentMessage tcm, final TransactionClosure<Boolean> closure) {
+    public void tryCommit(TransactionContentMessage tcm, final TransactionClosure<Timestamp<Long>> closure) {
         applyOperation(TransactionManagerOperation.createCommit(tcm), closure);
     }
-
 
     //TODO any server can execute this
     public void getServersContext(final TransactionClosure<ServersContextMessage> closure){

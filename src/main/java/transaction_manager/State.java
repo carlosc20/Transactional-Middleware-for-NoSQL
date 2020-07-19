@@ -21,4 +21,12 @@ public class State implements Serializable {
     public Timestamp<Long> getLastNPVSCrash() {
         return lastNPVSCrash;
     }
+
+    @Override
+    public String toString() {
+        return "State{" +
+                "certifier=" + certifier.toString() + "\n" +
+                ", lastNPVSCrash=" + lastNPVSCrash.toPrimitive() + "\n" +
+                '}';
+    }
 }

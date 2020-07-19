@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class TransactionManagerService {
@@ -41,16 +42,17 @@ public abstract class TransactionManagerService {
         this.flushControlHandler = new PipelineWriterHandler(executorService);
     }
 
-    public abstract void updateState(Timestamp<Long> commitTimestamp);
+    public abstract void updateState(Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
 
-    public CompletableFuture<Void> flush(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
+    public CompletableFuture<Timestamp<Long>> flush(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp, Timestamp<Long> currentCommitTimestamp) {
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
-        return consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
-                .thenCompose(future -> saveToDB(writeMap, provisionalCommitTimestamp))
-                .thenCompose(future -> commitControlHandler.deliver(provisionalCommitTimestamp))
-                //TODO a partir daqui resposta do cliente já devia de poder ser dada
-                .thenAccept(x -> updateState(provisionalCommitTimestamp))
-                .thenAccept(x -> commitControlHandler.completeDeliveries());
+        CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
+        consistentKeyValues.thenCompose(wm -> saveToNPVS(wm, currentCommitTimestamp))
+            .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
+            .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
+            .thenAccept(x -> updateState(provisionalCommitTimestamp, cf))
+            .thenAccept(x -> commitControlHandler.completeDeliveries());
+        return cf;
     }
 
     public CompletableFuture<Map<ByteArrayWrapper, byte[]>> getPreviousConsistentValues(Map<ByteArrayWrapper, byte[]> writeMap){

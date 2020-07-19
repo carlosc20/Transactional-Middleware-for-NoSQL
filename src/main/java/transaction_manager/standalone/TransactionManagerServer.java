@@ -17,7 +17,6 @@ import transaction_manager.messaging.TransactionCommitRequest;
 import transaction_manager.messaging.TransactionStartRequest;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

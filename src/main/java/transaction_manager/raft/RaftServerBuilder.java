@@ -32,9 +32,13 @@ public class RaftServerBuilder {
     }
 
     public RaftTMServer build() throws IOException {
-        PeerId peerId = buildPeerId();
-        NodeOptions nodeOptions = buildStandardNodeOptions();
-        RaftTMServer server = new RaftTMServer(dataPath, groupId, peerId, nodeOptions, buildServersContextMessage());
+        RaftTMServer server = new RaftTMServer();
+        server.setTimestep(timestep);
+        server.setScm(buildServersContextMessage());
+        server.setDataPath(dataPath);
+        server.setGroupId(groupId);
+        server.setNodeOptions(buildStandardNodeOptions());
+        server.setServerId(buildPeerId());
         server.setDriver(buildDriver());
         server.setNpvs(buildNPVS());
         return server;
@@ -86,7 +90,8 @@ public class RaftServerBuilder {
     public RaftServerBuilder withStandardServersPort(int offset, int numberOfNPVS){
         npvsStubPort = Address.from(30000 + offset);
         for (int i = 0; i < numberOfNPVS; i++){
-            npvsServers.add("localhost:" + 20000 + i);
+            int port = 20000 + i;
+            npvsServers.add("localhost:" + port);
         }
         return this;
     }

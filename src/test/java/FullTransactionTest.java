@@ -1,5 +1,6 @@
 import io.atomix.utils.net.Address;
 import org.junit.Test;
+import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
@@ -13,14 +14,14 @@ import static org.junit.Assert.*;
 
 public class FullTransactionTest {
     TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
-
+    //TransactionManager tms = new TransactionManagerStub(23451, 30000);
     @Test
     public void justRead(){
 
     }
 
     @Test
-    //BD must be empty
+    //state must be initial
     public void writeThenRead() throws InterruptedException, ExecutionException {
         //new NPVSServer(20000).start();
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();

@@ -1,7 +1,9 @@
 package transaction_manager.raft;
 
+import certifier.Timestamp;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
+import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
@@ -9,12 +11,10 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import nosql.KeyValueDriver;
 import npvs.NPVS;
 import org.apache.commons.io.FileUtils;
-import transaction_manager.messaging.ServerContextRequestMessage;
+import transaction_manager.messaging.*;
 import transaction_manager.raft.rpc.RequestProcessor;
 import transaction_manager.raft.rpc.ValueResponse;
-import transaction_manager.messaging.ServersContextMessage;
-import transaction_manager.messaging.TransactionCommitRequest;
-import transaction_manager.messaging.TransactionStartRequest;
+import transaction_manager.raft.snapshot.ExtendedState;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,10 +27,12 @@ public class RaftTMServer {
     private KeyValueDriver driver;
     private ServersContextMessage scm;
     private long timestep;
+    private String dataPath;
+    private String groupId;
+    private PeerId serverId;
+    private NodeOptions nodeOptions;
 
-    public RaftTMServer(final String dataPath, final String groupId, final PeerId serverId,
-                        final NodeOptions nodeOptions, ServersContextMessage scm) throws IOException {
-
+    public void start() throws IOException {
         // Initialize the path.
         FileUtils.forceMkdir(new File(dataPath));
 
@@ -40,17 +42,23 @@ public class RaftTMServer {
 
         RequestHandler requestHandler = new RequestHandler(this);
 
-        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Boolean>(
+        rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Timestamp<Long>>(
                 TransactionCommitRequest.class,
                 (req , closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)));
 
-        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Long>(
+        rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Timestamp<Long>>(
                 TransactionStartRequest.class,
                 (req , closure) -> requestHandler.startTransaction(closure)));
 
         rpcServer.registerProcessor(new RequestProcessor<ServerContextRequestMessage, ServersContextMessage>(
                 ServerContextRequestMessage.class,
                 (req , closure) -> requestHandler.getServersContext(closure)));
+
+
+        rpcServer.registerProcessor(new RequestProcessor<GetFullState, ExtendedState>(
+                GetFullState.class,
+                (req, closure) -> {closure.success(fsm.getExtendedState()); closure.run(Status.OK());}
+        ));
 
         // Initialize the state machine.
         this.fsm = new ManagerStateMachine(timestep, npvs, driver, scm, requestHandler);
@@ -65,9 +73,6 @@ public class RaftTMServer {
         nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot");
         // Initialize the Raft group service framework.
         this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer);
-    }
-
-    public void start(){
         // Startup
         this.node = this.raftGroupService.start();
     }
@@ -100,18 +105,6 @@ public class RaftTMServer {
         return response;
     }
 
-    public void setRaftGroupService(RaftGroupService raftGroupService) {
-        this.raftGroupService = raftGroupService;
-    }
-
-    public void setNode(Node node) {
-        this.node = node;
-    }
-
-    public void setFsm(ManagerStateMachine fsm) {
-        this.fsm = fsm;
-    }
-
     public void setNpvs(NPVS<Long> npvs) {
         this.npvs = npvs;
     }
@@ -126,6 +119,22 @@ public class RaftTMServer {
 
     public void setTimestep(long timestep) {
         this.timestep = timestep;
+    }
+
+    public void setDataPath(String dataPath) {
+        this.dataPath = dataPath;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public void setServerId(PeerId serverId) {
+        this.serverId = serverId;
+    }
+
+    public void setNodeOptions(NodeOptions nodeOptions) {
+        this.nodeOptions = nodeOptions;
     }
 
     public static void main(final String[] args) throws IOException {

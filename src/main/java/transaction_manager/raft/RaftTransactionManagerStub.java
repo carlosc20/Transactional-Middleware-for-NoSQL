@@ -11,7 +11,9 @@ import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import transaction_manager.TransactionManager;
 import transaction_manager.messaging.*;
 import transaction_manager.raft.rpc.ValueResponse;
+import transaction_manager.raft.snapshot.ExtendedState;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
@@ -49,7 +51,7 @@ public class RaftTransactionManagerStub implements TransactionManager {
     public CompletableFuture<Timestamp<Long>> startTransaction() {
         TransactionStartRequest tsr = new TransactionStartRequest();
         try {
-            return CompletableFuture.completedFuture(((ValueResponse<MonotonicTimestamp>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tsr, 30000)).getValue());
+            return CompletableFuture.completedFuture(((ValueResponse<Timestamp<Long>>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tsr, 50000)).getValue());
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
@@ -61,7 +63,7 @@ public class RaftTransactionManagerStub implements TransactionManager {
         TransactionCommitRequest tcr = new TransactionCommitRequest(tx);
         try {
             // TODO return timestamp
-            return CompletableFuture.completedFuture(((ValueResponse<Timestamp<Long>>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 30000)).getValue());
+            return CompletableFuture.completedFuture(((ValueResponse<Timestamp<Long>>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 50000)).getValue());
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
@@ -73,6 +75,17 @@ public class RaftTransactionManagerStub implements TransactionManager {
         ServerContextRequestMessage scr = new ServerContextRequestMessage();
         try {
             return ((ValueResponse<ServersContextMessage>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), scr, 30000)).getValue();
+        } catch (InterruptedException | RemotingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public ExtendedState getExtendedState() {
+        try {
+            List<PeerId> pps = RouteTable.getInstance().getConfiguration("manager").getPeers();
+            System.out.println(pps.toString());
+            return ((ValueResponse<ExtendedState>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), new GetFullState(), 30000)).getValue();
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }

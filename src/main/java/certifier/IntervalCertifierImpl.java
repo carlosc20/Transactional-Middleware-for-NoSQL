@@ -79,4 +79,12 @@ public class IntervalCertifierImpl extends AbstractCertifier {
             startsOnWait.forEach(x -> x.complete(null));
     }
 
+    @Override
+    public String toString() {
+        return "IntervalCertifierImpl{" +
+                "currentStartTs=" + currentStartTs.toPrimitive() + "\n" +
+                ", provisionalCommitTs=" + provisionalCommitTs.toPrimitive() + "\n" +
+                super.toString() +
+                '}';
+    }
 }
