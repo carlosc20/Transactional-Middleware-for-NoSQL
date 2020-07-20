@@ -1,5 +1,6 @@
 package transaction_manager.raft.sofa_jraft;
 
+import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
@@ -10,11 +11,13 @@ import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import nosql.KeyValueDriver;
 import npvs.NPVSStub;
+import npvs.messaging.FlushMessage;
 import org.apache.commons.io.FileUtils;
 import transaction_manager.messaging.*;
 import transaction_manager.raft.sofa_jraft.rpc.RequestProcessor;
 import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
 import transaction_manager.raft.snapshot.ExtendedState;
+import utils.WriteMapsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,27 +50,33 @@ public class RaftTMServer {
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionCommitRequest, Timestamp<Long>>(
                 TransactionCommitRequest.class,
-                (req , closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)
+                (req, closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)
         ));
 
         rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Timestamp<Long>>(
                 TransactionStartRequest.class,
-                (req , closure) -> requestHandler.startTransaction(closure))
+                (req, closure) -> requestHandler.startTransaction(closure))
         );
 
         rpcServer.registerProcessor(new RequestProcessor<ServerContextRequestMessage, ServersContextMessage>(
                 ServerContextRequestMessage.class,
-                (req , closure) -> requestHandler.getServersContext(closure)
+                (req, closure) -> requestHandler.getServersContext(closure)
         ));
 
         rpcServer.registerProcessor(new RequestProcessor<GetFullState, ExtendedState>(
                 GetFullState.class,
-                (req, closure) -> {closure.success(fsm.getExtendedState()); closure.run(Status.OK());}
+                (req, closure) -> {
+                    closure.success(fsm.getExtendedState());
+                    closure.run(Status.OK());
+                }
         ));
 
         rpcServer.registerProcessor(new RequestProcessor<GetTimestamp, Timestamp<Long>>(
                 GetTimestamp.class,
-                (req, closure) -> {closure.success(fsm.getCurrentTs()); closure.run(Status.OK());}
+                (req, closure) -> {
+                    closure.success(fsm.getCurrentTs());
+                    closure.run(Status.OK());
+                }
         ));
 
 
