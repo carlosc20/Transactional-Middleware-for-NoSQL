@@ -40,7 +40,7 @@ public class NPVSServer {
                 "server",
                 Address.from(myPort),
                 new MessagingConfig());
-        this.npvs =  new NPVSImplBS(); //new NPVSImplBSConcurrent();
+        this.npvs =  new NPVSImplBSConcurrent(); //new NPVSImplBSConcurrent();
 
        // this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
     }

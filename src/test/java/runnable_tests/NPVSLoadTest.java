@@ -15,6 +15,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +24,7 @@ public class NPVSLoadTest {
 
 
     public static void main(String[] args) throws InterruptedException, SpreadException, UnknownHostException {
-        writeRead(10, 50000);
+        writeRead(10, 1000);
     }
 
     public static void writeRead(int putSize, int putCount) throws InterruptedException, SpreadException, UnknownHostException {
@@ -43,7 +44,9 @@ public class NPVSLoadTest {
         timer.addCheckpoint("start");
         Random rnd = new Random(0);
 
+        CompletableFuture<?>[] futuresPut = new CompletableFuture<?>[putCount];
         for (int i = 0; i < putCount; i++) {
+
             // Random stuff
             WriteMapsBuilder wmb = new WriteMapsBuilder();
             for (int j = 0; j < putSize; j++) {
@@ -54,11 +57,16 @@ public class NPVSLoadTest {
             //npvs.get(new ByteArrayWrapper(String.valueOf(rnd.nextInt(keyPool)).getBytes()), new MonotonicTimestamp(i + 1));
 
             // Put
-            npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1 + i), new MonotonicTimestamp(1 + i)));
+            futuresPut[i] = npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1 + i), new MonotonicTimestamp(1 + i)));
         }
+        CompletableFuture.allOf(futuresPut).join();
         timer.addCheckpoint("puts");
 
+
+
+        CompletableFuture<?>[] futuresGet = new CompletableFuture<?>[putCount];
         for (int i = 0; i < putCount; i++) {
+
             // Random stuff
             WriteMapsBuilder wmb = new WriteMapsBuilder();
             for (int j = 0; j < putSize; j++) {
@@ -66,11 +74,12 @@ public class NPVSLoadTest {
             }
 
             // Get
-            npvs.get(new ByteArrayWrapper(String.valueOf(rnd.nextInt(keyPool)).getBytes()), new MonotonicTimestamp(i + 1));
+            futuresGet[i] = npvs.get(new ByteArrayWrapper(String.valueOf(rnd.nextInt(keyPool)).getBytes()), new MonotonicTimestamp(i + 1));
 
             // Put
             //npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1 + i), new MonotonicTimestamp(1 + i)));
         }
+        CompletableFuture.allOf(futuresGet).join();
         timer.addCheckpoint("gets");
         timer.print();
     }
