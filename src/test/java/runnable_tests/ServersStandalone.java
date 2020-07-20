@@ -12,7 +12,7 @@ import transaction_manager.standalone.TransactionManagerServer;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
-public class Servers {
+public class ServersStandalone {
 
     public static void main(String[] args) throws SpreadException, UnknownHostException {
         ArrayList<String> npvsServers = new ArrayList<>();
