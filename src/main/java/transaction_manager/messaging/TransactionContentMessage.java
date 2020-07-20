@@ -10,7 +10,6 @@ import java.util.Map;
 
 public class TransactionContentMessage implements Serializable {
 
-    //TODO na verdade pode apenas enviar o writeMap, mas a computação passa para o servidor
     private final HashMap<ByteArrayWrapper, byte[]> writeMap;
     private final Timestamp<Long> timestamp;
     private final byte[] bws;

@@ -37,8 +37,8 @@ public class RaftMessagingService {
         }
     }
 
+    // raft servers should be ready first
     public void refreshLeader() throws TimeoutException, InterruptedException {
-        //TODO não dar Throw e meter um timeout para esperar a inicialização do raft
         if (!RouteTable.getInstance().refreshLeader(cliClientService, groupId, 1000).isOk()) {
             int waitMs = 2000;
             Thread.sleep(waitMs);

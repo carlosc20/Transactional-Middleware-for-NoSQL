@@ -21,7 +21,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
-//TODO meter os subscribers genéricos
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.or;
 

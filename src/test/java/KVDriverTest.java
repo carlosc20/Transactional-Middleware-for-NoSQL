@@ -57,7 +57,6 @@ public class KVDriverTest {
     }
 
     @Test
-    // TODO deletes
     public void readWriteSimple() throws ExecutionException, InterruptedException {
         // writing
         HashMap<ByteArrayWrapper, byte[]> writeMap = new HashMap<>();

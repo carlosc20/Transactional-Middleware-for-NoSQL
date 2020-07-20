@@ -9,5 +9,4 @@ public interface Transaction {
     List<byte[]> scan(List<byte[]> keys);
 
     Boolean commit();
-    //TODO rollback?
 }

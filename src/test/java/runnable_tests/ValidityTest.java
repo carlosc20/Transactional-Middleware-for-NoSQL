@@ -49,8 +49,6 @@ public class ValidityTest {
 
                                 System.out.println(p + " -> Transaction started " + j);
 
-                                // TODO por reads e writes alternados
-
                                 Map<ByteArrayWrapper, byte[]> writes = new HashMap<>();
                                 for (int k = 0; k < WRITES; k++) {
                                     byte[] key = String.valueOf(rnd.nextInt(KEY_POOL)).getBytes();

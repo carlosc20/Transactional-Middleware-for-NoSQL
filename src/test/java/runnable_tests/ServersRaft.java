@@ -26,10 +26,6 @@ public class ServersRaft {
         new NPVSServer(20000).start();
         new NPVSServer(20001).start();
         System.out.println("NPVS servers ready");
-
-
-
-
     }
 
     private static void startRaft(String dataPath, String groupId, String serverIdStr, String initConfStr, int offset) throws IOException {

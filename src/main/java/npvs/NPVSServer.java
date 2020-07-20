@@ -23,15 +23,14 @@ public class NPVSServer {
     private static final Logger LOG = LoggerFactory.getLogger(NPVSServer.class);
     private final ManagedMessagingService mms;
     private final Serializer s;
-    private final NPVS<Long> npvs;
-    private final int myPort;
+    private final AbstractNPVS npvs;
 
-    private RaftMessagingService rms;
+    private final RaftMessagingService rms;
 
     private Timestamp<Long> startTs = new MonotonicTimestamp(-1);
 
     public NPVSServer(int myPort){
-        this.myPort = myPort;
+
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
                 .build();
@@ -81,7 +80,7 @@ public class NPVSServer {
                 return CompletableFuture.completedFuture(s.encode(null));
             }
             LOG.info("Eviction request arrived lowWaterMark ={}",ts.toPrimitive());
-            //TODO call eviction
+            npvs.evictVersions(ts);
             return CompletableFuture.completedFuture(s.encode(null));
         });
     }

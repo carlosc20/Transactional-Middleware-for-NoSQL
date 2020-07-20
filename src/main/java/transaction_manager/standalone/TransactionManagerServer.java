@@ -30,7 +30,7 @@ public class TransactionManagerServer {
     private final TransactionManagerImpl transactionManagerService;
     private final NPVSStub npvs;
 
-    //TODO builder pattern
+
     public TransactionManagerServer(long timestep, int myPort, NPVSStub npvs, KeyValueDriver driver, ServersContextMessage scm){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()

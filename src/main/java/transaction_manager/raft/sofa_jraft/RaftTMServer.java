@@ -107,7 +107,7 @@ public class RaftTMServer {
 
     private void warmup(List<String> handlers) throws InterruptedException {
         try {
-            this.npvs.warmhup(handlers).get(); // TODO
+            this.npvs.warmhup(handlers).get();
         } catch (ExecutionException e) {
             int waitMs = 2000;
             Thread.sleep(waitMs);
