@@ -1,4 +1,5 @@
 package transaction_manager;
+import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 
 import nosql.KeyValueDriver;
@@ -46,13 +47,11 @@ public abstract class TransactionManagerService {
         Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
-
         consistentKeyValues.thenComposeAsync(wm -> saveToNPVS(flushMessage), executorService)
             .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
             .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
             .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cf))
             .thenAccept(x -> commitControlHandler.completeDeliveries());
-
         return cf;
     }
 
@@ -82,11 +81,6 @@ public abstract class TransactionManagerService {
     }
 
     public CompletableFuture<Void> saveToDB(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp){
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         LOG.info("Putting new key/values in the DB with TC: {}", provisionalCommitTimestamp.toPrimitive());
         return flushControlHandler.put(driver.put(provisionalCommitTimestamp), driver.put(writeMap));
     }

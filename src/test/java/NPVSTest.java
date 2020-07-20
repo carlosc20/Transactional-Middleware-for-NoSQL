@@ -51,10 +51,10 @@ public class NPVSTest {
         wmb.put(4000, "marco", "dantas4");
         wmb.put(10000, "marco", "dantas10");
 
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(1000)));
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(2000)));
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(4000)));
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(10000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(1000), new MonotonicTimestamp(1), new MonotonicTimestamp(1000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(2000), new MonotonicTimestamp(2), new MonotonicTimestamp(2000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(4000), new MonotonicTimestamp(3), new MonotonicTimestamp(4000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(10000), new MonotonicTimestamp(4), new MonotonicTimestamp(10000)));
 
         Thread.sleep(2000); //para todos os writes serem efetivos
 

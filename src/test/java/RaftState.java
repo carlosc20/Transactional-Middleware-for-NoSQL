@@ -6,7 +6,9 @@ import npvs.messaging.FlushMessage;
 import org.junit.Test;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
+import transaction_manager.TransactionManager;
 import transaction_manager.raft.sofa_jraft.RaftTransactionManagerStub;
+import transaction_manager.standalone.TransactionManagerStub;
 import utils.WriteMapsBuilder;
 
 import java.time.Duration;
@@ -27,31 +29,30 @@ public class RaftState {
     }
 
     @Test
-    public void dummy() throws InterruptedException, ExecutionException {
+    public void dummy() throws InterruptedException{
         ExecutorService e = Executors.newSingleThreadExecutor();
-        ArrayList<String> servers = new ArrayList<>();
-        servers.add("localhost:" + 20000);
-        servers.add("localhost:" + 20001);
-        NPVSStub npvs = new NPVSStub(Address.from(23551), servers);
-        WriteMapsBuilder wmb = new WriteMapsBuilder();
-        wmb.put(1, "marco", "dantas");
-        wmb.put(1, "sadfa", "dantas");
-        wmb.put(1, "rco", "dantas");
+        TransactionManager tms = new TransactionManagerStub(23451, 30000);
+        TransactionController transactionController = new TransactionController(Address.from(23415), tms);
+        transactionController.buildContext();
 
+        for(int i = 0; i < 100; i++){
+            TransactionImpl t1 = null;
+            try {
+                t1 = transactionController.startTransaction();
+            } catch (ExecutionException executionException) {
+                executionException.printStackTrace();
+            }
 
-        ArrayList<String> handlers = new ArrayList<>();
-        handlers.add("put");
-        handlers.add("get");
-        handlers.add("eviction");
-        npvs.warmhup(handlers).get();
-        System.out.println("Warmup done. Sleeping 1 sec");
-        Thread.sleep(1000);
+            byte[] writeKey1 = "melao".getBytes();
+            byte[] writeKey2 = "meloa".getBytes();
 
-        for (int i = 0; i < 100; i++){
-            final int r = i;
-            npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(r), new MonotonicTimestamp(r)))
-                    .thenAccept(x -> System.out.println("request " + r));}
+            byte[] writeValue1 = "grande".getBytes();
+            byte[] writeValue2 = "pequena".getBytes();
 
+            t1.write(writeKey1, writeValue1);
+            t1.write(writeKey2, writeValue2);
+            t1.commit();
+        }
         e.awaitTermination(100000, TimeUnit.SECONDS);
     }
 
