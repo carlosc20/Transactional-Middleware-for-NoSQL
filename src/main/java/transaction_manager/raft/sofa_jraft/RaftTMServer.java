@@ -94,18 +94,30 @@ public class RaftTMServer {
         // Initialize the Raft group service framework.
         this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer);
 
+        // Startup
+        this.node = this.raftGroupService.start();
+
         //warmhup
         List<String> handlers = new ArrayList<>();
         handlers.add("put");
         handlers.add("eviction");
         try {
-            this.npvs.warmhup(handlers).get();
-        } catch (InterruptedException | ExecutionException e) {
+            warmup(handlers);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        // Startup
-        this.node = this.raftGroupService.start();
     }
+
+    private void warmup(List<String> handlers) throws InterruptedException {
+        try {
+            this.npvs.warmhup(handlers).get(); // TODO
+        } catch (ExecutionException e) {
+            int waitMs = 2000;
+            Thread.sleep(waitMs);
+            System.out.println("Waiting for raft, retrying in " + waitMs/1000 + " seconds");
+        }
+    }
+
 
     public ManagerStateMachine getFsm() {
         return this.fsm;

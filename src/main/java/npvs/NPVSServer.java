@@ -28,7 +28,6 @@ public class NPVSServer {
 
     private RaftMessagingService rms;
 
-    //TODO arranjar
     private Timestamp<Long> startTs = new MonotonicTimestamp(-1);
 
     public NPVSServer(int myPort){
@@ -40,17 +39,14 @@ public class NPVSServer {
                 "server",
                 Address.from(myPort),
                 new MessagingConfig());
-        this.npvs =  new NPVSImplBSConcurrent(); //new NPVSImplBSConcurrent();
+        this.npvs =  new NPVSImplBS(); //new NPVSImplBSConcurrent();
 
-       // this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
+       this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
     }
 
     public void start() throws UnknownHostException, SpreadException {
 
-        //startTs = rms.getTimestamp();
-
-        // TODO voltar a por quando for para usar
-        // fds.start();
+        startTs = rms.getTimestamp();
 
         mms.start();
         mms.registerHandler("get", (a,b) -> {

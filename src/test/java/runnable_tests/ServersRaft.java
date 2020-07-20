@@ -10,9 +10,6 @@ import java.util.ArrayList;
 
 public class ServersRaft {
     public static void main(String[] args) throws SpreadException, IOException {
-        new NPVSServer(20000).start();
-        new NPVSServer(20001).start();
-        System.out.println("NPVS servers ready");
 
         startRaft("C:\\Users\\CarlosPeixotoAntunes\\Projects\\LEI-2019-20\\raft_server1",
                 "manager",
@@ -25,6 +22,14 @@ public class ServersRaft {
                 "127.0.0.1:8082",
                 "127.0.0.1:8081,127.0.0.1:8082",
                 2);
+
+        new NPVSServer(20000).start();
+        new NPVSServer(20001).start();
+        System.out.println("NPVS servers ready");
+
+
+
+
     }
 
     private static void startRaft(String dataPath, String groupId, String serverIdStr, String initConfStr, int offset) throws IOException {

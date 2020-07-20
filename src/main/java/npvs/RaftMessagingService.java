@@ -40,7 +40,10 @@ public class RaftMessagingService {
     public void refreshLeader() throws TimeoutException, InterruptedException {
         //TODO não dar Throw e meter um timeout para esperar a inicialização do raft
         if (!RouteTable.getInstance().refreshLeader(cliClientService, groupId, 1000).isOk()) {
-            throw new IllegalStateException("Refresh leader failed");
+            int waitMs = 2000;
+            Thread.sleep(waitMs);
+            System.out.println("Waiting for raft, retrying in " + waitMs/1000 + " seconds");
+            refreshLeader();
         }
         leader = RouteTable.getInstance().selectLeader(groupId);
         System.out.println("Leader is " + leader);
