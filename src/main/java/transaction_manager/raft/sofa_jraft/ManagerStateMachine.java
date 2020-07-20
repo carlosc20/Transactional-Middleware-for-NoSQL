@@ -16,11 +16,11 @@ import nosql.KeyValueDriver;
 import npvs.NPVS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.State;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.raft.sofa_jraft.callbacks.CompletableClosure;
 import transaction_manager.raft.sofa_jraft.callbacks.TransactionClosure;
-import transaction_manager.raft.snapshot.ExtendedState;
 import transaction_manager.raft.snapshot.StateSnapshot;
 
 import java.io.File;
@@ -41,7 +41,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
     }
 
     //debug
-    public ExtendedState getExtendedState(){
+    public State getExtendedState(){
         return transactionManager.getExtendedState();
     }
 
@@ -146,8 +146,8 @@ public class ManagerStateMachine extends StateMachineAdapter {
         }
         final StateSnapshot snapshot = new StateSnapshot(reader.getPath() + File.separator + "data");
         try {
-            ExtendedState es = snapshot.load();
-            this.transactionManager.setState(es);
+            State s = snapshot.load();
+            this.transactionManager.setState(s);
             return true;
         } catch (final IOException e) {
             LOG.error("2 Fail to load snapshot from {}", snapshot.getPath());

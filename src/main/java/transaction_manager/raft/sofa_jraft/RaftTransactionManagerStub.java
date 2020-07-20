@@ -8,10 +8,10 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.error.RemotingException;
 import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
+import transaction_manager.State;
 import transaction_manager.TransactionManager;
 import transaction_manager.messaging.*;
 import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
-import transaction_manager.raft.snapshot.ExtendedState;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -81,10 +81,10 @@ public class RaftTransactionManagerStub implements TransactionManager {
     }
 
     //debug
-    public ExtendedState getExtendedState(int index) {
+    public State getExtendedState(int index) {
         try {
             PeerId pid = RouteTable.getInstance().getConfiguration("manager").getPeers().get(index);
-            return ((ValueResponse<ExtendedState>) cliClientService.getRpcClient().invokeSync(pid.getEndpoint(), new GetFullState(), 30000)).getValue();
+            return ((ValueResponse<State>) cliClientService.getRpcClient().invokeSync(pid.getEndpoint(), new GetFullState(), 30000)).getValue();
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }

@@ -2,6 +2,7 @@ package transaction_manager.raft.snapshot;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import transaction_manager.State;
 
 import java.io.*;
 
@@ -32,8 +33,7 @@ public class StateSnapshot {
      *
      * Save value to snapshot file.
      */
-    public boolean save(ExtendedState s) {
-        System.out.println(s.toString());
+    public boolean save(State s) {
         try(ObjectOutputStream out = new ObjectOutputStream(
             new BufferedOutputStream(new FileOutputStream(new File(path))))) {
             out.writeObject(s);
@@ -44,7 +44,7 @@ public class StateSnapshot {
         }
     }
 
-    public ExtendedState load() throws IOException {
+    public State load() throws IOException {
         File f = new File(path);
         try(ObjectInputStream in = new ObjectInputStream(
                 new BufferedInputStream(new FileInputStream(f)))) { return cast(in.readObject());

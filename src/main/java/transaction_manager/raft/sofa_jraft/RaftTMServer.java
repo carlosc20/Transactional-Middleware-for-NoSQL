@@ -1,6 +1,5 @@
 package transaction_manager.raft.sofa_jraft;
 
-import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
@@ -11,13 +10,11 @@ import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import nosql.KeyValueDriver;
 import npvs.NPVSStub;
-import npvs.messaging.FlushMessage;
 import org.apache.commons.io.FileUtils;
+import transaction_manager.State;
 import transaction_manager.messaging.*;
 import transaction_manager.raft.sofa_jraft.rpc.RequestProcessor;
 import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
-import transaction_manager.raft.snapshot.ExtendedState;
-import utils.WriteMapsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,7 +60,7 @@ public class RaftTMServer {
                 (req, closure) -> requestHandler.getServersContext(closure)
         ));
 
-        rpcServer.registerProcessor(new RequestProcessor<GetFullState, ExtendedState>(
+        rpcServer.registerProcessor(new RequestProcessor<GetFullState, State>(
                 GetFullState.class,
                 (req, closure) -> {
                     closure.success(fsm.getExtendedState());
