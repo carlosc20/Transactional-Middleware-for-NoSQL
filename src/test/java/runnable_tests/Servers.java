@@ -3,7 +3,6 @@ package runnable_tests;
 import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
-import npvs.NPVS;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
 import spread.SpreadException;
@@ -12,7 +11,6 @@ import transaction_manager.standalone.TransactionManagerServer;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.List;
 
 public class Servers {
 
@@ -21,8 +19,8 @@ public class Servers {
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
 
-        new NPVSServer(20000, 40000, "1").start();
-        new NPVSServer(20001, 40000, "2").start();
+        new NPVSServer(20000).start();
+        new NPVSServer(20001).start();
         System.out.println("NPVS servers ready");
 
         int serverPort = 30000;

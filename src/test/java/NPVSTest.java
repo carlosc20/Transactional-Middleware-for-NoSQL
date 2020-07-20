@@ -1,6 +1,5 @@
 import certifier.MonotonicTimestamp;
 import io.atomix.utils.net.Address;
-import npvs.NPVSReply;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
 import npvs.messaging.FlushMessage;
@@ -20,9 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 public class NPVSTest {
 
-    private final List<String> npvsServers = new ArrayList<>();
-    private final NPVSStub npvs = new NPVSStub(Address.from(10000), npvsServers);
-
+    private NPVSStub npvs;
 
     public void fetchAndAssert(long timestamp, ByteArrayWrapper baw, String str){
         npvs.get(baw, new MonotonicTimestamp(timestamp))
@@ -36,10 +33,12 @@ public class NPVSTest {
     @Test
     public void writeRead() throws InterruptedException, SpreadException, UnknownHostException {
 
+        List<String> npvsServers = new ArrayList<>();
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
-        new NPVSServer(20000, 40000, "0").start();
-        new NPVSServer(20001, 40000, "1").start();
+        npvs = new NPVSStub(Address.from(10000), npvsServers);
+        new NPVSServer(20000).start();
+        new NPVSServer(20001).start();
 
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         ExecutorService taskExecutor = Executors.newFixedThreadPool(8);
@@ -51,10 +50,10 @@ public class NPVSTest {
         wmb.put(4000, "marco", "dantas4");
         wmb.put(10000, "marco", "dantas10");
 
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(1000)));
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(2000)));
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(4000)));
-        npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(1), new MonotonicTimestamp(10000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(1000), new MonotonicTimestamp(1), new MonotonicTimestamp(1000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(2000), new MonotonicTimestamp(1), new MonotonicTimestamp(2000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(4000), new MonotonicTimestamp(1), new MonotonicTimestamp(4000)));
+        npvs.put(new FlushMessage(wmb.getWriteMap(10000), new MonotonicTimestamp(1), new MonotonicTimestamp(10000)));
 
         Thread.sleep(2000); //para todos os writes serem efetivos
 

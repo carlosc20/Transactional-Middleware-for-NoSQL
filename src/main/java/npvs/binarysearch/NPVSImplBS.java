@@ -47,7 +47,7 @@ public class NPVSImplBS extends AbstractNPVS {
     @Override
     public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
-            LOG.info("No such key has been found: {}", key.toString());
+            //LOG.info("No such key has been found: {}", key.toString());
             return CompletableFuture.completedFuture(new NPVSReply(null));
         }
         ArrayList<Version> versions = versionsByKey.get(key);

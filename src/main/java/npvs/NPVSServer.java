@@ -9,7 +9,7 @@ import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import npvs.binarysearch.NPVSImplBS;
-import npvs.failuredetection.FailureDetectionService;
+import npvs.binarysearch.NPVSImplBSConcurrent;
 import npvs.messaging.FlushMessage;
 import npvs.messaging.ReadMessage;
 import org.slf4j.Logger;
@@ -18,24 +18,20 @@ import spread.*;
 
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class NPVSServer {
     private static final Logger LOG = LoggerFactory.getLogger(NPVSServer.class);
     private final ManagedMessagingService mms;
     private final Serializer s;
-    private final NPVSImplBS npvs;
+    private final NPVS<Long> npvs;
     private final int myPort;
-
-    private FailureDetectionService fds;
 
     private RaftMessagingService rms;
 
     //TODO arranjar
     private Timestamp<Long> startTs = new MonotonicTimestamp(-1);
 
-    public NPVSServer(int myPort, int spreadPort, String privateName){
+    public NPVSServer(int myPort){
         this.myPort = myPort;
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
@@ -44,12 +40,9 @@ public class NPVSServer {
                 "server",
                 Address.from(myPort),
                 new MessagingConfig());
-        this.npvs = new NPVSImplBS();
+        this.npvs =  new NPVSImplBS(); //new NPVSImplBSConcurrent();
 
        // this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
-
-        int totalServers = 3; // TODO
-        // this.fds = new FailureDetectionService(spreadPort, privateName, totalServers);
     }
 
     public void start() throws UnknownHostException, SpreadException {
@@ -66,7 +59,7 @@ public class NPVSServer {
                 LOG.info("Received null on get, probably warmup from={}", a.toString());
                 return CompletableFuture.completedFuture(s.encode(null));
             }
-            LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
+            // LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
             Timestamp<Long> requestTs = rm.getTs();
             if (requestTs.isBefore(startTs))
                 return CompletableFuture.completedFuture(s.encode(NPVSReply.FAIL()));
@@ -81,7 +74,7 @@ public class NPVSServer {
                 LOG.info("Received null on put, probably warmup from={}", a.toString());
                 return CompletableFuture.completedFuture(s.encode(null));
             }
-            LOG.info("put request arrived with TC: {} with id: {}", fm.getCurrentTimestamp().toPrimitive(), fm.getTransactionStartTimestamp().toPrimitive());
+            // LOG.info("put request arrived with TC: {} with id: {}", fm.getCurrentTimestamp().toPrimitive(), fm.getTransactionStartTimestamp().toPrimitive());
             return npvs.put(fm).thenApply(s::encode);
         });
 
@@ -98,6 +91,6 @@ public class NPVSServer {
     }
 
     public static void main(String[] args) throws SpreadException, UnknownHostException {
-        new NPVSServer(20000, 40000, "0").start();
+        new NPVSServer(20000).start();
     }
 }
