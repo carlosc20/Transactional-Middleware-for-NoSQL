@@ -18,7 +18,7 @@ public class TransactionManagerOperation implements Serializable {
 
     private final byte op;
     private final TransactionContentMessage tcm;
-    private final Timestamp<Long> currentTimestamp;
+    private final Timestamp<Long> timestamp;
     private final LocalDateTime leaderTime;
 
     public static TransactionManagerOperation createStartTransaction() {
@@ -36,21 +36,21 @@ public class TransactionManagerOperation implements Serializable {
     public TransactionManagerOperation(byte op) {
         this.op = op;
         this.tcm = null;
-        this.currentTimestamp = null;
+        this.timestamp = null;
         this.leaderTime = null;
     }
 
     public TransactionManagerOperation(byte op, TransactionContentMessage tcm) {
         this.op = op;
         this.tcm = tcm;
-        this.currentTimestamp = null;
+        this.timestamp = null;
         this.leaderTime = null;
     }
 
     public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
         this.op = op;
         this.tcm = new TransactionContentMessage(startTimestamp);
-        this.currentTimestamp = commitTimestamp;
+        this.timestamp = commitTimestamp;
         this.leaderTime = leaderTime;
     }
 
@@ -63,8 +63,8 @@ public class TransactionManagerOperation implements Serializable {
         return tcm.getTimestamp();
     }
 
-    public Timestamp<Long> getCurrentTimestamp() {
-        return currentTimestamp;
+    public Timestamp<Long> getTimestamp() {
+        return timestamp;
     }
 
     public BitWriteSet getBws(){

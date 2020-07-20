@@ -1,5 +1,6 @@
 package npvs;
 
+import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.messaging.MessagingConfig;
@@ -17,6 +18,8 @@ import spread.*;
 
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class NPVSServer {
     private static final Logger LOG = LoggerFactory.getLogger(NPVSServer.class);
@@ -27,14 +30,13 @@ public class NPVSServer {
 
     private FailureDetectionService fds;
 
-    private final RaftMessagingService rms;
+    private RaftMessagingService rms;
 
-    private Timestamp<Long> startTs;
+    //TODO arranjar
+    private Timestamp<Long> startTs = new MonotonicTimestamp(-1);
 
     public NPVSServer(int myPort, int spreadPort, String privateName){
-
         this.myPort = myPort;
-
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
                 .build();
@@ -44,7 +46,7 @@ public class NPVSServer {
                 new MessagingConfig());
         this.npvs = new NPVSImplBS();
 
-        this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
+       // this.rms = new RaftMessagingService("manager", "127.0.0.1:8081,127.0.0.1:8082");
 
         int totalServers = 3; // TODO
         // this.fds = new FailureDetectionService(spreadPort, privateName, totalServers);
@@ -52,7 +54,7 @@ public class NPVSServer {
 
     public void start() throws UnknownHostException, SpreadException {
 
-        startTs = rms.getTimestamp();
+        //startTs = rms.getTimestamp();
 
         // TODO voltar a por quando for para usar
         // fds.start();
@@ -60,7 +62,10 @@ public class NPVSServer {
         mms.start();
         mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
-            System.out.println(myPort + " get request arrived with key: " + rm.getKey() + " and TS: " + rm.getTs().toPrimitive());
+            if (rm == null) {
+                LOG.info("Received null on get, probably warmup from={}", a.toString());
+                return CompletableFuture.completedFuture(s.encode(null));
+            }
             LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
             Timestamp<Long> requestTs = rm.getTs();
             if (requestTs.isBefore(startTs))
@@ -72,10 +77,23 @@ public class NPVSServer {
 
         mms.registerHandler("put", (a,b) -> {
             FlushMessage fm = s.decode(b);
-            System.out.println(myPort + " put request arrived with TS: " + fm.getCurrentTimestamp() + "with id: " + fm.getTransactionStartTimestamp());
+            if (fm == null){
+                LOG.info("Received null on put, probably warmup from={}", a.toString());
+                return CompletableFuture.completedFuture(s.encode(null));
+            }
             LOG.info("put request arrived with TC: {} with id: {}", fm.getCurrentTimestamp().toPrimitive(), fm.getTransactionStartTimestamp().toPrimitive());
-            return npvs.put(fm)
-                    .thenApply(s::encode);
+            return npvs.put(fm).thenApply(s::encode);
+        });
+
+        mms.registerHandler("eviction", (a,b) -> {
+            Timestamp<Long> ts = s.decode(b);
+            if (ts == null){
+                LOG.info("Received null on eviction, probably warmup from={}", a.toString());
+                return CompletableFuture.completedFuture(s.encode(null));
+            }
+            LOG.info("Eviction request arrived lowWaterMark ={}",ts.toPrimitive());
+            //TODO call eviction
+            return CompletableFuture.completedFuture(s.encode(null));
         });
     }
 

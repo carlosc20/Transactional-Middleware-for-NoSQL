@@ -1,15 +1,22 @@
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
 import io.atomix.utils.net.Address;
+import npvs.NPVSStub;
+import npvs.messaging.FlushMessage;
 import org.junit.Test;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.raft.sofa_jraft.RaftTransactionManagerStub;
+import utils.WriteMapsBuilder;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class RaftState {
     //RaftTransactionManagerStub tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
@@ -20,14 +27,32 @@ public class RaftState {
     }
 
     @Test
-    public void dummy(){
-        LocalDateTime l1 = LocalDateTime.now();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        System.out.println(Duration.between(l1, LocalDateTime.now()).getSeconds());
+    public void dummy() throws InterruptedException, ExecutionException {
+        ExecutorService e = Executors.newSingleThreadExecutor();
+        ArrayList<String> servers = new ArrayList<>();
+        servers.add("localhost:" + 20000);
+        servers.add("localhost:" + 20001);
+        NPVSStub npvs = new NPVSStub(Address.from(23551), servers);
+        WriteMapsBuilder wmb = new WriteMapsBuilder();
+        wmb.put(1, "marco", "dantas");
+        wmb.put(1, "sadfa", "dantas");
+        wmb.put(1, "rco", "dantas");
+
+
+        ArrayList<String> handlers = new ArrayList<>();
+        handlers.add("put");
+        handlers.add("get");
+        handlers.add("eviction");
+        npvs.warmhup(handlers).get();
+        System.out.println("Warmup done. Sleeping 1 sec");
+        Thread.sleep(1000);
+
+        for (int i = 0; i < 100; i++){
+            final int r = i;
+            npvs.put(new FlushMessage(wmb.getWriteMap(1), new MonotonicTimestamp(r), new MonotonicTimestamp(r)))
+                    .thenAccept(x -> System.out.println("request " + r));}
+
+        e.awaitTermination(100000, TimeUnit.SECONDS);
     }
 
     @Test

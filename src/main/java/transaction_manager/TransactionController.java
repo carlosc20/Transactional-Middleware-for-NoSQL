@@ -10,11 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class TransactionController {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionController.class);
-    private NPVS<Long> npvs;
+    private NPVSStub npvs;
     private KeyValueDriver driver;
     private final TransactionManager serverStub;
     private final Address npvsStubPort;
@@ -30,6 +33,13 @@ public class TransactionController {
         this.npvs = new NPVSStub(npvsStubPort, scm.getNpvsServers());
         this.driver = new MongoAsynchKV(scm.getDatabaseURI(), scm.getDatabaseName(), scm.getDatabaseCollectionName());
         LOG.info("Controller built");
+        List<String> handlers = new ArrayList<>();
+        handlers.add("get");
+        try {
+            this.npvs.warmhup(handlers).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
     public TransactionImpl startTransaction() throws ExecutionException, InterruptedException {

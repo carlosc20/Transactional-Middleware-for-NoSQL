@@ -56,15 +56,16 @@ public class NPVSStub implements NPVS<Long> {
 
         CompletableFuture<?>[] futures = new CompletableFuture<?>[servers.size()];
         for (int i = 0; i < servers.size(); i++) {
-            //TODO mudar e não mandar só para um. Assim para testes!!!!!
-            Address address = servers.get(0);
-            Map<ByteArrayWrapper, byte[]> map = maps.get(0);
+            Address address = servers.get(i);
+            Map<ByteArrayWrapper, byte[]> map = maps.get(i);
             if(map != null){
                 FlushMessage flushMessage1 = new FlushMessage(flushMessage);
                 flushMessage1.setWriteMap(map);
-                futures[i] = mms.sendAndReceive(address, "put", s.encode(flushMessage1), Duration.ofSeconds(10), e)
+                futures[i] = mms.sendAndReceive(address, "put", s.encode(flushMessage1), Duration.ofSeconds(10000), e)
                         .thenApply(s::decode);
             }
+            else
+                futures[i] = CompletableFuture.completedFuture(null);
         }
         return CompletableFuture.allOf(futures);
     }
@@ -75,13 +76,21 @@ public class NPVSStub implements NPVS<Long> {
         int server = assignServer(data);
         Address address = servers.get(server);
         ReadMessage rm = new ReadMessage(key, ts);
-        return mms.sendAndReceive(address, "get", s.encode(rm), Duration.ofSeconds(10), e)
+        return mms.sendAndReceive(address, "get", s.encode(rm), Duration.ofSeconds(10000), e)
                 .thenApply(s::decode);
     }
 
-    //TODO MUDARRRRRR!!!!!!!
+    public CompletableFuture<Void> warmhup(List<String> handlers){
+        CompletableFuture<?>[] futures = new CompletableFuture[servers.size() * handlers.size()];
+        for(int j = 0; j < handlers.size(); j++) {
+            for (int i = 0; i < servers.size(); i++) {
+                futures[i + j * servers.size()] = mms.sendAndReceive(servers.get(i), handlers.get(j), s.encode(null), Duration.ofSeconds(10000), e);
+            }
+        }
+                return CompletableFuture.allOf(futures);
+    }
+
     private int assignServer(byte[] key) {
-        return 0;
-        //return Arrays.hashCode(key) % servers.size();
+        return Arrays.hashCode(key) % servers.size();
     }
 }

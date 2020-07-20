@@ -68,20 +68,22 @@ public abstract class AbstractCertifier implements Certifier<Long>{
     @Override
     public void transactionStarted(Timestamp<Long> startTimestamp) {
         Timestamp<Long> truncated = new MonotonicTimestamp(truncateStartTS(startTimestamp));
+        LOG.info("transaction started truncated={}", truncated.toPrimitive());
         this.runningTransactions.putIfAbsent(truncated, new RunningState());
-        this.runningTransactions.get(startTimestamp).addTransaction();
+        this.runningTransactions.get(truncated).addTransaction();
     }
 
     @Override
     public void transactionCommited(Timestamp<Long> startTimestamp){
         Timestamp<Long> truncated = new MonotonicTimestamp(truncateStartTS(startTimestamp));
+        LOG.info("transaction commited={}", truncated.toPrimitive());
         this.runningTransactions.get(truncated).removeTransaction();
     }
 
     @Override
     public void setTombstone(Timestamp<Long> commitTimestamp, LocalDateTime value){
-        Timestamp<Long> previous = new MonotonicTimestamp(commitTimestamp.toPrimitive() - timestep);
-        this.runningTransactions.get(previous).setTombstone(value);
+        LOG.info("set Tombstone={}", commitTimestamp.toPrimitive());
+        this.runningTransactions.get(commitTimestamp).setTombstone(value);
     }
 
     @Override

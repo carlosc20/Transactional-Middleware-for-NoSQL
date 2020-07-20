@@ -49,7 +49,7 @@ public class RaftServerBuilder {
         return new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
     }
 
-    private NPVS<Long> buildNPVS(){
+    private NPVSStub buildNPVS(){
         return new NPVSStub(npvsStubPort, npvsServers);
     }
 

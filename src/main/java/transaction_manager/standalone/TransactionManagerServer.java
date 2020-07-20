@@ -17,6 +17,8 @@ import transaction_manager.messaging.TransactionCommitRequest;
 import transaction_manager.messaging.TransactionStartRequest;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,9 +28,10 @@ public class TransactionManagerServer {
     private final ExecutorService e;
     private final Serializer s;
     private final TransactionManagerImpl transactionManagerService;
+    private final NPVSStub npvs;
 
     //TODO builder pattern
-    public TransactionManagerServer(long timestep, int myPort, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
+    public TransactionManagerServer(long timestep, int myPort, NPVSStub npvs, KeyValueDriver driver, ServersContextMessage scm){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
@@ -39,6 +42,7 @@ public class TransactionManagerServer {
                 Address.from(myPort),
                 new MessagingConfig());
 
+        this.npvs = npvs;
         this.transactionManagerService = new TransactionManagerImpl(timestep, npvs, driver, scm);
     }
 
@@ -61,6 +65,16 @@ public class TransactionManagerServer {
             LOG.info("Context request arrived");
             return s.encode(transactionManagerService.getServersContext());
         } ,e);
+
+        //warmhup
+        List<String> handlers = new ArrayList<>();
+        handlers.add("put");
+        handlers.add("eviction");
+        try {
+            this.npvs.warmhup(handlers).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
@@ -74,7 +88,7 @@ public class TransactionManagerServer {
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
 
-        NPVS<Long> npvs = new NPVSStub(npvsStubPort, npvsServers);
+        NPVSStub npvs = new NPVSStub(npvsStubPort, npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
         ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
         new TransactionManagerServer(timestep, 30000, npvs, driver, scm).start();

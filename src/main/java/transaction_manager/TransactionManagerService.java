@@ -47,7 +47,7 @@ public abstract class TransactionManagerService {
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
         CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
 
-        consistentKeyValues.thenCompose(wm -> saveToNPVS(flushMessage))
+        consistentKeyValues.thenComposeAsync(wm -> saveToNPVS(flushMessage), executorService)
             .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
             .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
             .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cf))

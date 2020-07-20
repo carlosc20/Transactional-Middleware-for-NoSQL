@@ -9,7 +9,7 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import nosql.KeyValueDriver;
-import npvs.NPVS;
+import npvs.NPVSStub;
 import org.apache.commons.io.FileUtils;
 import transaction_manager.messaging.*;
 import transaction_manager.raft.sofa_jraft.rpc.RequestProcessor;
@@ -18,12 +18,15 @@ import transaction_manager.raft.snapshot.ExtendedState;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class RaftTMServer {
     private RaftGroupService raftGroupService;
     private Node node;
     private ManagerStateMachine fsm;
-    private NPVS<Long> npvs;
+    private NPVSStub npvs;
     private KeyValueDriver driver;
     private ServersContextMessage scm;
     private long timestep;
@@ -81,6 +84,16 @@ public class RaftTMServer {
         nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot");
         // Initialize the Raft group service framework.
         this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer);
+
+        //warmhup
+        List<String> handlers = new ArrayList<>();
+        handlers.add("put");
+        handlers.add("eviction");
+        try {
+            this.npvs.warmhup(handlers).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
         // Startup
         this.node = this.raftGroupService.start();
     }
@@ -113,7 +126,7 @@ public class RaftTMServer {
         return response;
     }
 
-    public void setNpvs(NPVS<Long> npvs) {
+    public void setNpvs(NPVSStub npvs) {
         this.npvs = npvs;
     }
 

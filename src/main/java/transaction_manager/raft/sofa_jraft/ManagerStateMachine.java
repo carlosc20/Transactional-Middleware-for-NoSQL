@@ -89,7 +89,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
                     transactionManager.tryCommit(tcm).thenAccept(res -> treatClosure(res, closure));
                     break;
                 case UPDATE_STATE:
-                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getCurrentTimestamp();
+                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getTimestamp();
                     final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
                     final LocalDateTime leaderTime = transactionManagerOperation.getLeaderTime();
                     transactionManager.updateState(startTimestamp, commitTimestamp, leaderTime);

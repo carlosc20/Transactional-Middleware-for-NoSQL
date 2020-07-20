@@ -4,14 +4,15 @@ import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
 import transaction_manager.raft.sofa_jraft.RaftTransactionManagerStub;
+import transaction_manager.standalone.TransactionManagerStub;
 
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.*;
 
 public class FullTransactionTest {
-    TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
-    //TransactionManager tms = new TransactionManagerStub(23451, 30000);
+    //TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
+    TransactionManager tms = new TransactionManagerStub(23451, 30000);
     @Test
     public void justRead(){
 

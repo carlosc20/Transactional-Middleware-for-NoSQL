@@ -39,7 +39,6 @@ public abstract class AbstractNPVS implements NPVS<Long>{
             currentCommitTs.set(incomingCurrentCommit);
             requestsMade.clear();
         }
-
         return putImpl(flushMessage.getWriteMap(), flushMessage.getCurrentTimestamp());
     }
 }

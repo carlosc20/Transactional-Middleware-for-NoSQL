@@ -17,6 +17,11 @@ public class ConcurrentNPVSImplLHM extends AbstractNPVS{
         super();
         this.versionsByKey = new LinkedHashMap<>();}
 
+    @Override
+    public void evictVersions(Timestamp<Long> lowWaterMark) {
+
+    }
+
     public CompletableFuture<Void> putImpl(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
         writeMap.forEach((key, v) -> {
             if (versionsByKey.containsKey(key))
