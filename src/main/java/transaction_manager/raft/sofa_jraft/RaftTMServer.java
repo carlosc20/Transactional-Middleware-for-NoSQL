@@ -1,4 +1,4 @@
-package transaction_manager.raft;
+package transaction_manager.raft.sofa_jraft;
 
 import certifier.Timestamp;
 import com.alipay.sofa.jraft.Node;
@@ -12,8 +12,8 @@ import nosql.KeyValueDriver;
 import npvs.NPVS;
 import org.apache.commons.io.FileUtils;
 import transaction_manager.messaging.*;
-import transaction_manager.raft.rpc.RequestProcessor;
-import transaction_manager.raft.rpc.ValueResponse;
+import transaction_manager.raft.sofa_jraft.rpc.RequestProcessor;
+import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
 import transaction_manager.raft.snapshot.ExtendedState;
 
 import java.io.File;

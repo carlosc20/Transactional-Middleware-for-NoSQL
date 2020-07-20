@@ -4,7 +4,7 @@ import io.atomix.utils.net.Address;
 import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionManager;
-import transaction_manager.raft.RaftTransactionManagerStub;
+import transaction_manager.raft.sofa_jraft.RaftTransactionManagerStub;
 import transaction_manager.standalone.TransactionManagerStub;
 import utils.timer.Timer;
 

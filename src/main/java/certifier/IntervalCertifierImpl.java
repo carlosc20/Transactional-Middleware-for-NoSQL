@@ -18,12 +18,6 @@ public class IntervalCertifierImpl extends AbstractCertifier {
     private final Timestamp<Long> provisionalCommitTs;
     private final LinkedList<CompletableFuture<Void>> startsOnWait;
 
-    //TODO ver
-    //não se vai esperar concorrência nestas estruturas -> Muitas escritas e poucas/raras leituras -> 1 thread
-    //outras opções N threads:
-    // ConcurrentSkipList -> matava a performance ao correr normalmente.
-    // ConcurrentHashMap -> procura por todas as chaves na fase de GC
-
     public IntervalCertifierImpl(long timestep) {
         super(timestep);
         currentStartTs = new MonotonicTimestamp(0);
@@ -49,22 +43,22 @@ public class IntervalCertifierImpl extends AbstractCertifier {
             });
         }
         currentStartTs.increment();
+        transactionStarted(currentStartTs);
         return CompletableFuture.completedFuture(new MonotonicTimestamp(currentStartTs));
     }
 
     @Override
-    public long truncateStartTS(long startTimestamp) {
-        return startTimestamp / timestep * timestep + timestep;
+    public long truncateStartTS(Timestamp<Long> startTimestamp) {
+        return startTimestamp.toPrimitive() / timestep * timestep + timestep;
     }
 
     @Override
-    public Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> ts){
-        long pcts = provisionalCommitTs.toPrimitive();
-        if (isWritable(newBws, ts.toPrimitive(), pcts)) {
-            history.put(pcts, newBws);
+    public Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> startTimestamp){
+        if (isWritable(newBws, startTimestamp, provisionalCommitTs)) {
+            history.put(provisionalCommitTs, newBws);
             provisionalCommitTs.add(timestep);
-            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts.toPrimitive(), pcts);
-            return new MonotonicTimestamp(pcts);
+            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", startTimestamp.toPrimitive(), provisionalCommitTs.toPrimitive());
+            return new MonotonicTimestamp(provisionalCommitTs);
         }
         else
             return new MonotonicTimestamp(-1);

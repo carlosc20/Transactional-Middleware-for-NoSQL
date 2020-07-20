@@ -1,4 +1,4 @@
-package transaction_manager.raft;
+package transaction_manager.raft.sofa_jraft;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
@@ -10,10 +10,9 @@ import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import transaction_manager.TransactionManager;
 import transaction_manager.messaging.*;
-import transaction_manager.raft.rpc.ValueResponse;
+import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
 import transaction_manager.raft.snapshot.ExtendedState;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 

@@ -1,4 +1,4 @@
-package transaction_manager.raft;
+package transaction_manager.raft.sofa_jraft;
 
 import certifier.Timestamp;
 import com.alipay.remoting.exception.CodecException;
@@ -13,11 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
-import transaction_manager.raft.callbacks.TransactionClosure;
-import transaction_manager.raft.snapshot.ExtendedState;
+import transaction_manager.raft.sofa_jraft.callbacks.TransactionClosure;
 
 import java.nio.ByteBuffer;
-import java.sql.Time;
 import java.util.concurrent.Executor;
 
 public class RequestHandler {

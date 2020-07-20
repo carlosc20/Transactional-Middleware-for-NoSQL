@@ -1,4 +1,4 @@
-package transaction_manager.raft;
+package transaction_manager.raft.sofa_jraft;
 
 import certifier.Timestamp;
 import transaction_manager.messaging.TransactionContentMessage;
@@ -6,6 +6,7 @@ import transaction_manager.utils.BitWriteSet;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 public class TransactionManagerOperation implements Serializable {
@@ -18,6 +19,7 @@ public class TransactionManagerOperation implements Serializable {
     private final byte op;
     private final TransactionContentMessage tcm;
     private final Timestamp<Long> currentTimestamp;
+    private final LocalDateTime leaderTime;
 
     public static TransactionManagerOperation createStartTransaction() {
         return new TransactionManagerOperation(START_TXN);
@@ -27,26 +29,29 @@ public class TransactionManagerOperation implements Serializable {
         return new TransactionManagerOperation(COMMIT, tcm);
     }
 
-    public static TransactionManagerOperation createUpdateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp){
-        return new TransactionManagerOperation(UPDATE_STATE, startTimestamp, commitTimestamp);
+    public static TransactionManagerOperation createUpdateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
+        return new TransactionManagerOperation(UPDATE_STATE, startTimestamp, commitTimestamp, leaderTime);
     }
 
     public TransactionManagerOperation(byte op) {
         this.op = op;
         this.tcm = null;
         this.currentTimestamp = null;
+        this.leaderTime = null;
     }
 
     public TransactionManagerOperation(byte op, TransactionContentMessage tcm) {
         this.op = op;
         this.tcm = tcm;
         this.currentTimestamp = null;
+        this.leaderTime = null;
     }
 
-    public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp){
+    public TransactionManagerOperation(byte op, Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
         this.op = op;
         this.tcm = new TransactionContentMessage(startTimestamp);
         this.currentTimestamp = commitTimestamp;
+        this.leaderTime = leaderTime;
     }
 
     public byte getOp() {
@@ -70,6 +75,10 @@ public class TransactionManagerOperation implements Serializable {
     public Map<ByteArrayWrapper, byte[]> getWriteMap() {
         assert tcm != null;
         return tcm.getWriteMap();
+    }
+
+    public LocalDateTime getLeaderTime() {
+        return leaderTime;
     }
 
     public TransactionContentMessage getTcm() {

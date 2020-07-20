@@ -1,4 +1,4 @@
-package transaction_manager.raft;
+package transaction_manager.raft.sofa_jraft;
 
 import certifier.Timestamp;
 import com.alipay.remoting.exception.CodecException;
@@ -18,16 +18,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
-import transaction_manager.raft.callbacks.CompletableClosure;
-import transaction_manager.raft.callbacks.TransactionClosure;
+import transaction_manager.raft.sofa_jraft.callbacks.CompletableClosure;
+import transaction_manager.raft.sofa_jraft.callbacks.TransactionClosure;
 import transaction_manager.raft.snapshot.ExtendedState;
 import transaction_manager.raft.snapshot.StateSnapshot;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
 
-import static transaction_manager.raft.TransactionManagerOperation.*;
+import static transaction_manager.raft.sofa_jraft.TransactionManagerOperation.*;
 
 public class ManagerStateMachine extends StateMachineAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ManagerStateMachine.class);
@@ -90,7 +91,8 @@ public class ManagerStateMachine extends StateMachineAdapter {
                 case UPDATE_STATE:
                     final Timestamp<Long> commitTimestamp = transactionManagerOperation.getCurrentTimestamp();
                     final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
-                    transactionManager.updateState(startTimestamp, commitTimestamp);
+                    final LocalDateTime leaderTime = transactionManagerOperation.getLeaderTime();
+                    transactionManager.updateState(startTimestamp, commitTimestamp, leaderTime);
                     if(closure != null)
                         ((CompletableClosure<Void>) closure).complete(commitTimestamp);
                     break;

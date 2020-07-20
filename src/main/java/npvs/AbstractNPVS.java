@@ -21,6 +21,8 @@ public abstract class AbstractNPVS implements NPVS<Long>{
         this.currentCommitTs = new MonotonicTimestamp(0);
     }
 
+    public abstract void evictVersions(Timestamp<Long> lowWaterMark);
+
     public abstract CompletableFuture<Void> putImpl(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts);
 
     public abstract CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts);
@@ -31,7 +33,6 @@ public abstract class AbstractNPVS implements NPVS<Long>{
             LOG.info("Duplicate Request arrived. Sending confirmation");
             return CompletableFuture.completedFuture(null);
         }
-
         Timestamp<Long> incomingCurrentCommit = flushMessage.getCurrentTimestamp();
         if(incomingCurrentCommit.isAfter(currentCommitTs)){
             LOG.info("New currentCommit arrived. Clearing previous requests");

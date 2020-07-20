@@ -7,26 +7,26 @@ import java.io.Serializable;
 
 public class State implements Serializable {
     private final Certifier<Long> certifier;
-    private final Timestamp<Long> lastNPVSCrash;
+    private final Timestamp<Long> lastLowWaterMark;
 
-    public State(Certifier<Long> certifier, Timestamp<Long> lastNPVSCrash){
+    public State(Certifier<Long> certifier, Timestamp<Long> lastLowWaterMark){
         this.certifier = certifier;
-        this.lastNPVSCrash = lastNPVSCrash;
+        this.lastLowWaterMark = lastLowWaterMark;
     }
 
     public Certifier<Long> getCertifier() {
         return certifier;
     }
 
-    public Timestamp<Long> getLastNPVSCrash() {
-        return lastNPVSCrash;
+    public Timestamp<Long> getLastLowWaterMark() {
+        return lastLowWaterMark;
     }
 
     @Override
     public String toString() {
         return "State{" +
                 "certifier=" + certifier.toString() + "\n" +
-                ", lastNPVSCrash=" + lastNPVSCrash.toPrimitive() + "\n" +
+                ", lastNPVSCrash=" + lastLowWaterMark.toPrimitive() + "\n" +
                 '}';
     }
 }

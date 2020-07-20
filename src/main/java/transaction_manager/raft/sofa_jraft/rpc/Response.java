@@ -1,4 +1,4 @@
-package transaction_manager.raft.rpc;
+package transaction_manager.raft.sofa_jraft.rpc;
 
 public interface Response<V> {
     void setSuccess(boolean bool);

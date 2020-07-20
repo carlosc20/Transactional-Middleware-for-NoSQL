@@ -12,17 +12,20 @@ import transaction_manager.TransactionManagerService;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.messaging.TransactionContentMessage;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class TransactionManagerImpl extends TransactionManagerService implements TransactionManager {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerImpl.class);
     private Certifier<Long> certifier;
-    private Timestamp<Long> lastNPVSCrash;
+    private Timestamp<Long> lastLowWaterMark;
 
     public TransactionManagerImpl(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
         super(timestep, npvs, driver, scm);
         this.certifier = new IntervalCertifierImpl(timestep);
-        this.lastNPVSCrash = new MonotonicTimestamp(-1);
+        this.lastLowWaterMark = new MonotonicTimestamp(-1);
     }
 
     @Override
@@ -44,6 +47,7 @@ public class TransactionManagerImpl extends TransactionManagerService implements
     }
 
     public Timestamp<Long> certifierCommit(TransactionContentMessage tc){
+        certifier.transactionCommited(tc.getTimestamp());
         return certifier.commit(tc.getWriteSet(), tc.getTimestamp());
     }
 
@@ -57,17 +61,29 @@ public class TransactionManagerImpl extends TransactionManagerService implements
         return certifier;
     }
 
-    public Timestamp<Long> getLastNPVSCrash() {
-        return lastNPVSCrash;
+    public void scheduleGarbageCollection(int periodicity, int forceGCInterval, TimeUnit unit){
+        LOG.info("Scheduling events");
+        getExecutorService().schedule(()->{
+                Timestamp<Long> lowWaterMark = getCertifier().getSafeToDeleteTimestamp();
+                if(lowWaterMark.equals(lastLowWaterMark))
+                    lowWaterMark = getCertifier().forceEvictStoredWriteSets(LocalDateTime.now(), forceGCInterval);
+                if(!lowWaterMark.equals(lastLowWaterMark)){
+                    //call npvs
+                }
+        }, periodicity, unit);
+    }
+
+    public Timestamp<Long> getLastLowWaterMark() {
+        return lastLowWaterMark;
     }
 
     public State getState(){
-        return new State(this.certifier, this.lastNPVSCrash);
+        return new State(this.certifier, this.lastLowWaterMark);
     }
 
     public void setState(State s){
         this.certifier = s.getCertifier();
-        this.lastNPVSCrash = s.getLastNPVSCrash();
+        this.lastLowWaterMark = s.getLastLowWaterMark();
     }
 
 }

@@ -27,17 +27,16 @@ public class CertifierImpl extends AbstractCertifier {
     }
 
     @Override
-    public long truncateStartTS(long startTimestamp) {
-        return startTimestamp;
+    public long truncateStartTS(Timestamp<Long> startTimestamp) {
+        return startTimestamp.toPrimitive();
     }
 
     @Override
     public Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> ts){
-        long ct = currentCommitTs.toPrimitive();
-        if (isWritable(newBws, ts.toPrimitive(), ct)) {
-            history.put(ct, newBws);
-            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts, ct);
-            return new MonotonicTimestamp(ct);
+        if (isWritable(newBws, ts, currentCommitTs)) {
+            history.put(currentCommitTs, newBws);
+            LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", ts, currentCommitTs.toPrimitive());
+            return new MonotonicTimestamp(currentCommitTs);
         }
         else
             return new MonotonicTimestamp(-1);

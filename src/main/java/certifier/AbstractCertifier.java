@@ -5,9 +5,9 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.utils.BitWriteSet;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class AbstractCertifier implements Certifier<Long>{
@@ -18,9 +18,9 @@ public abstract class AbstractCertifier implements Certifier<Long>{
     final Timestamp<Long> currentCommitTs;
     final Timestamp<Long> lowWaterMark;
 
-    final LinkedHashMap<Long, Integer> runningTransactions;
+    final LinkedHashMap<Timestamp<Long>, RunningState> runningTransactions;
 
-    final HashMap<Long, BitWriteSet> history;
+    final HashMap<Timestamp<Long>, BitWriteSet> history;
 
     public AbstractCertifier(long timestep){
         this.timestep = timestep;
@@ -40,15 +40,14 @@ public abstract class AbstractCertifier implements Certifier<Long>{
 
     public abstract CompletableFuture<Timestamp<Long>> start();
 
-    public abstract long truncateStartTS(long startTimestamp);
+    public abstract long truncateStartTS(Timestamp<Long> startTimestamp);
 
     public abstract Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> ts);
 
     public abstract void update(Timestamp<Long> commitTimestamp);
 
-    protected boolean isWritable(BitWriteSet newBws, long startTimestamp, long commitTs){
-        // ts / timestamp -> divisão com long é truncada com as casas décimais do timestamp.
-        for (long i = truncateStartTS(startTimestamp); i < commitTs; i += timestep) {
+    protected boolean isWritable(BitWriteSet newBws, Timestamp<Long> startTimestamp, Timestamp<Long> commitTs){
+        for (long i = truncateStartTS(startTimestamp); i < commitTs.toPrimitive(); i += timestep) {
             BitWriteSet oldBws = history.get(i);
             if (newBws.intersects(oldBws)) {
                 LOG.info("Transaction with TS: {} conflicted on TC: {}", startTimestamp, i);
@@ -66,11 +65,31 @@ public abstract class AbstractCertifier implements Certifier<Long>{
         return treatCommit(newBws, ts);
     }
 
+    @Override
+    public void transactionStarted(Timestamp<Long> startTimestamp) {
+        Timestamp<Long> truncated = new MonotonicTimestamp(truncateStartTS(startTimestamp));
+        this.runningTransactions.putIfAbsent(truncated, new RunningState());
+        this.runningTransactions.get(startTimestamp).addTransaction();
+    }
+
+    @Override
+    public void transactionCommited(Timestamp<Long> startTimestamp){
+        Timestamp<Long> truncated = new MonotonicTimestamp(truncateStartTS(startTimestamp));
+        this.runningTransactions.get(truncated).removeTransaction();
+    }
+
+    @Override
+    public void setTombstone(Timestamp<Long> commitTimestamp, LocalDateTime value){
+        Timestamp<Long> previous = new MonotonicTimestamp(commitTimestamp.toPrimitive() - timestep);
+        this.runningTransactions.get(previous).setTombstone(value);
+    }
+
+    @Override
     public Timestamp<Long> getSafeToDeleteTimestamp(){
-        long newLowWaterMark = lowWaterMark.toPrimitive();
-        for(Map.Entry<Long, Integer> entry : runningTransactions.entrySet()){
-            int numTransactionsRunning = entry.getValue();
-            if(numTransactionsRunning != 0)
+        Timestamp<Long> newLowWaterMark = lowWaterMark;
+        for(Map.Entry<Timestamp<Long>, RunningState> entry : runningTransactions.entrySet()){
+            RunningState runningState = entry.getValue();
+            if(!runningState.isCleared())
                 return new MonotonicTimestamp(newLowWaterMark);
             else
                 newLowWaterMark = entry.getKey();
@@ -79,12 +98,32 @@ public abstract class AbstractCertifier implements Certifier<Long>{
     }
 
 
+    @Override
     public void evictStoredWriteSets(Long newLowWaterMark){
         for(long i = lowWaterMark.toPrimitive(); i <= newLowWaterMark; i += timestep){
             this.history.remove(i);
             this.runningTransactions.remove(i);
         }
         this.lowWaterMark.setPrimitive(newLowWaterMark);
+    }
+
+
+    @Override
+    public Timestamp<Long> forceEvictStoredWriteSets(LocalDateTime eventTime, long intervalSec){
+        ArrayList<Timestamp<Long>> removed = new ArrayList<>();
+        this.runningTransactions.forEach((k,v) -> {
+            LocalDateTime tombstone = v.getTombstone();
+            if(tombstone != null){
+                long interval = Duration.between(tombstone, eventTime).getSeconds();
+                if(interval > intervalSec)
+                    removed.add(k);
+            }
+        });
+        removed.forEach(v -> {
+            this.runningTransactions.remove(v);
+            this.history.remove(v);
+        });
+        return removed.get(removed.size() - 1);
     }
 
     public Timestamp<Long> getCurrentCommitTs() {

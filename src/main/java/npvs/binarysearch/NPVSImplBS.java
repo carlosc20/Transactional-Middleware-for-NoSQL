@@ -14,22 +14,19 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class NPVSImplBS extends AbstractNPVS {
-    //TODO comparar o custo com várias versões desta estrutura
     private static final Logger LOG = LoggerFactory.getLogger(NPVSImplBS.class);
-    //ArrayList + binarySearch:
-    // O(1) para adicionar
-    // O(x) para remover -> vai depender do que for utilizado
-    // O(log n) para procura (em média)
-
-    // Nota -> treeMap talvez tenha melhores resultados, por causa da inserção
-    // Caso numero de procuras seja reduzido o melhor seria alguma espécie de lista ligada
 
     private final Map<ByteArrayWrapper, ArrayList<Version>> versionsByKey;
-
 
     public NPVSImplBS() {
         super();
         this.versionsByKey = new HashMap<>();
+    }
+
+    @Override
+    //TODO
+    public void evictVersions(Timestamp<Long> lowWaterMark) {
+
     }
 
     @Override

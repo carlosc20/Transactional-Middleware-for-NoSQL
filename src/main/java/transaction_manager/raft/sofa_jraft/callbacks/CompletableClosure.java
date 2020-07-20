@@ -1,9 +1,8 @@
-package transaction_manager.raft.callbacks;
+package transaction_manager.raft.sofa_jraft.callbacks;
 
 import certifier.Timestamp;
 import com.alipay.sofa.jraft.Status;
 
-import java.sql.Time;
 import java.util.concurrent.CompletableFuture;
 
 public class CompletableClosure<T> extends TransactionClosure<T> {

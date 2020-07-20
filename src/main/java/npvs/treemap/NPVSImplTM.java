@@ -18,6 +18,11 @@ public class NPVSImplTM extends AbstractNPVS {
         this.versionsByKey = new HashMap<>();
     }
 
+    @Override
+    public void evictVersions(Timestamp<Long> lowWaterMark) {
+
+    }
+
     public CompletableFuture<Void> putImpl(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts){
         writeMap.forEach((key, v) -> {
             if (versionsByKey.containsKey(key))

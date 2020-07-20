@@ -102,8 +102,4 @@ public abstract class TransactionManagerService {
     public CommitControlHandler getCommitControlHandler() {
         return commitControlHandler;
     }
-
-    public FlushControlHandler getFlushControlHandler() {
-        return flushControlHandler;
-    }
 }

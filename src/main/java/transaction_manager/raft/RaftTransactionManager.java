@@ -12,6 +12,7 @@ import transaction_manager.messaging.TransactionContentMessage;
 import transaction_manager.raft.snapshot.ExtendedState;
 import transaction_manager.standalone.TransactionManagerImpl;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -31,14 +32,15 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     @Override
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, CompletableFuture<Timestamp<Long>> cf);
 
-    public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp){
+    public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
         getCertifier().update(commitTimestamp);
         removeFlush(startTimestamp);
+        getCertifier().setTombstone(commitTimestamp, leaderTime);
     }
 
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
-        Timestamp<Long> commitTimestamp = certifierCommit(tc);
+        Timestamp<Long> commitTimestamp = getCertifier().commit(tc.getWriteSet(), tc.getTimestamp());
         if(commitTimestamp.toPrimitive() > 0) {
             LOG.info("Putting non acked TC={}", commitTimestamp.toPrimitive());
             FlushMessage flushMessage = new FlushMessage(tc.getWriteMap(), tc.getTimestamp(), getCertifier().getCurrentCommitTs());
@@ -66,15 +68,6 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
         nonAckedFlushes.forEach((k,v) -> flush(v.getFlushMessage(), v.getProvisionalCommitTimestamp()));
     }
 
-    public void scheduleLeaderEvents(int periodicity, TimeUnit unit){
-        //garbage collection
-        LOG.info("Scheduling leader events");
-        getExecutorService().schedule(()->{
-            if(isLeader()){
-                Timestamp<Long> lowWaterMark = getCertifier().getSafeToDeleteTimestamp();
-            }
-        }, periodicity, unit);
-    }
 
     public void setCommitControlHandlerTimestamp(){
         getCommitControlHandler().setTimestamp(getCertifier().getCurrentCommitTs());

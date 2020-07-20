@@ -1,9 +1,9 @@
-package transaction_manager.raft.rpc;
+package transaction_manager.raft.sofa_jraft.rpc;
 
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.rpc.RpcContext;
 import com.alipay.sofa.jraft.rpc.RpcProcessor;
-import transaction_manager.raft.callbacks.TransactionClosure;
+import transaction_manager.raft.sofa_jraft.callbacks.TransactionClosure;
 
 import java.util.function.BiConsumer;
 
