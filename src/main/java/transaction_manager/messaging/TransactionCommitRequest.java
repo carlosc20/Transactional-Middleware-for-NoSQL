@@ -2,7 +2,7 @@ package transaction_manager.messaging;
 
 import java.io.Serializable;
 
-public class TransactionCommitRequest extends Message implements Serializable{
+public class TransactionCommitRequest implements Serializable{
     private final TransactionContentMessage transactionContentMessage;
 
     public TransactionCommitRequest(TransactionContentMessage transactionContentMessage){

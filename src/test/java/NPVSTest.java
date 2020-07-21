@@ -4,7 +4,6 @@ import npvs.NPVSServer;
 import npvs.NPVSStub;
 import npvs.messaging.FlushMessage;
 import org.junit.Test;
-import spread.SpreadException;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.WriteMapsBuilder;
 
@@ -31,7 +30,7 @@ public class NPVSTest {
     }
 
     @Test
-    public void writeRead() throws InterruptedException, SpreadException, UnknownHostException {
+    public void writeRead() throws InterruptedException, UnknownHostException {
 
         List<String> npvsServers = new ArrayList<>();
         npvsServers.add("localhost:20000");

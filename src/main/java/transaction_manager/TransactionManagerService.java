@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 public abstract class TransactionManagerService {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionManagerService.class);
     private final KeyValueDriver driver;
-    //stub
     final ScheduledExecutorService executorService;
     private final NPVS<Long> npvs;
     private final ServersContextMessage scm;
@@ -35,19 +34,19 @@ public abstract class TransactionManagerService {
     private final FlushControlHandler flushControlHandler;
     Map<Timestamp<Long>, FlushAgainInfo> nonAckedFlushes;
 
-    public TransactionManagerService(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
+    public TransactionManagerService(NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
         this.executorService = Executors.newScheduledThreadPool(8);
         this.npvs = npvs;
         this.driver = driver;
         this.scm = scm;
-        this.commitControlHandler = new CommitOrderHandler(timestep);
+        this.commitControlHandler = new CommitOrderHandler();
         this.flushControlHandler = new PipelineWriterHandler(executorService);
         this.nonAckedFlushes = new HashMap<>();
     }
 
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs);
 
-    public CompletableFuture<Timestamp<Long>> flush(FlushMessage flushMessage, Timestamp<Long> provisionalCommitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs) {
+    public void flush(FlushMessage flushMessage, Timestamp<Long> provisionalCommitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs) {
         //cfs are empty in this case
         Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
         CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
@@ -55,12 +54,8 @@ public abstract class TransactionManagerService {
         consistentKeyValues.thenComposeAsync(wm -> saveToNPVS(flushMessage), executorService)
             .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
             .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
-            .thenAccept(x -> {
-                cfs.add(cf);
-                updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cfs);
-            })
+            .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cfs))
             .thenAccept(x -> commitControlHandler.completeDeliveries());
-        return cf;
     }
 
     public CompletableFuture<Map<ByteArrayWrapper, byte[]>> getPreviousConsistentValues(Map<ByteArrayWrapper, byte[]> writeMap){
@@ -126,5 +121,9 @@ public abstract class TransactionManagerService {
 
     public void setNonAckedFlushes(Map<Timestamp<Long>, FlushAgainInfo> nonAckedFlushes) {
         this.nonAckedFlushes = nonAckedFlushes;
+    }
+
+    public NPVS<Long> getNpvs() {
+        return npvs;
     }
 }

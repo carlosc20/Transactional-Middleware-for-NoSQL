@@ -27,8 +27,8 @@ public abstract class BatchTransactionManagerService extends TransactionManagerS
     private boolean waitingForBatch;
     private final int batchTimeout;
 
-    public BatchTransactionManagerService(int batchTimeout, long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
-        super(timestep, npvs, driver, scm);
+    public BatchTransactionManagerService(int batchTimeout, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm){
+        super(npvs, driver, scm);
         this.commitUpperLimit = new MonotonicTimestamp(0);
         this.startUpperLimit = new MonotonicTimestamp(0);
         this.writeMap = new HashMap<>();
@@ -37,23 +37,37 @@ public abstract class BatchTransactionManagerService extends TransactionManagerS
         this.batchTimeout = batchTimeout;
     }
 
-    public CompletableFuture<Timestamp<Long>> flushInBatch(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> transactionStartTimestamp, Timestamp<Long> commitTimestamp, Timestamp<Long> currentTimestamp){
+    public CompletableFuture<Timestamp<Long>> updateState(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> transactionStartTimestamp,
+                            Timestamp<Long> commitTimestamp){
+
         CompletableFuture<Timestamp<Long>> res = new CompletableFuture<>();
         completableFutures.add(res);
         commitUpperLimit.set(commitTimestamp);
         startUpperLimit.set(transactionStartTimestamp);
         this.writeMap.putAll(writeMap);
+        return res;
+    }
+
+    public void clearState(){
+        this.writeMap.clear();
+        this.completableFutures.clear();
+        waitingForBatch = false;
+    }
+
+    public CompletableFuture<Timestamp<Long>> flushInBatch(Map<ByteArrayWrapper, byte[]> writeMap,
+                   Timestamp<Long> transactionStartTimestamp, Timestamp<Long> commitTimestamp, Timestamp<Long> currentTimestamp){
+
+        CompletableFuture<Timestamp<Long>> res = updateState(writeMap, commitTimestamp, transactionStartTimestamp);
         if(!waitingForBatch){
             waitingForBatch = true;
             this.executorService.schedule(()->{
                 LOG.info("Building batch with size={}", completableFutures.size());
                 Map<ByteArrayWrapper, byte[]> map = new HashMap<>(this.writeMap);
                 List<CompletableFuture<Timestamp<Long>>> cfs = new ArrayList<>(this.completableFutures);
-                this.writeMap.clear();
-                this.completableFutures.clear();
-                waitingForBatch = false;
+                clearState();
                 FlushMessage flushMessage = new FlushMessage(map, startUpperLimit, currentTimestamp);
                 setNonAckedFlush(new FlushAgainInfo(flushMessage, commitTimestamp));
+                getCommitControlHandler().putBatch(commitTimestamp);
                 flush(flushMessage, commitTimestamp, cfs);
             }, batchTimeout, TimeUnit.MILLISECONDS);
         }

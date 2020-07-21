@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.utils.BitWriteSet;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 
 public class CertifierImpl extends AbstractCertifier {
@@ -28,6 +29,11 @@ public class CertifierImpl extends AbstractCertifier {
 
     @Override
     public long truncateStartTS(Timestamp<Long> startTimestamp) {
+        return startTimestamp.toPrimitive();
+    }
+
+    @Override
+    public long truncateForGC(Timestamp<Long> startTimestamp) {
         return startTimestamp.toPrimitive();
     }
 

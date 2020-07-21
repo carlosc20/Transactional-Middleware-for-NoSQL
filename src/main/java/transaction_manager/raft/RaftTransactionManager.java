@@ -18,28 +18,31 @@ import java.util.concurrent.CompletableFuture;
 public abstract class RaftTransactionManager extends TransactionManagerImpl {
     private static final Logger LOG = LoggerFactory.getLogger(RaftTransactionManager.class);
 
-    public RaftTransactionManager(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
-        super(timestep, npvs, driver, scm);
+    public RaftTransactionManager(int batchTimeout, long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
+        super(batchTimeout, timestep, npvs, driver, scm);
     }
 
     public abstract boolean isLeader();
+
+    public abstract void garbageCollection(Timestamp<Long> lowWaterMark);
 
     @Override
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cf);
 
     public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
+        getCertifier().setTombstone(leaderTime);
         getCertifier().update(commitTimestamp);
         removeFlush(startTimestamp);
-        getCertifier().setTombstone(commitTimestamp, leaderTime);
     }
 
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
-        Timestamp<Long> commitTimestamp = getCertifier().commit(tc.getWriteSet(), tc.getTimestamp());
-        if(commitTimestamp.toPrimitive() > 0) {
-            LOG.info("Putting non acked TC={}", commitTimestamp.toPrimitive());
+        Timestamp<Long> provisionalCommitTimestamp = getCertifier().commit(tc.getWriteSet(), tc.getTimestamp());
+        if(provisionalCommitTimestamp.toPrimitive() > 0) {
+            LOG.info("Putting non acked TC={}", provisionalCommitTimestamp.toPrimitive());
+            //tc.getTimestamp == startTimestamp in this case
             if(isLeader())
-                return flushInBatch(tc.getWriteMap(), tc.getTimestamp(), commitTimestamp, getCertifier().getCurrentCommitTs());
+                return flushInBatch(tc.getWriteMap(), tc.getTimestamp(), provisionalCommitTimestamp, getCertifier().getCurrentCommitTs());
             else
                 //return for a follower is irrelevant
                 return CompletableFuture.completedFuture(null);
@@ -47,8 +50,8 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
         return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
     }
 
-    public void setCommitControlHandlerTimestamp(){
-        getCommitControlHandler().setTimestamp(getCertifier().getCurrentCommitTs());
+    public void abort(Timestamp<Long> startTimestamp){
+        getCertifier().transactionEnded(startTimestamp);
     }
 
     public void setState(State s){

@@ -11,8 +11,8 @@ import java.util.concurrent.ExecutionException;
 import static org.junit.Assert.*;
 
 public class FullTransactionTest {
-    //TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
-    TransactionManager tms = new TransactionManagerStub(23451, 30000);
+    TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");
+    //TransactionManager tms = new TransactionManagerStub(23451, 30000);
     @Test
     public void justRead(){
 
@@ -77,6 +77,8 @@ public class FullTransactionTest {
         t22.write(writeKey1, oldRes1);
         t22.write(writeKey2, oldRes2);
         boolean result2 = t22.commit();
+
+        transactionController.startTransaction();
 
         assertFalse("Should conflict", result2);
     }

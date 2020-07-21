@@ -5,7 +5,6 @@ import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
-import spread.SpreadException;
 import transaction_manager.messaging.ServersContextMessage;
 import transaction_manager.standalone.TransactionManagerServer;
 
@@ -14,7 +13,7 @@ import java.util.ArrayList;
 
 public class ServersStandalone {
 
-    public static void main(String[] args) throws SpreadException, UnknownHostException {
+    public static void main(String[] args) throws  UnknownHostException {
         ArrayList<String> npvsServers = new ArrayList<>();
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
@@ -32,7 +31,7 @@ public class ServersStandalone {
         NPVSStub npvs = new NPVSStub(Address.from(npvsStubPort), npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
         ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
-        new TransactionManagerServer(timestep, serverPort, npvs, driver, scm).start();
+        new TransactionManagerServer(200, timestep, serverPort, npvs, driver, scm).start();
         System.out.println("Transaction Manager Server ready");
     }
 }

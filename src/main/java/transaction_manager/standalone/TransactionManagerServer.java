@@ -8,7 +8,6 @@ import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
-import npvs.NPVS;
 import npvs.NPVSStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +30,7 @@ public class TransactionManagerServer {
     private final NPVSStub npvs;
 
 
-    public TransactionManagerServer(long timestep, int myPort, NPVSStub npvs, KeyValueDriver driver, ServersContextMessage scm){
+    public TransactionManagerServer(int batchTimeout, long timestep, int myPort, NPVSStub npvs, KeyValueDriver driver, ServersContextMessage scm){
         e = Executors.newFixedThreadPool(1);
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
@@ -43,20 +42,18 @@ public class TransactionManagerServer {
                 new MessagingConfig());
 
         this.npvs = npvs;
-        this.transactionManagerService = new TransactionManagerImpl(timestep, npvs, driver, scm);
+        this.transactionManagerService = new TransactionManagerImpl(batchTimeout ,timestep, npvs, driver, scm);
     }
 
     public void start() {
         mms.start();
         mms.registerHandler("start", (a,b) -> {
             TransactionStartRequest tsr = s.decode(b);
-            LOG.info("New start transaction request message with id: {}", tsr.getId());
             return transactionManagerService.startTransaction().thenApply(s::encode);
         });
 
         mms.registerHandler("commit", (a,b) -> {
             TransactionCommitRequest tcr = s.decode(b);
-            LOG.info("New commit request message with id: {}", tcr.getId());
             return transactionManagerService.tryCommit(tcr.getTransactionContentMessage())
                     .thenApply(s::encode);
         });
@@ -69,7 +66,7 @@ public class TransactionManagerServer {
         //warmhup
         List<String> handlers = new ArrayList<>();
         handlers.add("put");
-        handlers.add("eviction");
+        handlers.add("evict");
         try {
             this.npvs.warmhup(handlers).get();
         } catch (InterruptedException | ExecutionException e) {
@@ -78,6 +75,7 @@ public class TransactionManagerServer {
     }
 
     public static void main(String[] args) {
+        int batchTimeout = 200;
         long timestep = 1000;
         Address npvsStubPort = Address.from(30001);
         String databaseURI = "mongodb://127.0.0.1:27017";
@@ -91,6 +89,6 @@ public class TransactionManagerServer {
         NPVSStub npvs = new NPVSStub(npvsStubPort, npvsServers);
         KeyValueDriver driver = new MongoAsynchKV(databaseURI, databaseName, databaseCollectionName);
         ServersContextMessage scm = new ServersContextMessage(databaseURI, databaseName, databaseCollectionName, npvsServers);
-        new TransactionManagerServer(timestep, 30000, npvs, driver, scm).start();
+        new TransactionManagerServer(batchTimeout,timestep, 30000, npvs, driver, scm).start();
     }
 }

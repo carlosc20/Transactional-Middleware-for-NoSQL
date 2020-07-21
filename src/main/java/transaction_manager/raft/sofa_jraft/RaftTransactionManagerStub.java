@@ -2,19 +2,24 @@ package transaction_manager.raft.sofa_jraft;
 
 import certifier.MonotonicTimestamp;
 import certifier.Timestamp;
+import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.RouteTable;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.error.RemotingException;
 import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
+import com.alipay.sofa.jraft.util.Endpoint;
 import transaction_manager.State;
 import transaction_manager.TransactionManager;
 import transaction_manager.messaging.*;
+import transaction_manager.raft.sofa_jraft.rpc.RaftInfo;
 import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
+
+import static transaction_manager.raft.sofa_jraft.rpc.RaftMessagingService.*;
 
 public class RaftTransactionManagerStub implements TransactionManager {
     private final CliClientServiceImpl cliClientService;
@@ -32,48 +37,47 @@ public class RaftTransactionManagerStub implements TransactionManager {
         cliClientService = new CliClientServiceImpl();
         cliClientService.init(new CliOptions());
         try {
-            refreshLeader();
+            leader = refreshLeader(cliClientService, groupId);
         } catch (TimeoutException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public void refreshLeader() throws TimeoutException, InterruptedException {
-        if (!RouteTable.getInstance().refreshLeader(cliClientService, groupId, 1000).isOk()) {
-            throw new IllegalStateException("Refresh leader failed");
-        }
-        leader = RouteTable.getInstance().selectLeader(groupId);
-        System.out.println("Leader is " + leader);
-    }
 
+    @SuppressWarnings("unchecked")
     @Override
     public CompletableFuture<Timestamp<Long>> startTransaction() {
-        TransactionStartRequest tsr = new TransactionStartRequest();
         try {
-            return CompletableFuture.completedFuture(((ValueResponse<Timestamp<Long>>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tsr, 50000)).getValue());
-        } catch (InterruptedException | RemotingException e) {
+            RaftInfo<Timestamp<Long>> ri = getResponseFromLeader(cliClientService, new TransactionStartRequest(), leader);
+            if(ri.isLeaderChange())
+                leader = ri.getLeader();
+            return CompletableFuture.completedFuture(ri.getResponse());
+        } catch (RemotingException | InterruptedException e) {
             e.printStackTrace();
         }
         return CompletableFuture.completedFuture(new MonotonicTimestamp(-1L));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tx) {
-        TransactionCommitRequest tcr = new TransactionCommitRequest(tx);
         try {
-            // TODO return timestamp
-            return CompletableFuture.completedFuture(((ValueResponse<Timestamp<Long>>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), tcr, 50000)).getValue());
+            RaftInfo<Timestamp<Long>> ri = getResponseFromLeader(cliClientService, new TransactionCommitRequest(tx), leader);
+            if(ri.isLeaderChange())
+                leader = ri.getLeader();
+            return CompletableFuture.completedFuture(ri.getResponse());
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
         return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
     }
 
+
+    @SuppressWarnings("unchecked")
     @Override
     public ServersContextMessage getServersContext() {
-        ServerContextRequestMessage scr = new ServerContextRequestMessage();
         try {
-            return ((ValueResponse<ServersContextMessage>) cliClientService.getRpcClient().invokeSync(leader.getEndpoint(), scr, 30000)).getValue();
+            return getResponseFromFollower(cliClientService, new ServerContextRequestMessage(), leader);
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }
@@ -81,10 +85,13 @@ public class RaftTransactionManagerStub implements TransactionManager {
     }
 
     //debug
+    @SuppressWarnings("unchecked")
     public State getExtendedState(int index) {
         try {
-            PeerId pid = RouteTable.getInstance().getConfiguration("manager").getPeers().get(index);
-            return ((ValueResponse<State>) cliClientService.getRpcClient().invokeSync(pid.getEndpoint(), new GetFullState(), 30000)).getValue();
+            RaftInfo<State> ri = getResponseFromLeader(cliClientService, new GetFullState(), leader);
+            if(ri.isLeaderChange())
+                leader = ri.getLeader();
+            return ri.getResponse();
         } catch (InterruptedException | RemotingException e) {
             e.printStackTrace();
         }

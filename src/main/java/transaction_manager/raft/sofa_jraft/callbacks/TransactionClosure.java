@@ -1,20 +1,20 @@
 package transaction_manager.raft.sofa_jraft.callbacks;
 
 import com.alipay.sofa.jraft.Closure;
-import transaction_manager.raft.sofa_jraft.TransactionManagerOperation;
+import transaction_manager.raft.sofa_jraft.StateMachineOperation;
 import transaction_manager.raft.sofa_jraft.rpc.Response;
 import transaction_manager.raft.sofa_jraft.rpc.ValueResponse;
 
 public abstract class TransactionClosure<T> implements Closure {
     private Response<T> response;
-    private TransactionManagerOperation transactionManagerOperation;
+    private StateMachineOperation stateMachineOperation;
 
-    public void setTransactionManagerOperation(TransactionManagerOperation transactionManagerOperation) {
-        this.transactionManagerOperation = transactionManagerOperation;
+    public void setStateMachineOperation(StateMachineOperation stateMachineOperation) {
+        this.stateMachineOperation = stateMachineOperation;
     }
 
-    public TransactionManagerOperation getTransactionManagerOperation() {
-        return transactionManagerOperation;
+    public StateMachineOperation getStateMachineOperation() {
+        return stateMachineOperation;
     }
 
     public Response<T> getValueResponse() {

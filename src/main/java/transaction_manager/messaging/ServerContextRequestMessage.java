@@ -1,7 +1,6 @@
 package transaction_manager.messaging;
 
-public class ServerContextRequestMessage extends Message{
-    public ServerContextRequestMessage(){
-        super();
-    }
+import java.io.Serializable;
+
+public class ServerContextRequestMessage implements Serializable {
 }

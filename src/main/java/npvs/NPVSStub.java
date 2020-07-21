@@ -8,6 +8,7 @@ import io.atomix.utils.net.Address;
 import io.atomix.utils.serializer.Serializer;
 import io.atomix.utils.serializer.SerializerBuilder;
 import npvs.messaging.FlushMessage;
+import npvs.messaging.NPVSReply;
 import npvs.messaging.ReadMessage;
 import transaction_manager.utils.ByteArrayWrapper;
 import java.time.Duration;
@@ -78,6 +79,11 @@ public class NPVSStub implements NPVS<Long> {
         ReadMessage rm = new ReadMessage(key, ts);
         return mms.sendAndReceive(address, "get", s.encode(rm), Duration.ofSeconds(10000), e)
                 .thenApply(s::decode);
+    }
+
+    @Override
+    public void evict(Timestamp<Long> lowWaterMark) {
+        servers.forEach(v -> mms.sendAndReceive(v, "evict", s.encode(lowWaterMark), Duration.ofSeconds(10000), e));
     }
 
     public CompletableFuture<Void> warmhup(List<String> handlers){

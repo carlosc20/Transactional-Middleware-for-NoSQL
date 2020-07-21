@@ -30,6 +30,7 @@ public class RaftTMServer {
     private KeyValueDriver driver;
     private ServersContextMessage scm;
     private long timestep;
+    private int batchTimeout;
     private String dataPath;
     private String groupId;
     private PeerId serverId;
@@ -50,6 +51,11 @@ public class RaftTMServer {
                 (req, closure) -> requestHandler.tryCommit(req.getTransactionContentMessage(), closure)
         ));
 
+        rpcServer.registerProcessor(new RequestProcessor<TransactionAbortRequest, Void>(
+                TransactionAbortRequest.class,
+                (req, closure) -> requestHandler.abort(req.getStartTimestamp(), closure)
+        ));
+
         rpcServer.registerProcessor(new RequestProcessor<TransactionStartRequest, Timestamp<Long>>(
                 TransactionStartRequest.class,
                 (req, closure) -> requestHandler.startTransaction(closure))
@@ -60,6 +66,11 @@ public class RaftTMServer {
                 (req, closure) -> requestHandler.getServersContext(closure)
         ));
 
+        rpcServer.registerProcessor(new RequestProcessor<GetTimestamp, Timestamp<Long>>(
+                GetTimestamp.class,
+                (req, closure) -> requestHandler.getCurrentTimestamp(closure)));
+
+        //debug
         rpcServer.registerProcessor(new RequestProcessor<GetFullState, State>(
                 GetFullState.class,
                 (req, closure) -> {
@@ -68,17 +79,8 @@ public class RaftTMServer {
                 }
         ));
 
-        rpcServer.registerProcessor(new RequestProcessor<GetTimestamp, Timestamp<Long>>(
-                GetTimestamp.class,
-                (req, closure) -> {
-                    closure.success(fsm.getCurrentTs());
-                    closure.run(Status.OK());
-                }
-        ));
-
-
         // Initialize the state machine.
-        this.fsm = new ManagerStateMachine(timestep, npvs, driver, scm, requestHandler);
+        this.fsm = new ManagerStateMachine(batchTimeout ,timestep, npvs, driver, scm, requestHandler);
         // Set the state machine to the startup parameters.
         nodeOptions.setFsm(this.fsm);
         // Set the storage path.
@@ -97,7 +99,7 @@ public class RaftTMServer {
         //warmhup
         List<String> handlers = new ArrayList<>();
         handlers.add("put");
-        handlers.add("eviction");
+        handlers.add("evict");
         try {
             warmup(handlers);
         } catch (InterruptedException e) {
@@ -111,7 +113,7 @@ public class RaftTMServer {
         } catch (ExecutionException e) {
             int waitMs = 2000;
             Thread.sleep(waitMs);
-            System.out.println("Waiting for raft, retrying in " + waitMs/1000 + " seconds");
+            System.out.println("Waiting for npvs, retrying in " + waitMs/1000 + " seconds");
         }
     }
 
@@ -124,15 +126,10 @@ public class RaftTMServer {
         return this.node;
     }
 
-    public RaftGroupService RaftGroupService() {
-        return this.raftGroupService;
-    }
-
     /**
      * Redirect request to new leader
      */
     public ValueResponse<Void> redirect() {
-        System.out.println("Redirectingggggg");
         final ValueResponse<Void> response = new ValueResponse<>();
         response.setSuccess(false);
         if (this.node != null) {
@@ -176,12 +173,16 @@ public class RaftTMServer {
         this.nodeOptions = nodeOptions;
     }
 
+    public void setBatchTimeout(int batchTimeout) {
+        this.batchTimeout = batchTimeout;
+    }
+
     public static void main(final String[] args) throws IOException {
         if (args.length != 5) {
             System.out
-                    .println("Usage: java com.alipay.sofa.jraft.example.counter.CounterServer {dataPath} {groupId} {serverId} {initConf} {offset}");
+                    .println("Usage: {dataPath} {groupId} {serverId} {initConf} {offset}");
             System.out
-                    .println("Example: java com.alipay.sofa.jraft.example.counter.CounterServer /tmp/server1 counter 127.0.0.1:8081 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083 1");
+                    .println("Example: /tmp/server1 counter 127.0.0.1:8081 127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083 1");
             System.exit(1);
         }
         final String dataPath = args[0];
@@ -196,6 +197,7 @@ public class RaftTMServer {
             .withRaftDataPath(dataPath)
             .withRaftGroupId(groupId)
             .withTimestep(1000)
+            .withBatchTimeout(200)
             .withStandardServersPort(offset, 2)
             .withDatabaseCollectionName("teste1")
             .withDatabaseName("testeLei")

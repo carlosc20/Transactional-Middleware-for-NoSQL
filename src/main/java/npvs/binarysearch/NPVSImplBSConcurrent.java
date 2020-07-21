@@ -2,15 +2,13 @@ package npvs.binarysearch;
 
 import certifier.Timestamp;
 import npvs.AbstractNPVS;
-import npvs.NPVS;
-import npvs.NPVSReply;
+import npvs.messaging.NPVSReply;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +37,7 @@ public class NPVSImplBSConcurrent extends AbstractNPVS {
 
     @Override
     //TODO
-    public void evictVersions(Timestamp<Long> lowWaterMark) {
+    public void evict(Timestamp<Long> lowWaterMark) {
 
     }
 
@@ -66,7 +64,7 @@ public class NPVSImplBSConcurrent extends AbstractNPVS {
     }
 
     @Override
-    public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
+    public CompletableFuture<NPVSReply> getImpl(ByteArrayWrapper key, Timestamp<Long> ts) {
 
         CompletableFuture<NPVSReply> cf = new CompletableFuture<>();
 

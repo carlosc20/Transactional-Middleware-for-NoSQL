@@ -3,11 +3,7 @@ package certifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.BitWriteSet;
-
-import java.io.Serializable;
 import java.util.LinkedList;
-
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -17,6 +13,7 @@ public class IntervalCertifierImpl extends AbstractCertifier {
     private final Timestamp<Long> currentStartTs;
     private final Timestamp<Long> provisionalCommitTs;
     private final LinkedList<CompletableFuture<Void>> startsOnWait;
+
 
     public IntervalCertifierImpl(long timestep) {
         super(timestep);
@@ -49,7 +46,12 @@ public class IntervalCertifierImpl extends AbstractCertifier {
 
     @Override
     public long truncateStartTS(Timestamp<Long> startTimestamp) {
-        return startTimestamp.toPrimitive() / timestep * timestep + timestep;
+        return truncateForGC(startTimestamp) + timestep;
+    }
+
+    @Override
+    public long truncateForGC(Timestamp<Long> startTimestamp) {
+        return startTimestamp.toPrimitive() / timestep * timestep;
     }
 
     @Override

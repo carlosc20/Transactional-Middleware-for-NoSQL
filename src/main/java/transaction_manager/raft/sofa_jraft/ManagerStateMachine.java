@@ -27,17 +27,18 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
-import static transaction_manager.raft.sofa_jraft.TransactionManagerOperation.*;
+import static transaction_manager.raft.sofa_jraft.StateMachineOperation.*;
 
 public class ManagerStateMachine extends StateMachineAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ManagerStateMachine.class);
 
     private final RaftTransactionManagerImpl transactionManager;
 
-    public ManagerStateMachine(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
+    public ManagerStateMachine(int batchTimeout, long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
         super();
-        this.transactionManager = new RaftTransactionManagerImpl(timestep, npvs, driver, scm, requestHandler);
+        this.transactionManager = new RaftTransactionManagerImpl(batchTimeout,timestep, npvs, driver, scm, requestHandler);
     }
 
     //debug
@@ -56,45 +57,54 @@ public class ManagerStateMachine extends StateMachineAdapter {
 
     public void onApply(final Iterator iter) {
         while (iter.hasNext()) {
-            TransactionManagerOperation transactionManagerOperation = null;
+            StateMachineOperation stateMachineOperation = null;
 
             TransactionClosure closure = null;
             if (iter.done() != null) {
                 // This task is applied by this node, get value from closure to avoid additional parsing.
                 closure = (TransactionClosure) iter.done();
-                transactionManagerOperation = closure.getTransactionManagerOperation();
+                stateMachineOperation = closure.getStateMachineOperation();
             } else {
                 // Have to parse FetchAddRequest from this user log.
                 final ByteBuffer data = iter.getData();
                 try {
-                    transactionManagerOperation = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(
-                            data.array(), TransactionManagerOperation.class.getName());
+                    stateMachineOperation = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(
+                            data.array(), StateMachineOperation.class.getName());
                 } catch (final CodecException e) {
                     LOG.error("Fail to decode TransactionManagerOperation", e);
                 }
             }
-            applyOperation(transactionManagerOperation, closure);
+            applyOperation(stateMachineOperation, closure);
             iter.next();
         }
     }
 
-    private void applyOperation(TransactionManagerOperation transactionManagerOperation, TransactionClosure closure){
-        if (transactionManagerOperation != null) {
-            switch (transactionManagerOperation.getOp()) {
+    private void applyOperation(StateMachineOperation stateMachineOperation, TransactionClosure closure){
+        if (stateMachineOperation != null) {
+            switch (stateMachineOperation.getOp()) {
                 case START_TXN:
                     transactionManager.startTransaction().thenAccept(res -> treatClosure(res, closure));
                     break;
                 case COMMIT:
-                    final TransactionContentMessage tcm = transactionManagerOperation.getTcm();
+                    final TransactionContentMessage tcm = stateMachineOperation.getTcm();
                     transactionManager.tryCommit(tcm).thenAccept(res -> treatClosure(res, closure));
                     break;
+                case ABORT:
+
                 case UPDATE_STATE:
-                    final Timestamp<Long> commitTimestamp = transactionManagerOperation.getTimestamp();
-                    final Timestamp<Long> startTimestamp = transactionManagerOperation.getStartTimestamp();
-                    final LocalDateTime leaderTime = transactionManagerOperation.getLeaderTime();
+                    final Timestamp<Long> commitTimestamp = stateMachineOperation.getTimestamp();
+                    final Timestamp<Long> startTimestamp = stateMachineOperation.getStartTimestamp();
+                    final LocalDateTime leaderTime = stateMachineOperation.getLeaderTime();
                     transactionManager.updateState(startTimestamp, commitTimestamp, leaderTime);
                     if(closure != null)
-                        ((CompletableClosure<Void>) closure).complete(commitTimestamp);
+                        ((CompletableClosure<Timestamp<Long>>) closure).complete(commitTimestamp);
+                    break;
+                case GET_CURRENT_TIMESTAMP:
+                    treatClosure(getCurrentTs(),closure);
+                    break;
+                case GARBAGE_COLLECTION:
+                    final Timestamp<Long> newLowWaterMark = stateMachineOperation.getTimestamp();
+                    transactionManager.garbageCollection(newLowWaterMark.toPrimitive());
                     break;
             }
         }
@@ -110,16 +120,13 @@ public class ManagerStateMachine extends StateMachineAdapter {
     @Override
     public void onLeaderStart(final long term) {
         this.transactionManager.setTerm(term);
-        //TODO testar
-        //this.transactionManager.scheduleLeaderEvents(3, TimeUnit.MINUTES);
+        this.transactionManager.scheduleGarbageCollection(60 * 5, 60 * 2, TimeUnit.SECONDS, transactionManager::garbageCollection);
         this.transactionManager.triggerNonAckedFlushes();
-        this.transactionManager.setCommitControlHandlerTimestamp();
         super.onLeaderStart(term);
     }
 
     @Override
     public void onSnapshotSave(final SnapshotWriter writer, final Closure done) {
-        //TODO colocar locks?
         Utils.runInThread(() -> {
             final StateSnapshot snapshot = new StateSnapshot(writer.getPath() + File.separator + "data");
             if (snapshot.save(this.transactionManager.getExtendedState())) {
@@ -159,7 +166,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
         return transactionManager.getCertifier().getCurrentCommitTs();
     }
 
-    //TODO ter cuidado com isto. Pedidos ainda não acabados
+    //Never used
     @Override
     public void onLeaderStop(final Status status) {
         this.transactionManager.setTerm(-1);

@@ -57,6 +57,11 @@ public class RaftState {
     }
 
     @Test
+    public void dummy2(){
+        System.out.println(3001L / 1000L * 1000L + 1000L);
+    }
+
+    @Test
     public void write() throws ExecutionException, InterruptedException {
         TransactionController transactionController = new TransactionController(Address.from(23415), tms);
         transactionController.buildContext();

@@ -2,8 +2,7 @@ package npvs.linkedhashmap;
 
 import certifier.Timestamp;
 import npvs.AbstractNPVS;
-import npvs.NPVS;
-import npvs.NPVSReply;
+import npvs.messaging.NPVSReply;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.LinkedHashMap;
@@ -19,10 +18,11 @@ public class NPVSImplLHM extends AbstractNPVS {
         this.versionsByKey = new LinkedHashMap<>();}
 
     @Override
-    public void evictVersions(Timestamp<Long> lowWaterMark) {
+    public void evict(Timestamp<Long> lowWaterMark) {
 
     }
 
+    @Override
     public CompletableFuture<Void> putImpl(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> ts) {
         writeMap.forEach((key, v) -> {
             if (versionsByKey.containsKey(key))
@@ -37,7 +37,8 @@ public class NPVSImplLHM extends AbstractNPVS {
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
+    @Override
+    public CompletableFuture<NPVSReply> getImpl(ByteArrayWrapper key, Timestamp<Long> ts) {
         if(!versionsByKey.containsKey(key)){
             System.out.println("no key");
             return CompletableFuture.completedFuture(null);

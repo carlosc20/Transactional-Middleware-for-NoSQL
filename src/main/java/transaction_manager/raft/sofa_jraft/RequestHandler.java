@@ -5,10 +5,12 @@ import com.alipay.remoting.exception.CodecException;
 import com.alipay.remoting.serialization.SerializerManager;
 import com.alipay.remoting.util.StringUtils;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.closure.ReadIndexClosure;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.rhea.StoreEngineHelper;
 import com.alipay.sofa.jraft.rhea.options.StoreEngineOptions;
+import com.alipay.sofa.jraft.util.BytesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.messaging.ServersContextMessage;
@@ -29,11 +31,15 @@ public class RequestHandler {
     }
 
     public void startTransaction(final TransactionClosure<Timestamp<Long>> closure) {
-        applyOperation(TransactionManagerOperation.createStartTransaction(), closure);
+        applyOperation(StateMachineOperation.createStartTransaction(), closure);
     }
 
     public void tryCommit(TransactionContentMessage tcm, final TransactionClosure<Timestamp<Long>> closure) {
-        applyOperation(TransactionManagerOperation.createCommit(tcm), closure);
+        applyOperation(StateMachineOperation.createCommit(tcm), closure);
+    }
+
+    public void abort(Timestamp<Long> startTimestamp, final TransactionClosure<Void> closure){
+        applyOperation(StateMachineOperation.createAbort(startTimestamp), closure);
     }
 
     //TODO any server can execute this
@@ -42,18 +48,13 @@ public class RequestHandler {
         closure.run(Status.OK());
     }
 
-    private Executor createReadIndexExecutor() {
-        final StoreEngineOptions opts = new StoreEngineOptions();
-        return StoreEngineHelper.createReadIndexExecutor(opts.getReadIndexCoreThreads());
-    }
-
-    public void applyOperation(final TransactionManagerOperation op, final TransactionClosure<?> closure) {
+    public void applyOperation(final StateMachineOperation op, final TransactionClosure<?> closure) {
         if (!isLeader()) {
             handlerNotLeaderError(closure);
             return;
         }
         try {
-            closure.setTransactionManagerOperation(op);
+            closure.setStateMachineOperation(op);
             final Task task = new Task();
             task.setData(ByteBuffer.wrap(SerializerManager.getSerializer(SerializerManager.Hessian2).serialize(op)));
             task.setDone(closure);
@@ -65,6 +66,33 @@ public class RequestHandler {
             closure.run(new Status(RaftError.EINTERNAL, errorMsg));
         }
     }
+
+    public void getCurrentTimestamp(final TransactionClosure closure) {
+        this.raftTMServer.getNode().readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
+            @Override
+            public void run(Status status, long index, byte[] reqCtx) {
+                if(status.isOk()){
+                    closure.success(getCurrentTimestamp());
+                    closure.run(Status.OK());
+                    return;
+                }
+                RequestHandler.this.readIndexExecutor.execute(() -> {
+                    if(isLeader()){
+                        LOG.info("Fail to get value with 'ReadIndex': {}, try to applying to the state machine.", status);
+                        applyOperation(StateMachineOperation.createStartTransaction(), closure);
+                    }else {
+                        handlerNotLeaderError(closure);
+                    }
+                });
+            }
+        });
+    }
+
+    private Executor createReadIndexExecutor() {
+        final StoreEngineOptions opts = new StoreEngineOptions();
+        return StoreEngineHelper.createReadIndexExecutor(opts.getReadIndexCoreThreads());
+    }
+
     private void handlerNotLeaderError(final TransactionClosure closure) {
         closure.failure("Not leader.", getRedirect());
         closure.run(new Status(RaftError.EPERM, "Not leader"));
@@ -81,33 +109,7 @@ public class RequestHandler {
     private ServersContextMessage getServersContext(){
         return this.raftTMServer.getFsm().getServersContext();
     }
-/*
-    public void getTimestamp(final boolean readOnlySafe, final CompletableClosure<Long> closure) {
-        if(!readOnlySafe){
-            closure.success(getTimestamp());
-            closure.run(Status.OK());
-            return;
-        }
 
-        this.raftTMServer.getNode().readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
-            @Override
-            public void run(Status status, long index, byte[] reqCtx) {
-                if(status.isOk()){
-                    closure.success(getTimestamp());
-                    closure.run(Status.OK());
-                    return;
-                }
-                CertifierServiceImpl.this.readIndexExecutor.execute(() -> {
-                    if(isLeader()){
-                        LOG.info("Fail to get value with 'ReadIndex': {}, try to applying to the state machine.", status);
-                        applyOperation(TransactionManagerOperation.createStartTransaction(), closure);
-                    }else {
-                        handlerNotLeaderError(closure);
-                    }
-                });
-            }
-        });
-    }
+    private Timestamp<Long> getCurrentTimestamp(){return this.raftTMServer.getFsm().getCurrentTs();}
 
- */
 }

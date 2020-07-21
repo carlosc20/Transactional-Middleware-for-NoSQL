@@ -14,8 +14,8 @@ public interface Certifier<V> extends Serializable {
     Timestamp<V> getCurrentCommitTs();
     Timestamp<V> getSafeToDeleteTimestamp();
     void evictStoredWriteSets(V newLowWaterMark);
-    Timestamp<Long> forceEvictStoredWriteSets(LocalDateTime eventTime, long intervalSec);
-    void setTombstone(Timestamp<Long> commitTimestamp, LocalDateTime value);
-    void transactionCommited(Timestamp<Long> startTimestamp);
+    Timestamp<Long> getForceDeleteTimestamp(LocalDateTime eventTime, long intervalSec);
+    void setTombstone(LocalDateTime value);
+    void transactionEnded(Timestamp<Long> startTimestamp);
     void transactionStarted(Timestamp<Long> startTimestamp);
 }

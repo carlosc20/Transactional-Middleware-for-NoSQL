@@ -6,5 +6,5 @@ import java.util.concurrent.CompletableFuture;
 public interface CommitControlHandler {
     CompletableFuture<Void> deliver(Timestamp<Long> commitTs);
     void completeDeliveries();
-    void setTimestamp(Timestamp<Long> tc);
+    void putBatch(Timestamp<Long> tc);
 }

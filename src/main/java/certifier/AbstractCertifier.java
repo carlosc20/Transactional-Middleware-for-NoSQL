@@ -17,6 +17,7 @@ public abstract class AbstractCertifier implements Certifier<Long>{
 
     final Timestamp<Long> currentCommitTs;
     final Timestamp<Long> lowWaterMark;
+    final Timestamp<Long> lastTombStone;
 
     final LinkedHashMap<Timestamp<Long>, RunningState> runningTransactions;
 
@@ -28,6 +29,7 @@ public abstract class AbstractCertifier implements Certifier<Long>{
         lowWaterMark = new MonotonicTimestamp(-1);
         runningTransactions = new LinkedHashMap<>();
         history = new HashMap<>();
+        lastTombStone = new MonotonicTimestamp(timestep);
     }
 
     public AbstractCertifier(AbstractCertifier certifier){
@@ -36,11 +38,14 @@ public abstract class AbstractCertifier implements Certifier<Long>{
         lowWaterMark = certifier.lowWaterMark;
         runningTransactions = new LinkedHashMap<>(certifier.runningTransactions);
         history = new HashMap<>(certifier.history);
+        lastTombStone = certifier.lastTombStone;
     }
 
     public abstract CompletableFuture<Timestamp<Long>> start();
 
     public abstract long truncateStartTS(Timestamp<Long> startTimestamp);
+
+    public abstract long truncateForGC(Timestamp<Long> startTimestamp);
 
     public abstract Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> ts);
 
@@ -67,23 +72,23 @@ public abstract class AbstractCertifier implements Certifier<Long>{
 
     @Override
     public void transactionStarted(Timestamp<Long> startTimestamp) {
-        Timestamp<Long> truncated = new MonotonicTimestamp(truncateStartTS(startTimestamp));
+        Timestamp<Long> truncated = new MonotonicTimestamp(truncateForGC(startTimestamp));
         LOG.info("transaction started truncated={}", truncated.toPrimitive());
         this.runningTransactions.putIfAbsent(truncated, new RunningState());
         this.runningTransactions.get(truncated).addTransaction();
     }
 
     @Override
-    public void transactionCommited(Timestamp<Long> startTimestamp){
-        Timestamp<Long> truncated = new MonotonicTimestamp(truncateStartTS(startTimestamp));
+    public void transactionEnded(Timestamp<Long> startTimestamp){
+        Timestamp<Long> truncated = new MonotonicTimestamp(truncateForGC(startTimestamp));
         LOG.info("transaction commited={}", truncated.toPrimitive());
         this.runningTransactions.get(truncated).removeTransaction();
     }
 
     @Override
-    public void setTombstone(Timestamp<Long> commitTimestamp, LocalDateTime value){
-        LOG.info("set Tombstone={}", commitTimestamp.toPrimitive());
-        this.runningTransactions.get(commitTimestamp).setTombstone(value);
+    public void setTombstone(LocalDateTime value){
+        LOG.info("set Tombstone={}", currentCommitTs.toPrimitive());
+        this.runningTransactions.get(currentCommitTs).setTombstone(value);
     }
 
     @Override
@@ -91,11 +96,13 @@ public abstract class AbstractCertifier implements Certifier<Long>{
         Timestamp<Long> newLowWaterMark = lowWaterMark;
         for(Map.Entry<Timestamp<Long>, RunningState> entry : runningTransactions.entrySet()){
             RunningState runningState = entry.getValue();
-            if(!runningState.isCleared())
+            if(!runningState.isCleared()) {
                 return new MonotonicTimestamp(newLowWaterMark);
+            }
             else
                 newLowWaterMark = entry.getKey();
         }
+        LOG.info("Normal GC newLowWaterMark = {}", newLowWaterMark.toPrimitive());
         return new MonotonicTimestamp(newLowWaterMark);
     }
 
@@ -107,25 +114,22 @@ public abstract class AbstractCertifier implements Certifier<Long>{
             this.runningTransactions.remove(i);
         }
         this.lowWaterMark.setPrimitive(newLowWaterMark);
+        LOG.info("GC performed newLowWaterMark = {}", this.lowWaterMark.toPrimitive());
     }
 
 
-    @Override
-    public Timestamp<Long> forceEvictStoredWriteSets(LocalDateTime eventTime, long intervalSec){
-        ArrayList<Timestamp<Long>> removed = new ArrayList<>();
-        this.runningTransactions.forEach((k,v) -> {
-            LocalDateTime tombstone = v.getTombstone();
+    public Timestamp<Long> getForceDeleteTimestamp(LocalDateTime eventTime, long intervalSec){
+        Timestamp<Long> newLowWaterMark = lowWaterMark;
+        for(Map.Entry<Timestamp<Long>, RunningState> entry : runningTransactions.entrySet()){
+            LocalDateTime tombstone = entry.getValue().getTombstone();
             if(tombstone != null){
                 long interval = Duration.between(tombstone, eventTime).getSeconds();
                 if(interval > intervalSec)
-                    removed.add(k);
+                    newLowWaterMark = entry.getKey();
             }
-        });
-        removed.forEach(v -> {
-            this.runningTransactions.remove(v);
-            this.history.remove(v);
-        });
-        return removed.get(removed.size() - 1);
+        }
+        LOG.info("Force GC newLowWaterMark = {}", newLowWaterMark.toPrimitive());
+        return newLowWaterMark;
     }
 
     public Timestamp<Long> getCurrentCommitTs() {

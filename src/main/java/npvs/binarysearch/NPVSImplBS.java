@@ -2,15 +2,12 @@ package npvs.binarysearch;
 
 import certifier.Timestamp;
 import npvs.AbstractNPVS;
-import npvs.NPVS;
-import npvs.NPVSReply;
+import npvs.messaging.NPVSReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction_manager.utils.ByteArrayWrapper;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class NPVSImplBS extends AbstractNPVS {
@@ -24,9 +21,21 @@ public class NPVSImplBS extends AbstractNPVS {
     }
 
     @Override
-    //TODO
-    public void evictVersions(Timestamp<Long> lowWaterMark) {
-
+    public void evict(Timestamp<Long> lowWaterMark) {
+        versionsByKey.forEach((k,v) -> {
+            if (v.get(v.size() -1).ts.isBefore(lowWaterMark))
+                v.clear();
+            else{
+                Iterator<Version> it = v.iterator();
+                while(it.hasNext()){
+                    Version ver = it.next();
+                    if(ver.ts.isBefore(lowWaterMark))
+                        break;
+                    else
+                        it.remove();
+                }
+            }
+        });
     }
 
     @Override
@@ -45,13 +54,18 @@ public class NPVSImplBS extends AbstractNPVS {
     }
 
     @Override
-    public CompletableFuture<NPVSReply> get(ByteArrayWrapper key, Timestamp<Long> ts) {
-        if(!versionsByKey.containsKey(key)){
+    public CompletableFuture<NPVSReply> getImpl(ByteArrayWrapper key, Timestamp<Long> ts) {
+        if(!versionsByKey.containsKey(key) || keyHasNotBeenUpdated(key, ts)){
             //LOG.info("No such key has been found: {}", key.toString());
-            return CompletableFuture.completedFuture(new NPVSReply(null));
+            return CompletableFuture.completedFuture(NPVSReply.UPTODATE());
         }
         ArrayList<Version> versions = versionsByKey.get(key);
         return CompletableFuture.completedFuture(new NPVSReply(getSICompliantVersion(versions, ts)));
+    }
+
+    private boolean keyHasNotBeenUpdated(ByteArrayWrapper key, Timestamp<Long> ts){
+        List<Version> versions = versionsByKey.get(key);
+        return versions.get(versions.size() - 1).ts.isBefore(ts);
     }
 
     private byte[] getSICompliantVersion(ArrayList<Version> versions, Timestamp<Long> ts) {

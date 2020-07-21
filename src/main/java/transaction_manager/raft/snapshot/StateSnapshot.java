@@ -11,10 +11,6 @@ public class StateSnapshot {
 
     private String path;
 
-    static <T> T cast(Object obj, Class<T> clazz) {
-        return clazz.isInstance(obj)? clazz.cast(obj): null;
-    }
-
     static <T> T cast(Object obj) {
         final T t = (T) obj;
         return t;

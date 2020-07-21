@@ -1,12 +1,10 @@
 package runnable_tests;
 
 import certifier.MonotonicTimestamp;
-import certifier.Timestamp;
 import io.atomix.utils.net.Address;
 import npvs.NPVSServer;
 import npvs.NPVSStub;
 import npvs.messaging.FlushMessage;
-import spread.SpreadException;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.WriteMapsBuilder;
 import utils.timer.Timer;
@@ -16,18 +14,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class NPVSLoadTest {
 
 
-    public static void main(String[] args) throws InterruptedException, SpreadException, UnknownHostException {
+    public static void main(String[] args) throws InterruptedException, UnknownHostException {
         writeRead(10, 1000);
     }
 
-    public static void writeRead(int putSize, int putCount) throws InterruptedException, SpreadException, UnknownHostException {
+    public static void writeRead(int putSize, int putCount) throws InterruptedException, UnknownHostException {
 
         int keyPool = 1000;
         int valuePool = 1000;

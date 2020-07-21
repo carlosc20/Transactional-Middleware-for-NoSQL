@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class RaftServerBuilder {
-    private long timestep;
+    private long timestep = 1000;
     private Address npvsStubPort;
     private ArrayList<String> npvsServers;
     private String databaseURI;
@@ -24,6 +24,7 @@ public class RaftServerBuilder {
     private String serverIdStr;
     private String initConfStr;
     private NodeOptions nodeOptions;
+    private int batchTimeout = 200;
     private String type;
 
     public RaftServerBuilder(){
@@ -33,6 +34,7 @@ public class RaftServerBuilder {
     public RaftTMServer build() throws IOException {
         RaftTMServer server = new RaftTMServer();
         server.setTimestep(timestep);
+        server.setBatchTimeout(batchTimeout);
         server.setScm(buildServersContextMessage());
         server.setDataPath(dataPath);
         server.setGroupId(groupId);
@@ -72,7 +74,7 @@ public class RaftServerBuilder {
         // Close the CLI service.
         nodeOptions.setDisableCli(false);
         // Snapshot every 10 min
-        nodeOptions.setSnapshotIntervalSecs(60 * 10);
+        nodeOptions.setSnapshotIntervalSecs(60);
         final Configuration initConf = new Configuration();
         if (!initConf.parse(initConfStr)) {
             throw new IllegalArgumentException("Fail to parse initConf:" + initConfStr);
@@ -142,6 +144,11 @@ public class RaftServerBuilder {
 
     public RaftServerBuilder addNpvsServer(String npvsServerAddress){
         this.npvsServers.add(npvsServerAddress);
+        return this;
+    }
+
+    public RaftServerBuilder withBatchTimeout(int batchTimeout){
+        this.batchTimeout = batchTimeout;
         return this;
     }
 }

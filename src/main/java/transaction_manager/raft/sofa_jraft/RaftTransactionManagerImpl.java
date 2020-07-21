@@ -20,15 +20,15 @@ public class RaftTransactionManagerImpl extends RaftTransactionManager {
     private final AtomicLong leaderTerm = new AtomicLong(-1);
     private final RequestHandler requestHandler;
 
-    public RaftTransactionManagerImpl(long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler) {
-        super(timestep, npvs, driver, scm);
+    public RaftTransactionManagerImpl(int batchTimeout , long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler) {
+        super(batchTimeout ,timestep, npvs, driver, scm);
         this.requestHandler = requestHandler;
     }
 
     @Override
     public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs) {
         LOG.info("Updating state TC: " + commitTimestamp.toPrimitive());
-        requestHandler.applyOperation(TransactionManagerOperation.createUpdateState(startTimestamp, commitTimestamp, LocalDateTime.now()),
+        requestHandler.applyOperation(StateMachineOperation.createUpdateState(startTimestamp, commitTimestamp, LocalDateTime.now()),
                 new CompletableClosure<Void>(cfs));
     }
 
@@ -37,6 +37,10 @@ public class RaftTransactionManagerImpl extends RaftTransactionManager {
         return this.leaderTerm.get() > 0;
     }
 
+    @Override
+    public void garbageCollection(Timestamp<Long> lowWaterMark) {
+        requestHandler.applyOperation(StateMachineOperation.createGarbageCollection(lowWaterMark), new CompletableClosure<>(null));
+    }
 
     public void setTerm(long term){
         this.leaderTerm.set(term);
