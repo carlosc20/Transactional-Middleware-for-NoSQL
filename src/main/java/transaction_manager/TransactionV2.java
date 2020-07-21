@@ -43,7 +43,7 @@ public class TransactionV2 implements Transaction{
     }
 
     @Override
-    public byte[] read(byte[] key) {
+    public byte[] read(byte[] key) throws OperationFailedException {
         // procura no WriteSet da transação, se já tiver alguma operação
         ByteArrayWrapper k = new ByteArrayWrapper(key);
         if (writeMap.containsKey(k)) {
@@ -73,15 +73,13 @@ public class TransactionV2 implements Transaction{
                 return gm.getValue();
             }
         } catch (InterruptedException | ExecutionException | NPVSOutOfDateException e) {
-            // TODO abort?????
-            e.printStackTrace();
+            throw new OperationFailedException();
         }
-        return null;
     }
 
 
     @Override
-    public List<byte[]> scan(List<byte[]> keys) {
+    public List<byte[]> scan(List<byte[]> keys) throws OperationFailedException {
         ArrayList<byte[]> list = new ArrayList<>();
         for(byte[] key : keys)
             list.add(read(key));

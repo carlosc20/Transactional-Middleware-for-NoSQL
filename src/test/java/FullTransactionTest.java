@@ -1,5 +1,6 @@
 import io.atomix.utils.net.Address;
 import org.junit.Test;
+import transaction_manager.OperationFailedException;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
@@ -20,7 +21,7 @@ public class FullTransactionTest {
 
     @Test
     //state must be initial
-    public void writeThenRead() throws InterruptedException, ExecutionException {
+    public void writeThenRead() throws InterruptedException, ExecutionException, OperationFailedException {
         //new NPVSServer(20000).start();
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
         TransactionController transactionController = new TransactionController(Address.from(23415), tms);

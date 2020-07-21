@@ -1,6 +1,7 @@
 package runnable_tests;
 
 import io.atomix.utils.net.Address;
+import transaction_manager.OperationFailedException;
 import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
 import transaction_manager.TransactionManager;
@@ -12,25 +13,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class LoadTest {
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
 
-        testParallel(30000);
+        testParallelSingle(30000);
         //testSequential(30000);
     }
 
     final static int KEY_POOL = 100;
     final static int CLIENTS = 2;
-    final static int TRANSACTIONS = 10; // sequential -> dividido pelos clients, parallel -> por client
+    final static int TRANSACTIONS = 100; // sequential -> dividido pelos clients, parallel -> por client
     final static int WRITES = 2;
     final static int READS = 2;
 
 
     static void read(Transaction tx, Random rnd) {
         String key = String.valueOf(rnd.nextInt(KEY_POOL));
-        tx.read(key.getBytes());
+        try {
+            tx.read(key.getBytes());
+        } catch (OperationFailedException e) {
+            e.printStackTrace();
+        }
     }
 
     static void write(Transaction tx, Random rnd) {
@@ -39,62 +47,55 @@ public class LoadTest {
         tx.write(key.getBytes(), value.getBytes());
     }
 
-    static void testSequential(int serverPort) throws ExecutionException, InterruptedException {
+    static void testParallelSingle(int serverPort) throws ExecutionException, InterruptedException {
+
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+
+        Random rnd = new Random(0);
 
         Timer timer = new Timer();
         timer.start();
 
+        TransactionManager tms = new RaftTransactionManagerStub( "manager", "127.0.0.1:8081,127.0.0.1:8082");;
+        TransactionController tc = new TransactionController(Address.from(60000), tms);
+        tc.buildContext();
 
-        List<TransactionController> controllers = new ArrayList<>();
-        for (int i = 0; i < CLIENTS; i++) {
-            TransactionManager tms = new TransactionManagerStub(50000 + i, serverPort);
-            TransactionController tc = new TransactionController(Address.from(60000 + i), tms);
-            tc.buildContext();
-            controllers.add(tc);
-        }
-        System.out.println("Controllers ready");
-        timer.addCheckpoint("Controllers created with context");
+        timer.addCheckpoint("start");
+        for (int j = 0; j < TRANSACTIONS; j++) {
+            pool.execute(() -> {
+                try {
+                    Transaction tx = tc.startTransaction();
 
-        int conflicts = 0;
-
-        Random rnd = new Random();
-        for (int i = 0; i < TRANSACTIONS; i++) {
-            int n = rnd.nextInt(CLIENTS);
-            TransactionController tc = controllers.get(n);
-            Transaction tx = tc.startTransaction();
-            timer.addCheckpoint("Transaction started " + i);
-
-
-            for (int r = 0, w = 0; r + w < READS + WRITES;) {
-                if(r >= READS ) {
-                    write(tx, rnd);
-                    timer.addCheckpoint("Write " + i);
-                    w++;
-                } else  if(w >= WRITES) {
-                    read(tx, rnd);
-                    timer.addCheckpoint("Read " + i);
-                    r++;
-                } else {
-                    if (rnd.nextBoolean()) {
-                        read(tx, rnd);
-                        timer.addCheckpoint("Read " + i);
-                        r++;
-                    } else {
-                        write(tx, rnd);
-                        timer.addCheckpoint("Write " + i);
-                        w++;
+                    for (int r = 0, w = 0; r + w < READS + WRITES;) {
+                        if(r >= READS ) {
+                            write(tx, rnd);
+                            w++;
+                        } else  if(w >= WRITES) {
+                            read(tx, rnd);
+                            r++;
+                        } else {
+                            if (rnd.nextBoolean()) {
+                                read(tx, rnd);
+                                r++;
+                            } else {
+                                write(tx, rnd);
+                                w++;
+                            }
+                        }
                     }
-                }
-            }
 
-            if(!tx.commit()) {
-                conflicts++;
-            }
-            timer.addCheckpoint("Transaction commited " + i);
+                    if(!tx.commit()) {
+                        System.out.println("Conflict");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
         }
 
-        System.out.println("Conflicts: " + conflicts);
+        pool.awaitTermination(60, TimeUnit.SECONDS);
 
+        timer.addCheckpoint("end");
         timer.print();
     }
 
@@ -169,8 +170,69 @@ public class LoadTest {
         }
 
         for (Timer t : timers) {
-            t.printStats();
+            t.print();
         }
     }
+
+    static void testSequential(int serverPort) throws ExecutionException, InterruptedException {
+
+        Timer timer = new Timer();
+        timer.start();
+
+
+        List<TransactionController> controllers = new ArrayList<>();
+        for (int i = 0; i < CLIENTS; i++) {
+            TransactionManager tms = new TransactionManagerStub(50000 + i, serverPort);
+            TransactionController tc = new TransactionController(Address.from(60000 + i), tms);
+            tc.buildContext();
+            controllers.add(tc);
+        }
+        System.out.println("Controllers ready");
+        timer.addCheckpoint("Controllers created with context");
+
+        int conflicts = 0;
+
+        Random rnd = new Random();
+        for (int i = 0; i < TRANSACTIONS; i++) {
+            int n = rnd.nextInt(CLIENTS);
+            TransactionController tc = controllers.get(n);
+            Transaction tx = tc.startTransaction();
+            timer.addCheckpoint("Transaction started " + i, "start");
+
+
+            for (int r = 0, w = 0; r + w < READS + WRITES;) {
+                if(r >= READS ) {
+                    write(tx, rnd);
+                    timer.addCheckpoint("Write " + i, "write");
+                    w++;
+                } else  if(w >= WRITES) {
+                    read(tx, rnd);
+                    timer.addCheckpoint("Read " + i, "read");
+                    r++;
+                } else {
+                    if (rnd.nextBoolean()) {
+                        read(tx, rnd);
+                        timer.addCheckpoint("Read " + i, "read");
+                        r++;
+                    } else {
+                        write(tx, rnd);
+                        timer.addCheckpoint("Write " + i, "write");
+                        w++;
+                    }
+                }
+            }
+
+            if(!tx.commit()) {
+                conflicts++;
+            }
+            timer.addCheckpoint("Transaction commited " + i, "commit");
+        }
+
+        System.out.println("Conflicts: " + conflicts);
+
+        timer.print();
+    }
+
+
 
 }

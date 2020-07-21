@@ -46,7 +46,7 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    public byte[] read(byte[] key) {
+    public byte[] read(byte[] key) throws OperationFailedException {
         // procura no WriteSet da transação, se já tiver alguma operação
         ByteArrayWrapper k = new ByteArrayWrapper(key);
         if (writeMap.containsKey(k)) {
@@ -70,10 +70,8 @@ public class TransactionImpl implements Transaction {
                 }
             }
         } catch (InterruptedException | ExecutionException | NPVSOutOfDateException e) {
-            // TODO
-            e.printStackTrace();
+            throw new OperationFailedException();
         }
-        return null;
     }
 
     private byte[] getFromNPVS(ByteArrayWrapper key) throws NPVSOutOfDateException, ExecutionException, InterruptedException {
@@ -88,7 +86,7 @@ public class TransactionImpl implements Transaction {
 
 
     @Override
-    public List<byte[]> scan(List<byte[]> keys) {
+    public List<byte[]> scan(List<byte[]> keys) throws OperationFailedException {
         ArrayList<byte[]> list = new ArrayList<>();
         for(byte[] key : keys)
             list.add(read(key));

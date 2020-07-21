@@ -5,8 +5,8 @@ public interface Transaction {
 
     void write(byte[] key, byte[] value);
     void delete(byte[] key);
-    byte[] read(byte[] key);
-    List<byte[]> scan(List<byte[]> keys);
+    byte[] read(byte[] key) throws OperationFailedException;
+    List<byte[]> scan(List<byte[]> keys) throws OperationFailedException;
 
     Boolean commit();
 }
