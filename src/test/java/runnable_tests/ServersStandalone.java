@@ -18,8 +18,8 @@ public class ServersStandalone {
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
 
-        new NPVSServer(20000).start();
-        new NPVSServer(20001).start();
+        new NPVSServer(20000, false).start();
+        new NPVSServer(20001, false).start();
         System.out.println("NPVS servers ready");
 
         int serverPort = 30000;

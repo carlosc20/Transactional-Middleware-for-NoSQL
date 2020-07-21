@@ -34,8 +34,8 @@ public class ServersRaft {
             }
         }).start();
 
-        new Thread(() ->  new NPVSServer(20000).start()).start();
-        new Thread(() -> new NPVSServer(20001).start()).start();
+        new Thread(() ->  new NPVSServer(20000, true).start()).start();
+        new Thread(() -> new NPVSServer(20001, true).start()).start();
     }
 
     private static void startRaft(String dataPath, String groupId, String serverIdStr, String initConfStr, int offset) throws IOException {

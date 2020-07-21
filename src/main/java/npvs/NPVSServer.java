@@ -22,9 +22,9 @@ public class NPVSServer {
     private final ManagedMessagingService mms;
     private final Serializer s;
     private final AbstractNPVS npvs;
-    private final NPVSRaftClient rms;
+    private NPVSRaftClient rms = null;
 
-    public NPVSServer(int myPort){
+    public NPVSServer(int myPort, boolean withRaft){
 
         s = new SerializerBuilder()
                 .withRegistrationRequired(false)
@@ -34,12 +34,13 @@ public class NPVSServer {
                 Address.from(myPort),
                 new MessagingConfig());
         this.npvs =  new NPVSImplBS(); //new NPVSImplBSConcurrent();
-
-       this.rms = new NPVSRaftClient("manager", "127.0.0.1:8081,127.0.0.1:8082");
+        if (withRaft)
+            this.rms = new NPVSRaftClient("manager", "127.0.0.1:8081,127.0.0.1:8082");
     }
 
     public void start(){
-        this.npvs.setRebootTs(rms.getTimestamp());
+        if (rms != null)
+            this.npvs.setRebootTs(rms.getTimestamp());
         mms.start();
         mms.registerHandler("get", (a,b) -> {
             ReadMessage rm = s.decode(b);
@@ -74,6 +75,6 @@ public class NPVSServer {
     }
 
     public static void main(String[] args) throws UnknownHostException {
-        new NPVSServer(20001).start();
+        new NPVSServer(20001, false).start();
     }
 }

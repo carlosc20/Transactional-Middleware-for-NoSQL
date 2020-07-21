@@ -26,14 +26,14 @@ public class NPVSLoadTest {
 
         int keyPool = 1000;
         int valuePool = 1000;
-
+        boolean withRaft = false;
         // initializing servers
         List<String> npvsServers = new ArrayList<>();
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
         NPVSStub npvs = new NPVSStub(Address.from(10000), npvsServers);
-        new NPVSServer(20000).start();
-        new NPVSServer(20001).start();
+        new NPVSServer(20000,withRaft).start();
+        new NPVSServer(20001,withRaft).start();
 
         Timer timer = new Timer();
         timer.addCheckpoint("start");

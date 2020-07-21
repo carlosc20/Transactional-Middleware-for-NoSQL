@@ -32,12 +32,13 @@ public class NPVSTest {
     @Test
     public void writeRead() throws InterruptedException, UnknownHostException {
 
+        boolean withRaft = false;
         List<String> npvsServers = new ArrayList<>();
         npvsServers.add("localhost:20000");
         npvsServers.add("localhost:20001");
         npvs = new NPVSStub(Address.from(10000), npvsServers);
-        new NPVSServer(20000).start();
-        new NPVSServer(20001).start();
+        new NPVSServer(20000, withRaft).start();
+        new NPVSServer(20001, withRaft).start();
 
         WriteMapsBuilder wmb = new WriteMapsBuilder();
         ExecutorService taskExecutor = Executors.newFixedThreadPool(8);

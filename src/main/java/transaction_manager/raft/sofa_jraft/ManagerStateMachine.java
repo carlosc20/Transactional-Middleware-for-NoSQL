@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static transaction_manager.raft.sofa_jraft.StateMachineOperation.*;
@@ -35,9 +37,11 @@ public class ManagerStateMachine extends StateMachineAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ManagerStateMachine.class);
 
     private final RaftTransactionManagerImpl transactionManager;
+    private final ExecutorService singleExecutor;
 
     public ManagerStateMachine(int batchTimeout, long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
         super();
+        this.singleExecutor = Executors.newSingleThreadExecutor();
         this.transactionManager = new RaftTransactionManagerImpl(batchTimeout,timestep, npvs, driver, scm, requestHandler);
     }
 
