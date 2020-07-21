@@ -13,7 +13,11 @@ import transaction_manager.utils.ByteArrayWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class TransactionImpl implements Transaction {
 
@@ -23,6 +27,7 @@ public class TransactionImpl implements Transaction {
     private final TransactionManager serverStub;
     private final Timestamp<Long> ts;
     private boolean latestTimestamp;
+    private ExecutorService executor = Executors.newFixedThreadPool(8);
 
     private final HashMap<ByteArrayWrapper,byte[]> writeMap;
 
@@ -86,11 +91,29 @@ public class TransactionImpl implements Transaction {
 
 
     @Override
-    public List<byte[]> scan(List<byte[]> keys) throws OperationFailedException {
-        ArrayList<byte[]> list = new ArrayList<>();
-        for(byte[] key : keys)
-            list.add(read(key));
-        return list;
+    public List<byte[]> scan(List<byte[]> keys) {
+        ArrayList<byte[]> list = new ArrayList<>(keys);
+        List<CompletableFuture<byte[]>> values = list.stream()
+            .map(x ->
+                CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return read(x);
+                    } catch (OperationFailedException e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                }, executor))
+            .collect(Collectors.toList());
+
+        try {
+            return CompletableFuture.allOf(values.toArray(new CompletableFuture[0]))
+                    .thenApply(future -> values.stream()
+                            .map(CompletableFuture::join)
+                            .collect(Collectors.toList())).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
