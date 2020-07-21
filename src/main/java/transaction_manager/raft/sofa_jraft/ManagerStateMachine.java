@@ -35,13 +35,10 @@ import static transaction_manager.raft.sofa_jraft.StateMachineOperation.*;
 
 public class ManagerStateMachine extends StateMachineAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ManagerStateMachine.class);
-
     private final RaftTransactionManagerImpl transactionManager;
-    private final ExecutorService singleExecutor;
 
     public ManagerStateMachine(int batchTimeout, long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm, RequestHandler requestHandler){
         super();
-        this.singleExecutor = Executors.newSingleThreadExecutor();
         this.transactionManager = new RaftTransactionManagerImpl(batchTimeout,timestep, npvs, driver, scm, requestHandler);
     }
 

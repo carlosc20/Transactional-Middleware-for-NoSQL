@@ -14,12 +14,16 @@ import transaction_manager.standalone.TransactionManagerImpl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public abstract class RaftTransactionManager extends TransactionManagerImpl {
     private static final Logger LOG = LoggerFactory.getLogger(RaftTransactionManager.class);
+    final ExecutorService singleExecutor;
 
     public RaftTransactionManager(int batchTimeout, long timestep, NPVS<Long> npvs, KeyValueDriver driver, ServersContextMessage scm) {
         super(batchTimeout, timestep, npvs, driver, scm);
+        this.singleExecutor = Executors.newSingleThreadExecutor();
     }
 
     public abstract boolean isLeader();
@@ -30,28 +34,34 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cf);
 
     public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
-        getCertifier().setTombstone(leaderTime);
-        getCertifier().update(commitTimestamp);
-        removeFlush(startTimestamp);
+        CompletableFuture.runAsync(()-> {
+            getCertifier().setTombstone(leaderTime);
+            getCertifier().update(commitTimestamp);
+            removeFlush(startTimestamp);
+        }, singleExecutor);
     }
 
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
-        Timestamp<Long> provisionalCommitTimestamp = getCertifier().commit(tc.getWriteSet(), tc.getTimestamp());
-        if(provisionalCommitTimestamp.toPrimitive() > 0) {
-            LOG.info("Putting non acked TC={}", provisionalCommitTimestamp.toPrimitive());
-            //tc.getTimestamp == startTimestamp in this case
-            if(isLeader())
-                return flushInBatch(tc.getWriteMap(), tc.getTimestamp(), provisionalCommitTimestamp, getCertifier().getCurrentCommitTs());
-            else
-                //return for a follower is irrelevant
-                return CompletableFuture.completedFuture(null);
-        }
-        return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
+        return CompletableFuture.supplyAsync(() -> getCertifier().commit(tc.getWriteSet(), tc.getTimestamp()), singleExecutor)
+            .thenCompose((provisionalCommitTimestamp) -> {
+                if(provisionalCommitTimestamp.toPrimitive() > 0) {
+                    LOG.info("Putting non acked TC={}", provisionalCommitTimestamp.toPrimitive());
+                    //tc.getTimestamp == startTimestamp in this case
+                    if(isLeader())
+                        return flushInBatch(tc.getWriteMap(), tc.getTimestamp(), provisionalCommitTimestamp, getCertifier().getCurrentCommitTs());
+                    else
+                        //return for a follower is irrelevant
+                        return CompletableFuture.completedFuture(null);
+                }
+                return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
+            });
     }
 
     public void abort(Timestamp<Long> startTimestamp){
-        getCertifier().transactionEnded(startTimestamp);
+        CompletableFuture.runAsync(() -> {
+            getCertifier().transactionEnded(startTimestamp);
+        }, singleExecutor);
     }
 
     public void setState(State s){

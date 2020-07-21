@@ -47,22 +47,22 @@ public abstract class TransactionManagerService {
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs);
 
     public void flush(FlushMessage flushMessage, Timestamp<Long> provisionalCommitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs) {
-        //cfs are empty in this case
-        Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
-        CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
-        CompletableFuture<Timestamp<Long>> cf = new CompletableFuture<>();
-        consistentKeyValues.thenComposeAsync(wm -> saveToNPVS(flushMessage), executorService)
-            .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
-            .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
-            .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cfs))
-            .thenAccept(x -> commitControlHandler.completeDeliveries());
+        CompletableFuture.runAsync(() -> {
+            Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
+            CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
+            consistentKeyValues.thenComposeAsync(wm -> saveToNPVS(flushMessage), executorService)
+                    .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
+                    .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
+                    .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cfs))
+                    .thenAccept(x -> commitControlHandler.completeDeliveries());
+        }, executorService);
     }
 
     public CompletableFuture<Map<ByteArrayWrapper, byte[]>> getPreviousConsistentValues(Map<ByteArrayWrapper, byte[]> writeMap){
         LOG.info("Fetching consistent key/values that belong to the commiting transaction from the DB");
         List<CompletableFuture<KeyValue>> keyValues =  writeMap.keySet()
                 .stream()
-                .map(key -> driver.getWithoutTS(key).thenApply(value -> new KeyValue(key, value)))
+                .map(key -> driver.getWithoutTS(key).thenApplyAsync(value -> new KeyValue(key, value), executorService))
                 .collect(Collectors.toList());
 
         return CompletableFuture.allOf(keyValues.toArray(new CompletableFuture[0]))
