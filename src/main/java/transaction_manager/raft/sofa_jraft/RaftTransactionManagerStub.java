@@ -25,19 +25,19 @@ public class RaftTransactionManagerStub implements TransactionManager {
     private final CliClientServiceImpl cliClientService;
     private final String groupId;
     private PeerId leader;
+    private Configuration conf;
 
 
     public RaftTransactionManagerStub(String groupId, String confStr){
         this.groupId = groupId;
-        Configuration conf = new Configuration();
+        this.conf = new Configuration();
         if (!conf.parse(confStr)) {
             throw new IllegalArgumentException("Fail to parse conf:" + confStr);
         }
-        RouteTable.getInstance().updateConfiguration(groupId, conf);
         cliClientService = new CliClientServiceImpl();
         cliClientService.init(new CliOptions());
         try {
-            leader = refreshLeader(cliClientService, groupId);
+            leader = refreshLeader(cliClientService, groupId, conf);
         } catch (TimeoutException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -77,7 +77,7 @@ public class RaftTransactionManagerStub implements TransactionManager {
     @Override
     public ServersContextMessage getServersContext() {
         try {
-            leader = refreshLeader(cliClientService, groupId);
+            leader = refreshLeader(cliClientService, groupId, conf);
             return getResponseFromFollower(cliClientService, new ServerContextRequestMessage(), leader);
         } catch (InterruptedException | RemotingException | TimeoutException e) {
             e.printStackTrace();

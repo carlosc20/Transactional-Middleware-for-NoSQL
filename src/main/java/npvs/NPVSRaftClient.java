@@ -22,18 +22,18 @@ public class NPVSRaftClient {
     private final CliClientServiceImpl cliClientService;
     private PeerId leader;
     private String groupId;
+    private Configuration conf;
 
     public NPVSRaftClient(String groupId, String confStr){
-        Configuration conf = new Configuration();
+        this.conf = new Configuration();
         if (!conf.parse(confStr)) {
             throw new IllegalArgumentException("Fail to parse conf:" + confStr);
         }
-        RouteTable.getInstance().updateConfiguration(groupId, conf);
         cliClientService = new CliClientServiceImpl();
         cliClientService.init(new CliOptions());
-        groupId = groupId;
+        this.groupId = groupId;
         try {
-            leader = refreshLeader(cliClientService, groupId);
+            leader = refreshLeader(cliClientService, groupId, conf);
         } catch (TimeoutException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -42,7 +42,7 @@ public class NPVSRaftClient {
     @SuppressWarnings("unchecked")
     public Timestamp<Long> getTimestamp() {
         try {
-            leader = refreshLeader(cliClientService, groupId);
+            leader = refreshLeader(cliClientService, groupId, conf);
             return getResponseFromFollower(cliClientService, new GetTimestamp(), leader);
         } catch (InterruptedException | RemotingException | TimeoutException e) {
             e.printStackTrace();
