@@ -37,6 +37,7 @@ public class RaftMessagingService {
             return new RaftInfo<>(vr.getValue());
     }
 
+    //must perform a refresh before using it
     @SuppressWarnings("unchecked")
     public static  <Q,R> R getResponseFromFollower(CliClientServiceImpl cliClientService, Q query, PeerId leader) throws RemotingException, InterruptedException {
         List<PeerId> pps = RouteTable.getInstance().getConfiguration("manager").getPeers();

@@ -21,7 +21,7 @@ public class NPVSRaftClient {
 
     private final CliClientServiceImpl cliClientService;
     private PeerId leader;
-
+    private String groupId;
 
     public NPVSRaftClient(String groupId, String confStr){
         Configuration conf = new Configuration();
@@ -31,6 +31,7 @@ public class NPVSRaftClient {
         RouteTable.getInstance().updateConfiguration(groupId, conf);
         cliClientService = new CliClientServiceImpl();
         cliClientService.init(new CliOptions());
+        groupId = groupId;
         try {
             leader = refreshLeader(cliClientService, groupId);
         } catch (TimeoutException | InterruptedException e) {
@@ -41,8 +42,9 @@ public class NPVSRaftClient {
     @SuppressWarnings("unchecked")
     public Timestamp<Long> getTimestamp() {
         try {
+            leader = refreshLeader(cliClientService, groupId);
             return getResponseFromFollower(cliClientService, new GetTimestamp(), leader);
-        } catch (InterruptedException | RemotingException e) {
+        } catch (InterruptedException | RemotingException | TimeoutException e) {
             e.printStackTrace();
         }
         return null;

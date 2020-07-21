@@ -77,8 +77,9 @@ public class RaftTransactionManagerStub implements TransactionManager {
     @Override
     public ServersContextMessage getServersContext() {
         try {
+            leader = refreshLeader(cliClientService, groupId);
             return getResponseFromFollower(cliClientService, new ServerContextRequestMessage(), leader);
-        } catch (InterruptedException | RemotingException e) {
+        } catch (InterruptedException | RemotingException | TimeoutException e) {
             e.printStackTrace();
         }
         return null;
