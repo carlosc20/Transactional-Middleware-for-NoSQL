@@ -50,7 +50,7 @@ public class TransactionImpl implements Transaction {
         // procura no WriteSet da transação, se já tiver alguma operação
         ByteArrayWrapper k = new ByteArrayWrapper(key);
         if (writeMap.containsKey(k)) {
-            System.out.println("locally");
+            //System.out.println("locally");
             LOG.info("Transaction: {} -> Value of key: {} was found locally",ts.toPrimitive(), k.toString());
             return writeMap.get(k);
         }
@@ -61,13 +61,13 @@ public class TransactionImpl implements Transaction {
             else {
                 GetMessage gm = driver.get(k).get();
                 if (gm.getTs().isAfter(ts)) {
-                    System.out.println("npvs");
+                    //System.out.println("npvs");
                     LOG.info("Transaction: {} no longer on latest snapshot view, latest version: {}", ts.toPrimitive(), gm.getTs().toPrimitive());
                     this.latestTimestamp = false;
                     return getFromNPVS(k);
                 }
                 else {
-                    System.out.println("bd");
+                    //System.out.println("bd");
                     LOG.info("Transaction: {} -> Value of key: {} was fetched from the DB", ts.toPrimitive(), k.toString());
                     return gm.getValue();
                 }

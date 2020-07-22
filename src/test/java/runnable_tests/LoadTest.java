@@ -28,9 +28,9 @@ public class LoadTest {
 
     final static int KEY_POOL = 100;
     final static int CLIENTS = 2;
-    final static int TRANSACTIONS = 1000; // sequential -> dividido pelos clients, parallel -> por client
+    final static int TRANSACTIONS = 100; // sequential -> dividido pelos clients, parallel -> por client
     final static int WRITES = 100;
-    final static int READS = 100;
+    final static int READS = 0;
 
 
     static void read(Transaction tx, Random rnd) {
@@ -302,12 +302,13 @@ public class LoadTest {
                     for (int j = 0; j < READS; j++) {
                         read(tx,rnd);
                     }
-
                     if (WRITES > 0) {
                         for (int j = 0; j < WRITES; j++) {
                             write(tx,rnd);
                         }
                     }
+                    tx.commit();
+                    System.out.println("commited");
                 } catch (ExecutionException | InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -319,6 +320,32 @@ public class LoadTest {
         timer.addCheckpoint("End");
         timer.print();
     }
+
+    /*
+    for (int i = 0; i < TRANSACTIONS; i++) {
+            int t = i;
+            pool.execute(() -> {
+                try {
+                    Transaction tx = tc.startTransaction();
+                    timer.addCheckpoint("start " + t, "start");
+                    for (int j = 0; j < READS; j++) {
+                        read(tx,rnd);
+                    }
+                    timer.addCheckpoint("reads " + t, "read");
+                    if (WRITES > 0) {
+                        for (int j = 0; j < WRITES; j++) {
+                            write(tx,rnd);
+                        }
+                    }
+                    timer.addCheckpoint("write " + t, "write");
+                    tx.commit();
+                    timer.addCheckpoint("commit " + t, "commit");
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+     */
 
     static void testMultiRaft(int serverPort) throws ExecutionException, InterruptedException {
 
@@ -349,6 +376,8 @@ public class LoadTest {
                             write(tx,rnd);
                         }
                     }
+                    tx.commit();
+                    //System.out.println("commited");
                 } catch (ExecutionException | InterruptedException e) {
                     e.printStackTrace();
                 }

@@ -71,7 +71,6 @@ public class Timer {
                 print(i, c.time - beginning.time, c.time - checkpoints.get(i-1).time, c.info);
             }
         }
-        this.checkpoints.clear();
     }
 
     public void printStats() {
@@ -89,8 +88,9 @@ public class Timer {
 
         for(int i = 1; i<checkpoints.size(); i++){
             Checkpoint c = checkpoints.get(i);
-            long total = c.time - beginning.time;
-            long sinceLast = c.time - checkpoints.get(i-1).time;
+
+            //long total = timeUnit.convert(c.time - beginning.time, TimeUnit.NANOSECONDS);
+            long sinceLast = timeUnit.convert(c.time - checkpoints.get(i-1).time, TimeUnit.NANOSECONDS);
             String category = c.category;
 
             stats.addValue(sinceLast);
