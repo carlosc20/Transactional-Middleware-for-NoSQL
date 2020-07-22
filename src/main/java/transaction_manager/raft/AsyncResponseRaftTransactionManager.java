@@ -34,6 +34,7 @@ public abstract class AsyncResponseRaftTransactionManager extends RaftTransactio
                     LOG.info("Putting non acked TC={}", provisionalCommitTimestamp.toPrimitive());
                     //tc.getTimestamp == startTimestamp in this case
                     if(isLeader()) {
+                        //another thread will execute this
                         flushInBatch(tc.getWriteMap(), tc.getTimestamp(), provisionalCommitTimestamp, getCertifier().getCurrentCommitTs());
                         return CompletableFuture.completedFuture(provisionalCommitTimestamp);
                     }

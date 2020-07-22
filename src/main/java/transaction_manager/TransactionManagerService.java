@@ -15,10 +15,7 @@ import transaction_manager.raft.FlushAgainInfo;
 import transaction_manager.utils.ByteArrayWrapper;
 import transaction_manager.utils.KeyValue;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,7 +38,7 @@ public abstract class TransactionManagerService {
         this.scm = scm;
         this.commitControlHandler = new CommitOrderHandler();
         this.flushControlHandler = new PipelineWriterHandler(executorService);
-        this.nonAckedFlushes = new HashMap<>();
+        this.nonAckedFlushes = new LinkedHashMap<>();
     }
 
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cfs);
@@ -51,10 +48,10 @@ public abstract class TransactionManagerService {
             Map<ByteArrayWrapper, byte[]> writeMap = flushMessage.getWriteMap();
             CompletableFuture<Map<ByteArrayWrapper, byte[]>> consistentKeyValues = getPreviousConsistentValues(writeMap);
             consistentKeyValues.thenComposeAsync(wm -> saveToNPVS(flushMessage), executorService)
-                    .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
-                    .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
-                    .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cfs))
-                    .thenAccept(x -> commitControlHandler.completeDeliveries());
+                .thenCompose(x -> saveToDB(writeMap, provisionalCommitTimestamp))
+                .thenCompose(x -> commitControlHandler.deliver(provisionalCommitTimestamp))
+                .thenAccept(x -> updateState(flushMessage.getTransactionStartTimestamp(), provisionalCommitTimestamp, cfs))
+                .thenAccept(x -> commitControlHandler.completeDeliveries());
         }, executorService);
     }
 
@@ -86,9 +83,12 @@ public abstract class TransactionManagerService {
     public CompletableFuture<Void> saveToDB(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp){
         LOG.info("Putting new key/values in the DB with TC: {}", provisionalCommitTimestamp.toPrimitive());
         if (writeMap.size() == 0) return CompletableFuture.completedFuture(null);
-        return flushControlHandler.put(driver.put(provisionalCommitTimestamp), driver.put(writeMap));
+        return flushControlHandler.put(provisionalCommitTimestamp,  driver.put(provisionalCommitTimestamp), driver.put(writeMap));
     }
 
+    public FlushControlHandler getFlushControlHandler() {
+        return flushControlHandler;
+    }
 
     public void setNonAckedFlush(FlushAgainInfo flushAgainInfo){
         nonAckedFlushes.put(flushAgainInfo.getTransactionStartTimestamp(), flushAgainInfo);

@@ -67,6 +67,7 @@ public abstract class BatchTransactionManagerService extends TransactionManagerS
                 clearState();
                 FlushMessage flushMessage = new FlushMessage(map, startUpperLimit, currentTimestamp);
                 setNonAckedFlush(new FlushAgainInfo(flushMessage, commitTimestamp));
+                getFlushControlHandler().putPipe(commitTimestamp);
                 getCommitControlHandler().putBatch(commitTimestamp);
                 flush(flushMessage, commitTimestamp, cfs);
             }, batchTimeout, TimeUnit.MILLISECONDS);

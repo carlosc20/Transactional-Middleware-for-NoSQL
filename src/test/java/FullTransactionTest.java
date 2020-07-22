@@ -22,8 +22,8 @@ public class FullTransactionTest {
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
         TransactionController transactionController = new TransactionController(Address.from(23415), tms);
         transactionController.buildContext();
-        TransactionImplOld t1 = (TransactionImplOld) transactionController.startTransaction();
-        TransactionImplOld t11 = (TransactionImplOld) transactionController.startTransaction();
+        TransactionImpl t1 = (TransactionImpl) transactionController.startTransaction();
+        TransactionImpl t11 = (TransactionImpl) transactionController.startTransaction();
 
         byte[] writeKey1 = "melao".getBytes();
         byte[] writeKey2 = "meloa".getBytes();
@@ -38,9 +38,9 @@ public class FullTransactionTest {
         assertTrue("Shoudnt conflict", result1);
 
         //new transaction to read new values and update them
-        TransactionImplOld t2 = (TransactionImplOld)transactionController.startTransaction();
+        TransactionImpl t2 = (TransactionImpl)transactionController.startTransaction();
         //new transaction that will not see t2 changes
-        TransactionImplOld t22 = (TransactionImplOld) transactionController.startTransaction();
+        TransactionImpl t22 = (TransactionImpl) transactionController.startTransaction();
 
         assertTrue("Must be bigger", t2.getTs().isAfter(t1.getTs()));
 

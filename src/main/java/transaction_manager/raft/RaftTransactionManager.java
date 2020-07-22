@@ -33,6 +33,9 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     @Override
     public abstract void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, List<CompletableFuture<Timestamp<Long>>> cf);
 
+    /*
+    called via raft operation
+     */
     public void updateState(Timestamp<Long> startTimestamp, Timestamp<Long> commitTimestamp, LocalDateTime leaderTime){
         CompletableFuture.runAsync(()-> {
             getCertifier().setTombstone(leaderTime);
@@ -44,7 +47,7 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
     @Override
     public CompletableFuture<Timestamp<Long>> tryCommit(TransactionContentMessage tc) {
         return CompletableFuture.supplyAsync(() -> getCertifier().commit(tc.getWriteSet(), tc.getTimestamp()), singleExecutor)
-            .thenCompose((provisionalCommitTimestamp) -> {
+            .thenComposeAsync((provisionalCommitTimestamp) -> {
                 if(provisionalCommitTimestamp.toPrimitive() > 0) {
                     LOG.info("Putting non acked TC={}", provisionalCommitTimestamp.toPrimitive());
                     //tc.getTimestamp == startTimestamp in this case
@@ -55,7 +58,7 @@ public abstract class RaftTransactionManager extends TransactionManagerImpl {
                         return CompletableFuture.completedFuture(null);
                 }
                 return CompletableFuture.completedFuture(new MonotonicTimestamp(-1));
-            });
+            }, singleExecutor);
     }
 
     public void abort(Timestamp<Long> startTimestamp){

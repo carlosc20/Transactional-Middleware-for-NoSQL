@@ -51,6 +51,8 @@ public abstract class AbstractCertifier implements Certifier<Long>{
     public abstract void update(Timestamp<Long> commitTimestamp);
 
     protected boolean isWritable(BitWriteSet newBws, Timestamp<Long> startTimestamp, Timestamp<Long> commitTs){
+        if (newBws.getSet().isEmpty())
+            return true;
         for (long i = truncateStartTS(startTimestamp); i < commitTs.toPrimitive(); i += timestep) {
             BitWriteSet oldBws = history.get(i);
             if (newBws.intersects(oldBws)) {

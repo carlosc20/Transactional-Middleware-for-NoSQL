@@ -4,6 +4,7 @@ import nosql.MongoAsynchKV;
 import nosql.messaging.GetMessage;
 import nosql.messaging.ScanMessage;
 import org.junit.Test;
+import transaction_manager.control.CommitOrderHandler;
 import transaction_manager.control.PipelineWriterHandler;
 import transaction_manager.utils.ByteArrayWrapper;
 import utils.timer.Timer;
@@ -95,6 +96,7 @@ public class KVDriverTest {
     public void timestampWritePipe() throws InterruptedException, ExecutionException {
         ExecutorService e = Executors.newFixedThreadPool(8);
         PipelineWriterHandler pipelineWriterHandler = new PipelineWriterHandler(e);
+        CommitOrderHandler commitOrderHandler = new CommitOrderHandler();
         WriteMapsBuilder wmb = new WriteMapsBuilder();
 
         for(int j = 0; j < 500; j++)
@@ -103,12 +105,17 @@ public class KVDriverTest {
         Timer timer = new Timer(TimeUnit.MILLISECONDS);
         timer.start();
         HashMap<ByteArrayWrapper, byte[]> writeMap = wmb.getWriteMap(1);
-        int size = 15000;
+        int size = 5000;
         CompletableFuture<?>[] futures = new CompletableFuture<?>[size];
         for(int i = 0; i < size; i++){
             final long l = i;
-            futures[i] = pipelineWriterHandler.put(mkv.put(new MonotonicTimestamp(l)), mkv.put(writeMap));
-        }
+            MonotonicTimestamp mt = new MonotonicTimestamp(l);
+            pipelineWriterHandler.putPipe(mt);
+            commitOrderHandler.putBatch(mt);
+            futures[i] = pipelineWriterHandler.put(mt, mkv.put(mt), mkv.put(writeMap)).thenAccept(x -> {
+                commitOrderHandler.deliver(mt);
+                commitOrderHandler.completeDeliveries();
+            });}
         CompletableFuture.allOf(futures).get();
         timer.print();
     }

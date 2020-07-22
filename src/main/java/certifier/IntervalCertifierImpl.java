@@ -31,7 +31,7 @@ public class IntervalCertifierImpl extends AbstractCertifier {
 
     @Override
     public CompletableFuture<Timestamp<Long>> start() {
-        if (currentCommitTs.toPrimitive() - currentStartTs.toPrimitive() == 1){
+        if (timestep + currentCommitTs.toPrimitive() - currentStartTs.toPrimitive() == 1){
             CompletableFuture<Void> cf = new CompletableFuture<>();
             startsOnWait.add(cf);
             return cf.thenApply(x -> {
@@ -57,9 +57,10 @@ public class IntervalCertifierImpl extends AbstractCertifier {
     @Override
     public Timestamp<Long> treatCommit(BitWriteSet newBws, Timestamp<Long> startTimestamp){
         if (isWritable(newBws, startTimestamp, provisionalCommitTs)) {
-            history.put(provisionalCommitTs, newBws);
             Timestamp<Long> res = new MonotonicTimestamp(provisionalCommitTs);
             provisionalCommitTs.add(timestep);
+            if(!newBws.getSet().isEmpty())
+                history.put(provisionalCommitTs, newBws);
             LOG.info("Transaction request with TS: {} commited to certifier. Aquired TC: {}", startTimestamp.toPrimitive(), provisionalCommitTs.toPrimitive());
             return res;
         }

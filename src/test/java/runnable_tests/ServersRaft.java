@@ -11,7 +11,7 @@ public class ServersRaft {
 
         new Thread(() -> {
             try {
-                startRaft("C:\\Users\\CarlosPeixotoAntunes\\Projects\\LEI-2019-20\\raft_server1",
+                startRaft("C:\\Users\\dantas\\Documents\\GitHub\\LEI-2019-20\\raft_server1",
                         "manager",
                         "127.0.0.1:8081",
                         "127.0.0.1:8081,127.0.0.1:8082",
@@ -24,7 +24,7 @@ public class ServersRaft {
 
         new Thread(() -> {
             try {
-                startRaft("C:\\Users\\CarlosPeixotoAntunes\\Projects\\LEI-2019-20\\raft_server2",
+                startRaft("C:\\Users\\dantas\\Documents\\GitHub\\LEI-2019-20\\raft_server2",
                         "manager",
                         "127.0.0.1:8082",
                         "127.0.0.1:8081,127.0.0.1:8082",

@@ -12,6 +12,8 @@ import transaction_manager.messaging.ServersContextMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TransactionController {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionController.class);
@@ -19,6 +21,7 @@ public class TransactionController {
     private KeyValueDriver driver;
     private final TransactionManager serverStub;
     private final Address npvsStubPort;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(8);
 
     public TransactionController(Address npvsStubPort, TransactionManager serverStub){
         this.serverStub = serverStub;
@@ -44,6 +47,6 @@ public class TransactionController {
         LOG.info("Asking server for a new start timestamp");
         Timestamp<Long> ts = serverStub.startTransaction().get();
         LOG.info("Received TS: {}", ts.toPrimitive());
-        return new TransactionImpl(npvs, driver, serverStub, ts);
+        return new TransactionImpl(npvs, driver, serverStub, ts, executorService);
     }
 }
