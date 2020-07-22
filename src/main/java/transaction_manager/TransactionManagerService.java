@@ -85,6 +85,7 @@ public abstract class TransactionManagerService {
 
     public CompletableFuture<Void> saveToDB(Map<ByteArrayWrapper, byte[]> writeMap, Timestamp<Long> provisionalCommitTimestamp){
         LOG.info("Putting new key/values in the DB with TC: {}", provisionalCommitTimestamp.toPrimitive());
+        if (writeMap.size() == 0) return CompletableFuture.completedFuture(null);
         return flushControlHandler.put(driver.put(provisionalCommitTimestamp), driver.put(writeMap));
     }
 
