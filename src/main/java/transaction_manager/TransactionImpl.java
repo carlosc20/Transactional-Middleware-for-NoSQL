@@ -23,6 +23,7 @@ public class TransactionImpl implements Transaction{
     private final Timestamp<Long> ts;
 
     private final HashMap<ByteArrayWrapper,byte[]> writeMap;
+    private boolean aborted;
 
     public TransactionImpl(NPVS<Long> npvs, KeyValueDriver driver, TransactionManager serverStub, Timestamp<Long> ts) {
         this.writeMap = new HashMap<>();
@@ -30,6 +31,7 @@ public class TransactionImpl implements Transaction{
         this.driver = driver;
         this.serverStub = serverStub;
         this.ts = ts;
+        this.aborted = false;
     }
 
     @Override
@@ -73,6 +75,7 @@ public class TransactionImpl implements Transaction{
                 return gm.getValue();
             }
         } catch (InterruptedException | ExecutionException | NPVSOutOfDateException e) {
+            aborted = true;
             throw new OperationFailedException();
         }
     }
@@ -88,24 +91,17 @@ public class TransactionImpl implements Transaction{
 
     @Override
     public Boolean commit() {
+        if(aborted)
+            return false;
+
         try {
             LOG.info("Transaction: {} committing", ts.toPrimitive());
             Timestamp<Long> ts = serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();
             return ts.toPrimitive() >= 0; // ts < 0 on error
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
+            return false;
         }
-        return null;
-    }
-
-    public Timestamp<Long> commitTs() {
-        try {
-            LOG.info("Transaction: {} committing", ts.toPrimitive());
-            return serverStub.tryCommit(new TransactionContentMessage(this.writeMap, this.ts)).get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     public Timestamp<Long> getTs() {
