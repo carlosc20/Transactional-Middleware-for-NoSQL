@@ -39,20 +39,8 @@ public class NPVSServer {
     }
 
     public void start(){
-        if (rms != null)
-            this.npvs.setRebootTs(rms.getTimestamp());
-        mms.start();
-        mms.registerHandler("get", (a,b) -> {
-            ReadMessage rm = s.decode(b);
-            if (rm == null) {
-                LOG.info("Received null on get, probably warmup from={}", a.toString());
-                return CompletableFuture.completedFuture(s.encode(null));
-            }
-            // LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
-            return npvs.get(rm.getKey(), rm.getTs())
-                        .thenApply(s::encode);
-        });
 
+        mms.start();
         mms.registerHandler("put", (a,b) -> {
             FlushMessage fm = s.decode(b);
             if (fm == null){
@@ -63,6 +51,21 @@ public class NPVSServer {
             return npvs.put(fm).thenApply(s::encode);
         });
 
+        System.out.println("NPVS server partially ready (puts only)");
+
+        if (rms != null)
+            this.npvs.setRebootTs(rms.getTimestamp());
+
+        mms.registerHandler("get", (a,b) -> {
+            ReadMessage rm = s.decode(b);
+            if (rm == null) {
+                LOG.info("Received null on get, probably warmup from={}", a.toString());
+                return CompletableFuture.completedFuture(s.encode(null));
+            }
+            // LOG.info("get request arrived with TS: {}",  rm.getTs().toPrimitive());
+            return npvs.get(rm.getKey(), rm.getTs())
+                        .thenApply(s::encode);
+        });
         mms.registerHandler("evict", (a,b) -> {
             Timestamp<Long> ts = s.decode(b);
             if (ts != null){

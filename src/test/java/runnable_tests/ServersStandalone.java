@@ -20,7 +20,6 @@ public class ServersStandalone {
 
         new NPVSServer(20000, false).start();
         new NPVSServer(20001, false).start();
-        System.out.println("NPVS servers ready");
 
         int serverPort = 30000;
         long timestep = 1000;
