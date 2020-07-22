@@ -45,7 +45,7 @@ public abstract class AbstractNPVS implements NPVS<Long>{
         }
         Timestamp<Long> incomingCurrentCommit = flushMessage.getCurrentTimestamp();
         if(incomingCurrentCommit.isAfter(currentCommitTs)){
-            // LOG.info("New currentCommit arrived. Clearing previous requests");
+            LOG.info("New currentCommit arrived. Clearing previous requests");
             currentCommitTs.set(incomingCurrentCommit);
             requestsMade.clear();
         }

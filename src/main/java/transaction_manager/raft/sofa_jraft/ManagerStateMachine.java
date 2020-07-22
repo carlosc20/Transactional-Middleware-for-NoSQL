@@ -66,7 +66,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
                 closure = (TransactionClosure) iter.done();
                 stateMachineOperation = closure.getStateMachineOperation();
             } else {
-                // Have to parse FetchAddRequest from this user log.
+                // Have to parse FetchAddRequest from this user log. (follower)
                 final ByteBuffer data = iter.getData();
                 try {
                     stateMachineOperation = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(
@@ -75,6 +75,7 @@ public class ManagerStateMachine extends StateMachineAdapter {
                     LOG.error("Fail to decode TransactionManagerOperation", e);
                 }
             }
+            //Se a closure é null, então quem está a aplicar a operação é um follower
             applyOperation(stateMachineOperation, closure);
             iter.next();
         }

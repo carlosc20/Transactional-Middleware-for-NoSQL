@@ -49,6 +49,8 @@ public class RequestHandler {
         closure.run(Status.OK());
     }
 
+
+    //Apply raft operations
     public void applyOperation(final StateMachineOperation op, final TransactionClosure<?> closure) {
         if (!isLeader()) {
             handlerNotLeaderError(closure);
@@ -59,6 +61,7 @@ public class RequestHandler {
             final Task task = new Task();
             task.setData(ByteBuffer.wrap(SerializerManager.getSerializer(SerializerManager.Hessian2).serialize(op)));
             task.setDone(closure);
+            //Apply raft operation
             this.raftTMServer.getNode().apply(task);
         } catch (CodecException e) {
             String errorMsg = "Fail to encode CounterOperation";
@@ -68,6 +71,8 @@ public class RequestHandler {
         }
     }
 
+
+    //Linearizable read with ReadIndex method
     public void getCurrentTimestamp(final TransactionClosure closure) {
         this.raftTMServer.getNode().readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
             @Override

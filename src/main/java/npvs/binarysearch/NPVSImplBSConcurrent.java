@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import transaction_manager.utils.ByteArrayWrapper;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,11 +64,18 @@ public class NPVSImplBSConcurrent extends AbstractNPVS {
         return CompletableFuture.allOf(futures);
     }
 
+    private boolean keyHasNotBeenUpdated(ByteArrayWrapper key, Timestamp<Long> ts){
+        List<Version> versions = versionsByKey.get(key);
+        return versions.get(versions.size() - 1).ts.isBefore(ts);
+    }
+
     @Override
     public CompletableFuture<NPVSReply> getImpl(ByteArrayWrapper key, Timestamp<Long> ts) {
-
+        if(!versionsByKey.containsKey(key) || keyHasNotBeenUpdated(key, ts)){
+            //LOG.info("No such key has been found: {}", key.toString());
+            return CompletableFuture.completedFuture(NPVSReply.UPTODATE());
+        }
         CompletableFuture<NPVSReply> cf = new CompletableFuture<>();
-
         executor.execute(() -> {
             if(!versionsByKey.containsKey(key)){
                 //LOG.info("No such key has been found: {}", key.toString());
