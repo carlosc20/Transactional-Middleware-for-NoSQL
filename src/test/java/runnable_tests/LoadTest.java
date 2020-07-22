@@ -23,14 +23,14 @@ public class LoadTest {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
 
         //testParallel(30000);
-        testMultiRaft(30000);
+        testMultiStandalone(30000);
     }
 
     final static int KEY_POOL = 100;
     final static int CLIENTS = 2;
-    final static int TRANSACTIONS = 100; // sequential -> dividido pelos clients, parallel -> por client
-    final static int WRITES = 100;
-    final static int READS = 0;
+    final static int TRANSACTIONS = 104; // sequential -> dividido pelos clients, parallel -> por client
+    final static int WRITES = 0;
+    final static int READS = 100;
 
 
     static void read(Transaction tx, Random rnd) {
@@ -296,8 +296,10 @@ public class LoadTest {
 
         Random rnd = new Random();
         for (int i = 0; i < TRANSACTIONS; i++) {
+            final int t = i;
             pool.execute(() -> {
                 try {
+                    System.out.println("start " + t);
                     Transaction tx = tc.startTransaction();
                     for (int j = 0; j < READS; j++) {
                         read(tx,rnd);
@@ -308,7 +310,9 @@ public class LoadTest {
                         }
                     }
                     tx.commit();
-                    System.out.println("commited");
+                    System.out.println("commit " + t);
+                    if(t == 0)
+                        timer.addCheckpoint("First start delay");
                 } catch (ExecutionException | InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -364,8 +368,10 @@ public class LoadTest {
 
         Random rnd = new Random();
         for (int i = 0; i < TRANSACTIONS; i++) {
+            final int t = i;
             pool.execute(() -> {
                 try {
+                    System.out.println("start " + t);
                     Transaction tx = tc.startTransaction();
                     for (int j = 0; j < READS; j++) {
                         read(tx,rnd);
@@ -377,7 +383,10 @@ public class LoadTest {
                         }
                     }
                     tx.commit();
-                    //System.out.println("commited");
+                    System.out.println("commit " + t);
+                    if(t == 0)
+                        timer.addCheckpoint("First start delay");
+
                 } catch (ExecutionException | InterruptedException e) {
                     e.printStackTrace();
                 }
