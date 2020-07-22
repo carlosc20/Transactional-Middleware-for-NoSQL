@@ -4,7 +4,6 @@ import certifier.Timestamp;
 import io.atomix.utils.net.Address;
 import nosql.KeyValueDriver;
 import nosql.MongoAsynchKV;
-import npvs.NPVS;
 import npvs.NPVSStub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +11,6 @@ import transaction_manager.messaging.ServersContextMessage;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class TransactionController {
@@ -42,7 +40,7 @@ public class TransactionController {
         }
     }
 
-    public TransactionImpl startTransaction() throws ExecutionException, InterruptedException {
+    public Transaction startTransaction() throws ExecutionException, InterruptedException {
         LOG.info("Asking server for a new start timestamp");
         Timestamp<Long> ts = serverStub.startTransaction().get();
         LOG.info("Received TS: {}", ts.toPrimitive());

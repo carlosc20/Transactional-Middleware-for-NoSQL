@@ -1,20 +1,11 @@
-import certifier.MonotonicTimestamp;
-import certifier.Timestamp;
 import io.atomix.utils.net.Address;
-import npvs.NPVSStub;
-import npvs.messaging.FlushMessage;
 import org.junit.Test;
+import transaction_manager.Transaction;
 import transaction_manager.TransactionController;
-import transaction_manager.TransactionImpl;
 import transaction_manager.TransactionManager;
 import transaction_manager.raft.sofa_jraft.RaftTransactionManagerStub;
 import transaction_manager.standalone.TransactionManagerStub;
-import utils.WriteMapsBuilder;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,7 +27,7 @@ public class RaftState {
         transactionController.buildContext();
 
         for(int i = 0; i < 100; i++){
-            TransactionImpl t1 = null;
+            Transaction t1 = null;
             try {
                 t1 = transactionController.startTransaction();
             } catch (ExecutionException executionException) {
@@ -65,7 +56,7 @@ public class RaftState {
     public void write() throws ExecutionException, InterruptedException {
         TransactionController transactionController = new TransactionController(Address.from(23415), tms);
         transactionController.buildContext();
-        TransactionImpl t = transactionController.startTransaction();
+        Transaction t = transactionController.startTransaction();
         byte[] writeKey1 = "melao1".getBytes();
         byte[] writeKey2 = "meloa1".getBytes();
 

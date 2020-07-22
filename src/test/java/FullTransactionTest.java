@@ -1,11 +1,7 @@
 import io.atomix.utils.net.Address;
 import org.junit.Test;
-import transaction_manager.OperationFailedException;
-import transaction_manager.TransactionController;
-import transaction_manager.TransactionImpl;
-import transaction_manager.TransactionManager;
+import transaction_manager.*;
 import transaction_manager.raft.sofa_jraft.RaftTransactionManagerStub;
-import transaction_manager.standalone.TransactionManagerStub;
 
 import java.util.concurrent.ExecutionException;
 
@@ -26,8 +22,8 @@ public class FullTransactionTest {
         //new TransactionManagerServer(30000, 30001, 20000, "mongodb://127.0.0.1:27017", "testeLei", "teste1").start();
         TransactionController transactionController = new TransactionController(Address.from(23415), tms);
         transactionController.buildContext();
-        TransactionImpl t1 = transactionController.startTransaction();
-        TransactionImpl t11 = transactionController.startTransaction();
+        TransactionImplOld t1 = (TransactionImplOld) transactionController.startTransaction();
+        TransactionImplOld t11 = (TransactionImplOld) transactionController.startTransaction();
 
         byte[] writeKey1 = "melao".getBytes();
         byte[] writeKey2 = "meloa".getBytes();
@@ -42,9 +38,9 @@ public class FullTransactionTest {
         assertTrue("Shoudnt conflict", result1);
 
         //new transaction to read new values and update them
-        TransactionImpl t2 = transactionController.startTransaction();
+        TransactionImplOld t2 = (TransactionImplOld)transactionController.startTransaction();
         //new transaction that will not see t2 changes
-        TransactionImpl t22 = transactionController.startTransaction();
+        TransactionImplOld t22 = (TransactionImplOld) transactionController.startTransaction();
 
         assertTrue("Must be bigger", t2.getTs().isAfter(t1.getTs()));
 

@@ -15,26 +15,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class TransactionV2 implements Transaction{
-    private static final Logger LOG = LoggerFactory.getLogger(TransactionImpl.class);
+// Implementação antiga de TransactionImpl
+public class TransactionImplOld implements Transaction {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TransactionImplOld.class);
     private final NPVS<Long> npvs;
     private final KeyValueDriver driver;
     private final TransactionManager serverStub;
     private final Timestamp<Long> ts;
+    private boolean latestTimestamp;
 
     private final HashMap<ByteArrayWrapper,byte[]> writeMap;
 
-    public TransactionV2(NPVS<Long> npvs, KeyValueDriver driver, TransactionManager serverStub, Timestamp<Long> ts) {
+    public TransactionImplOld(NPVS<Long> npvs, KeyValueDriver driver, TransactionManager serverStub, Timestamp<Long> ts) {
         this.writeMap = new HashMap<>();
         this.npvs = npvs;
         this.driver = driver;
         this.serverStub = serverStub;
         this.ts = ts;
+        this.latestTimestamp = true;
     }
 
     @Override
     public void write(byte[] key, byte[] value) {
-        writeMap.put(new ByteArrayWrapper(key), value);
+         writeMap.put(new ByteArrayWrapper(key), value);
     }
 
     @Override
@@ -47,34 +51,41 @@ public class TransactionV2 implements Transaction{
         // procura no WriteSet da transação, se já tiver alguma operação
         ByteArrayWrapper k = new ByteArrayWrapper(key);
         if (writeMap.containsKey(k)) {
+            //System.out.println("locally");
             LOG.info("Transaction: {} -> Value of key: {} was found locally",ts.toPrimitive(), k.toString());
             return writeMap.get(k);
         }
         try {
-            GetMessage gm = driver.get(k).get();
-            if (gm.getTs().isAfter(ts)) {
-                LOG.info("Transaction: {} no longer on latest snapshot view, latest version: {} checking npvs confirmation", ts.toPrimitive(), gm.getTs().toPrimitive());
-                NPVSReply reply = npvs.get(k, ts).get();
-                if (!reply.isSuccess()){
-                    LOG.info("Transaction: {} -> Value of key: {}, NPVS was out of date", ts.toPrimitive(), k.toString());
-                    throw new NPVSOutOfDateException();
-                }
-                else if (reply.wasUpdatedOutsideSnapshot()){
-                    LOG.info("Transaction: {} -> Value of key: {}, NPVS had newer versions outside current snapshot", ts.toPrimitive(), k.toString());
-                    return reply.getValue();
-                }
-                else {
-                    LOG.info("Transaction: {} -> Value of key: {} can be read from the database", ts.toPrimitive(), k.toString());
-                    return gm.getValue();
-                }
+            if (!latestTimestamp){
+                return getFromNPVS(k);
             }
             else {
-                LOG.info("Transaction: {} -> Value of key: {} was fetched from the DB", ts.toPrimitive(), k.toString());
-                return gm.getValue();
+                GetMessage gm = driver.get(k).get();
+                if (gm.getTs().isAfter(ts)) {
+                    //System.out.println("npvs");
+                    LOG.info("Transaction: {} no longer on latest snapshot view, latest version: {}", ts.toPrimitive(), gm.getTs().toPrimitive());
+                    this.latestTimestamp = false;
+                    return getFromNPVS(k);
+                }
+                else {
+                    //System.out.println("bd");
+                    LOG.info("Transaction: {} -> Value of key: {} was fetched from the DB", ts.toPrimitive(), k.toString());
+                    return gm.getValue();
+                }
             }
         } catch (InterruptedException | ExecutionException | NPVSOutOfDateException e) {
             throw new OperationFailedException();
         }
+    }
+
+    private byte[] getFromNPVS(ByteArrayWrapper key) throws NPVSOutOfDateException, ExecutionException, InterruptedException {
+        NPVSReply reply = npvs.get(key, ts).get();
+        if (!reply.isSuccess()) {
+            LOG.info("Transaction: {} -> Value of key: {}, NPVS was out of date", ts.toPrimitive(), key.toString());
+            throw new NPVSOutOfDateException();
+        }
+        LOG.info("Transaction: {} -> Value of key: {} was fetched from NPVS", ts.toPrimitive(), key.toString());
+        return reply.getValue();
     }
 
 

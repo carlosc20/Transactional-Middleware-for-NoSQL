@@ -23,13 +23,13 @@ public class LoadTest {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
 
         //testParallel(30000);
-        testMultiStandalone(30000);
+        testMultiRaft(30000);
     }
 
     final static int KEY_POOL = 100;
     final static int CLIENTS = 2;
     final static int TRANSACTIONS = 104; // sequential -> dividido pelos clients, parallel -> por client
-    final static int WRITES = 0;
+    final static int WRITES = 100;
     final static int READS = 100;
 
 
